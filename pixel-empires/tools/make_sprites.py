@@ -13,7 +13,7 @@ Técnica (según guías de Lospec / GameDev.net / PixelJoint):
 
 Uso: python3 make_sprites.py   -> escribe PNG y sprites.json en ../art
 """
-import colorsys, json, os
+import colorsys, contextlib, json, os
 from PIL import Image
 
 W = H = 32
@@ -53,8 +53,15 @@ TEAMS = {'azul': '#3a6fe0', 'rojo': '#d8403a'}
 
 # ---------------------------------------------------------------- lienzo
 class Canvas:
-    def __init__(self): self.g = [[None] * W for _ in range(H)]
+    def __init__(self): self.g = [[None] * W for _ in range(H)]; self.ox = self.oy = 0; self.glow = []
+    @contextlib.contextmanager
+    def at(self, dx=0, dy=0):
+        """Desplaza todo lo que se dibuje dentro del bloque (partes móviles)."""
+        self.ox += dx; self.oy += dy
+        try: yield
+        finally: self.ox -= dx; self.oy -= dy
     def px(self, m, x, y):
+        x += self.ox; y += self.oy
         if 0 <= x < W and 0 <= y < H: self.g[y][x] = m
     def rect(self, m, x0, y0, x1, y1):
         for y in range(y0, y1 + 1):
@@ -90,7 +97,7 @@ class Canvas:
                 if any(0 <= x + dx < W and 0 <= y + dy < H and t.g[y + dy][x + dx] for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))): self.px('ol', x, y)
         for y in range(H):
             for x in range(W):
-                if t.g[y][x]: self.g[y][x] = m
+                if t.g[y][x]: self.px(m, x, y)
 
 
 # ---------------------------------------------------------------- render
@@ -143,176 +150,225 @@ def render(cv, team_hex):
             nm, soft = best
             col = hx(FIXED['ol']) if nm in FIXED else outline_of(mats[nm], soft)
             o[x, y] = tuple(int(round(v)) for v in col) + (255,)
+    for (x, y, a) in cv.glow:
+        if 0 <= x < W and 0 <= y < H and g[y][x] is None and o[x, y][3] == 0: o[x, y] = (110, 240, 245, a)
     palette = {k: [to_hex(c) for c in v] for k, v in ramps.items()}
     return out, palette
 
 
+# ---------------------------------------------------------------- poses
+# body: 0 = arriba, 1 = abajo (el reposo es el punto más alto, así no se recorta la cabeza)
+# ll / lr: elevación del pie izq./der. (negativo = arriba)   s: balanceo de brazos
+# sw: vaivén de telas   sec: movimiento secundario (inercia de penachos, sombreros, orbe)
+class Pose:
+    def __init__(self, body=0, ll=0, lr=0, s=0, sw=0, sec=0, glow=0):
+        self.body, self.ll, self.lr, self.s, self.sw, self.sec, self.glow = body, ll, lr, s, sw, sec, glow
+
+def _seq(body, ll, lr, s, sw, glow=None):
+    n = len(body)
+    return [Pose(body[i], ll[i], lr[i], s[i], sw[i], body[i - 1] - body[i], (glow or [0] * n)[i]) for i in range(n)]
+
+# ciclo de caminata de 8 frames: contacto, recoil, paso, punto alto (x2, pie opuesto)
+WALK = _seq(body=[1, 1, 0, 0, 1, 1, 0, 0],
+            ll=[0, 0, 0, 0, -1, -1, -2, -1], lr=[-1, -1, -2, -1, 0, 0, 0, 0],
+            s=[1, 1, 0, 0, -1, -1, 0, 0], sw=[0, -1, -1, 0, 0, 1, 1, 0], glow=[1, 2, 1, 0, 1, 2, 1, 0])
+# reposo: respiración de 4 frames
+IDLE = _seq(body=[0, 0, 1, 1], ll=[0] * 4, lr=[0] * 4, s=[0] * 4, sw=[0, 0, 0, 0], glow=[0, 1, 2, 1])
+
+
 # ---------------------------------------------------------------- personajes
-def warrior():
-    c = Canvas()
-    # piernas y botas
-    c.rect('steel', 11, 22, 14, 27); c.rect('steel', 17, 22, 20, 27)
-    c.rect('leather', 10, 27, 14, 29); c.rect('leather', 17, 27, 21, 29)
-    # tabardo del equipo, cuerpo
-    c.rect('team', 11, 15, 20, 24); c.rect('team', 12, 25, 14, 25); c.rect('team', 17, 25, 19, 25)
-    # peto
-    c.poly('steel', [(10, 14), (21, 14), (20.5, 20), (11.5, 20)])
-    c.rect('steel', 14, 15, 17, 19)
-    c.line('gold', 15, 15, 15, 18); c.line('gold', 16, 15, 16, 18)
-    # cinturon
-    c.rect('leather', 10, 20, 21, 21); c.rect('gold', 15, 20, 16, 21)
-    # hombreras
-    c.ell('steel', 9.5, 15.5, 3, 2.6); c.ell('steel', 22.5, 15.5, 3, 2.6)
-    # brazo derecho (espada)
-    c.rect('steel', 22, 17, 24, 22); c.rect('leather', 22, 21, 24, 22)
-    # espada
-    def sword(t, m):
-        t.rect(m, 26, 5, 27, 19); t.px(m, 26, 4); t.px(m, 27, 4); t.px(m, 26, 3)
-        t.rect(m, 24, 20, 29, 21); t.rect(m, 26, 22, 27, 24); t.rect(m, 25, 25, 28, 25)
-    c.rim(sword, 'blade')
-    c.rect('gold', 24, 20, 29, 21); c.rect('leather', 26, 22, 27, 24); c.rect('gold', 25, 25, 28, 25)
-    c.px('leather', 22, 21)
-    # escudo redondo (izquierda)
-    def shield(t, m): t.ell(m, 6.5, 19.5, 5.3, 6)
-    c.rim(shield, 'steel')
-    c.ell('team', 6.5, 19.5, 4, 4.7)
-    c.rect('white', 6, 15, 6, 24); c.rect('white', 3, 19, 10, 19)
-    c.ell('gold', 6.5, 19.5, 1.6, 1.6)
-    c.rect('steel', 9, 17, 10, 19)
-    # cabeza y casco
-    c.ell('skin', 15.5, 10, 5, 5.2)
-    c.ell('steel', 15.5, 8.2, 5.8, 5.4)
-    c.rect('steel', 10, 9, 11, 14); c.rect('steel', 20, 9, 21, 14)
-    c.rect('skin', 12, 10, 19, 14); c.rect(None, 12, 14, 12, 14); c.rect(None, 19, 14, 19, 14)
-    c.rect('steel', 15, 9, 16, 12)
-    c.px('eye', 13, 12); c.px('eye', 18, 12)
-    c.px('mouth', 15, 14); c.px('mouth', 16, 14)
-    c.rect('steel', 10, 8, 21, 8)
-    # penacho
-    c.ell('team', 15.5, 2.4, 2.4, 2.6); c.rect('team', 15, 1, 19, 2); c.rect('team', 18, 2, 20, 5)
-    c.rect('gold', 13, 5, 18, 5)
+def warrior(P):
+    c = Canvas(); b = P.body
+    with c.at(0, P.ll):
+        c.rect('steel', 11, 22, 14, 27); c.rect('leather', 10, 27, 14, 29)
+    with c.at(0, P.lr):
+        c.rect('steel', 17, 22, 20, 27); c.rect('leather', 17, 27, 21, 29)
+    with c.at(0, b):
+        c.rect('team', 11, 15, 20, 24)
+        c.poly('steel', [(10, 14), (21, 14), (20.5, 20), (11.5, 20)])
+        c.rect('steel', 14, 15, 17, 19)
+        c.line('gold', 15, 15, 15, 18); c.line('gold', 16, 15, 16, 18)
+        c.rect('leather', 10, 20, 21, 21); c.rect('gold', 15, 20, 16, 21)
+    with c.at(P.sw, b):
+        c.rect('team', 12, 25, 14, 25); c.rect('team', 17, 25, 19, 25)
+    with c.at(0, b):
+        c.ell('steel', 9.5, 15.5, 3, 2.6); c.ell('steel', 22.5, 15.5, 3, 2.6)
+    # brazo y espada (se balancea)
+    with c.at(0, b - P.s):
+        c.rect('steel', 22, 17, 24, 22); c.rect('leather', 22, 21, 24, 22)
+        def sword(t, m):
+            t.rect(m, 26, 5, 27, 19); t.px(m, 26, 4); t.px(m, 27, 4); t.px(m, 26, 3)
+            t.rect(m, 24, 20, 29, 21); t.rect(m, 26, 22, 27, 24); t.rect(m, 25, 25, 28, 25)
+        c.rim(sword, 'blade')
+        c.rect('gold', 24, 20, 29, 21); c.rect('leather', 26, 22, 27, 24); c.rect('gold', 25, 25, 28, 25)
+        c.px('leather', 22, 21)
+    # escudo (contrafase)
+    with c.at(0, b + P.s):
+        def shield(t, m): t.ell(m, 6.5, 19.5, 5.3, 6)
+        c.rim(shield, 'steel')
+        c.ell('team', 6.5, 19.5, 4, 4.7)
+        c.rect('white', 6, 15, 6, 24); c.rect('white', 3, 19, 10, 19)
+        c.ell('gold', 6.5, 19.5, 1.6, 1.6)
+        c.rect('steel', 9, 17, 10, 19)
+    with c.at(0, b):
+        c.ell('skin', 15.5, 10, 5, 5.2)
+        c.ell('steel', 15.5, 8.2, 5.8, 5.4)
+        c.rect('steel', 10, 9, 11, 14); c.rect('steel', 20, 9, 21, 14)
+        c.rect('skin', 12, 10, 19, 14); c.px(None, 12, 14); c.px(None, 19, 14)
+        c.rect('steel', 15, 9, 16, 12)
+        c.px('eye', 13, 12); c.px('eye', 18, 12)
+        c.px('mouth', 15, 14); c.px('mouth', 16, 14)
+        c.rect('steel', 10, 8, 21, 8)
+    # penacho con inercia
+    with c.at(P.sw if P.sec == 0 else 0, b + P.sec):
+        c.ell('team', 15.5, 2.4, 2.4, 2.6); c.rect('team', 15, 1, 19, 2); c.rect('team', 18, 2, 20, 5)
+    with c.at(0, b):
+        c.rect('gold', 13, 5, 18, 5)
     return c
 
 
-def mage():
-    c = Canvas()
-    # tunica
-    c.poly('robe', [(11, 16), (20, 16), (23.5, 29), (8.5, 29)])
-    c.rect('leather', 11, 29, 14, 29); c.rect('leather', 17, 29, 20, 29)
-    c.rect('gold', 9, 27, 23, 28)
-    c.rect('hat', 12, 20, 19, 21); c.rect('gold', 15, 20, 16, 21)
-    c.line('hat', 15, 22, 14, 27); c.line('hat', 16, 22, 17, 27)
-    # mangas
-    c.poly('robe', [(7, 16), (11, 16), (11, 22), (6, 23)])
-    c.poly('robe', [(20, 16), (24, 16), (25, 22), (20, 22)])
-    c.rect('gold', 6, 22, 11, 22); c.rect('gold', 20, 22, 25, 22)
-    c.ell('skin', 6.5, 24, 1.5, 1.5)
-    c.rect('skin', 24, 22, 26, 24)
-    # baston
-    def staff(t, m): t.rect(m, 26, 7, 27, 29)
-    c.rim(staff, 'wood')
-    c.rect('gold', 25, 6, 28, 7)
-    # orbe con aura
-    c.ell('orb', 26.5, 3.4, 2.7, 2.7)
-    c.px('white', 25, 2)
-    # rostro, barba
-    c.ell('skin', 15.5, 12.5, 3.9, 3.3)
-    c.poly('beard', [(11.8, 13), (19.2, 13), (18.2, 19), (15.5, 23), (12.8, 19)])
-    c.rect('skin', 14, 12, 17, 13)
-    c.px('eye', 14, 12); c.px('eye', 17, 12)
-    c.rect('white', 13, 11, 14, 11); c.rect('white', 17, 11, 18, 11)
-    c.rect('skin', 15, 13, 16, 14)
-    # sombrero
-    c.poly('hat', [(15.5, -1), (17.5, 4), (20, 10), (11, 10), (13, 4)])
-    c.ell('hat', 15.5, 10.4, 8, 1.8)
-    c.rect('gold', 12, 8, 19, 9)
-    c.px('gold', 15, 4); c.px('gold', 14, 5); c.px('gold', 15, 5); c.px('gold', 16, 5); c.px('gold', 15, 6)
-    c.px('hat', 17, 0); c.px('hat', 18, 1)
+def mage(P):
+    c = Canvas(); b = P.body; sw = P.sw
+    # tunica: cuerpo sigue el bob, el dobladillo queda en el suelo y se mece
+    c.poly('robe', [(11, 16 + b), (20, 16 + b), (23.5 + sw, 29), (8.5 + sw, 29)])
+    c.rect('gold', 9 + sw, 27, 23 + sw, 28)
+    with c.at(0, b):
+        c.rect('hat', 12, 20, 19, 21); c.rect('gold', 15, 20, 16, 21)
+    c.line('hat', 15, 22 + b, 14 + sw, 27); c.line('hat', 16, 22 + b, 17 + sw, 27)
+    # pies que asoman bajo la tunica
+    with c.at(0, P.ll): c.rect('leather', 11, 29, 14, 29)
+    with c.at(0, P.lr): c.rect('leather', 17, 29, 20, 29)
+    # mangas y manos
+    with c.at(0, b + P.s):
+        c.poly('robe', [(7, 16), (11, 16), (11, 22), (6, 23)])
+        c.rect('gold', 6, 22, 11, 22); c.ell('skin', 6.5, 24, 1.5, 1.5)
+    with c.at(0, b - P.s):
+        c.poly('robe', [(20, 16), (24, 16), (25, 22), (20, 22)])
+        c.rect('gold', 20, 22, 25, 22); c.rect('skin', 24, 22, 26, 24)
+    # baston y orbe
+    with c.at(0, b - P.s):
+        def staff(t, m): t.rect(m, 26, 7, 27, 29)
+        c.rim(staff, 'wood')
+        c.rect('gold', 25, 6, 28, 7)
+    with c.at(0, b - P.s + P.sec):
+        c.ell('orb', 26.5, 3.4, 2.7, 2.7); c.px('white', 25, 2)
+    gl = P.glow
+    if gl:
+        for y in range(H):
+            for x in range(W):
+                d = (((x + .5 - 26.5) / 1) ** 2 + ((y + .5 - 3.4 - (b - P.s + P.sec)) / 1) ** 2) ** .5
+                if 2.7 < d <= 2.7 + gl * 0.9: c.glow.append((x, y, 120 if d < 3.4 else 60))
+    with c.at(0, b):
+        c.ell('skin', 15.5, 12.5, 3.9, 3.3)
+        c.poly('beard', [(11.8, 13), (19.2, 13), (18.2, 19), (15.5 + sw * .0, 23), (12.8, 19)])
+        c.rect('skin', 14, 12, 17, 13)
+        c.px('eye', 14, 12); c.px('eye', 17, 12)
+        c.rect('white', 13, 11, 14, 11); c.rect('white', 17, 11, 18, 11)
+        c.rect('skin', 15, 13, 16, 14)
+    # barba que se mece en la punta
+    with c.at(sw, b): c.rect('beard', 15, 22, 16, 23)
+    with c.at(0, b):
+        c.poly('hat', [(15.5, -1), (17.5, 4), (20, 10), (11, 10), (13, 4)])
+        c.ell('hat', 15.5, 10.4, 8, 1.8)
+        c.rect('gold', 12, 8, 19, 9)
+        c.px('gold', 15, 4); c.px('gold', 14, 5); c.px('gold', 15, 5); c.px('gold', 16, 5); c.px('gold', 15, 6)
+    with c.at(P.sec, b + P.sec): c.px('hat', 17, 0); c.px('hat', 18, 1)
     return c
 
 
-def villager():
-    c = Canvas()
-    # botas y pantalon
-    c.rect('pants', 12, 24, 19, 27); c.px(None, 15, 27); c.px(None, 16, 27)
-    c.rect('pants', 12, 27, 14, 27); c.rect('pants', 17, 27, 19, 27)
-    c.rect('leather', 11, 28, 14, 29); c.rect('leather', 17, 28, 20, 29)
-    # tunica
-    c.rect('cloth', 11, 15, 20, 24); c.rect('cloth', 12, 24, 19, 25)
-    c.rect('team', 11, 20, 20, 21); c.rect('team', 15, 22, 16, 25)
-    c.rect('leather', 13, 15, 14, 15)  # cuello en V (cordón)
-    c.rect('skin', 14, 15, 17, 16); c.px('cloth', 15, 17)
-    # brazos remangados
-    c.rect('cloth', 9, 16, 11, 18); c.rect('skin', 9, 19, 10, 22)
-    c.rect('cloth', 20, 16, 22, 18); c.rect('skin', 22, 19, 23, 22)
-    # saco al costado
-    c.ell('sack', 8, 24.5, 3, 2.6); c.rect('leather', 7, 21, 9, 22)
-    # hacha
-    def handle(t, m): t.rect(m, 24, 8, 25, 25)
-    c.rim(handle, 'wood')
-    def head(t, m):
-        t.poly(m, [(25, 7), (29.5, 5.5), (30.5, 13), (25, 12)])
-    c.rim(head, 'steel')
-    c.rect('blade', 29, 7, 29, 12)
-    c.rect('skin', 22, 21, 25, 22)
-    # cabeza
-    c.ell('skin', 15.5, 10.4, 4.7, 4.9)
-    c.rect('hair', 11, 8, 12, 12); c.rect('hair', 19, 8, 20, 12)
-    c.px('eye', 14, 11); c.px('eye', 17, 11)
-    c.px('mouth', 15, 13); c.px('mouth', 16, 13)
-    c.px('skin', 15, 12); c.px('skin', 16, 12)
-    # sombrero de paja
-    c.ell('straw', 15.5, 7.4, 8.3, 2.1)
-    c.ell('straw', 15.5, 5.2, 4.7, 3.4)
-    c.rect('team', 11, 6, 20, 7)
-    c.px('straw', 11, 8); c.px('straw', 20, 8)
+def villager(P):
+    c = Canvas(); b = P.body
+    with c.at(0, P.ll):
+        c.rect('pants', 12, 24, 14, 27); c.rect('leather', 11, 28, 14, 29)
+    with c.at(0, P.lr):
+        c.rect('pants', 17, 24, 19, 27); c.rect('leather', 17, 28, 20, 29)
+    with c.at(0, b):
+        c.rect('pants', 12, 24, 19, 25)
+        c.rect('cloth', 11, 15, 20, 24); c.rect('cloth', 12, 24, 19, 25)
+        c.rect('team', 11, 20, 20, 21)
+        c.rect('leather', 13, 15, 14, 15)
+        c.rect('skin', 14, 15, 17, 16); c.px('cloth', 15, 17)
+    with c.at(P.sw, b): c.rect('team', 15, 22, 16, 25)
+    # brazo izquierdo y saco (contrafase)
+    with c.at(0, b + P.s):
+        c.rect('cloth', 9, 16, 11, 18); c.rect('skin', 9, 19, 10, 22)
+        c.ell('sack', 8, 24.5, 3, 2.6); c.rect('leather', 7, 21, 9, 22)
+    # brazo derecho con hacha
+    with c.at(0, b - P.s):
+        c.rect('cloth', 20, 16, 22, 18); c.rect('skin', 22, 19, 23, 22)
+        def handle(t, m): t.rect(m, 24, 8, 25, 25)
+        c.rim(handle, 'wood')
+        def head(t, m): t.poly(m, [(25, 7), (29.5, 5.5), (30.5, 13), (25, 12)])
+        c.rim(head, 'steel')
+        c.rect('blade', 29, 7, 29, 12); c.rect('skin', 22, 21, 25, 22)
+    with c.at(0, b):
+        c.ell('skin', 15.5, 10.4, 4.7, 4.9)
+        c.rect('hair', 11, 8, 12, 12); c.rect('hair', 19, 8, 20, 12)
+        c.px('eye', 14, 11); c.px('eye', 17, 11)
+        c.px('mouth', 15, 13); c.px('mouth', 16, 13)
+        c.px('skin', 15, 12); c.px('skin', 16, 12)
+    with c.at(0, b + P.sec):
+        c.ell('straw', 15.5, 7.4, 8.3, 2.1)
+    with c.at(0, b):
+        c.ell('straw', 15.5, 5.2, 4.7, 3.4)
+        c.rect('team', 11, 6, 20, 7)
+        c.px('straw', 11, 8); c.px('straw', 20, 8)
     return c
 
 
-def archer():
-    c = Canvas()
-    # capa trasera
-    c.poly('cloak', [(10, 13), (21, 13), (22, 20), (9, 20)])
-    # piernas y botas altas
-    c.rect('pants', 12, 22, 14, 26); c.rect('pants', 17, 22, 19, 26)
-    c.rect('leather', 11, 26, 14, 29); c.rect('leather', 17, 26, 20, 29)
-    c.rect('gold', 11, 26, 14, 26); c.rect('gold', 17, 26, 20, 26)
-    # carcaj en la espalda
-    def quiver(t, m): t.rect(m, 21, 9, 23, 20)
-    c.rim(quiver, 'leather')
-    c.px('feather', 21, 7); c.px('feather', 22, 7); c.px('team', 22, 8); c.px('team', 23, 8); c.px('feather', 21, 8)
-    c.line('wood', 22, 9, 22, 9)
-    # jubon
-    c.rect('tunic', 11, 15, 20, 23)
-    c.rect('leather', 12, 15, 19, 20)
-    c.rect('leather', 11, 21, 20, 21); c.rect('gold', 15, 21, 16, 21)
-    c.rect('team', 12, 22, 19, 22)
-    c.rect('tunic', 12, 23, 19, 24)
-    # brazos
-    c.rect('tunic', 9, 15, 10, 18); c.rect('leather', 9, 18, 10, 19)
-    c.rect('tunic', 21, 15, 22, 19); c.rect('leather', 21, 18, 22, 20); c.px('skin', 21, 21); c.px('skin', 22, 21)
-    c.rect('skin', 7, 16, 8, 18)
-    # arco
-    cx, cy, rx, ry = 8, 15.5, 5.4, 11.5
-    for y in range(H):
-        for x in range(W):
-            d = ((x + .5 - cx) / rx) ** 2 + ((y + .5 - cy) / ry) ** 2
-            if 0.62 <= d <= 1.0 and x <= 8: c.px('wood', x, y)
-    c.line('string', 8, 4, 8, 27)
-    # capucha
-    c.ell('hood', 15.5, 8.6, 6.2, 6.4)
-    c.poly('hood', [(15.5, 0), (19, 4), (12, 4)])
-    c.poly('hood', [(10.5, 13), (20.5, 13), (21, 16), (10, 16)])
-    # rostro en sombra de la capucha
-    c.rect('skin', 12, 9, 19, 13); c.px(None, 12, 13); c.px(None, 19, 13)
-    c.rect('hood', 12, 8, 19, 8); c.rect('hood', 12, 9, 13, 9); c.rect('hood', 18, 9, 19, 9)
-    c.px('eye', 14, 11); c.px('eye', 17, 11)
-    c.px('white', 14, 10); c.px('white', 17, 10)
-    c.px('mouth', 15, 13); c.px('mouth', 16, 13)
+def archer(P):
+    c = Canvas(); b = P.body; sw = P.sw
+    c.poly('cloak', [(10, 13 + b), (21, 13 + b), (22 + sw, 20 + b), (9 + sw, 20 + b)])
+    with c.at(0, P.ll):
+        c.rect('pants', 12, 22, 14, 26); c.rect('leather', 11, 26, 14, 29); c.rect('gold', 11, 26, 14, 26)
+    with c.at(0, P.lr):
+        c.rect('pants', 17, 22, 19, 26); c.rect('leather', 17, 26, 20, 29); c.rect('gold', 17, 26, 20, 26)
+    # carcaj
+    with c.at(0, b):
+        def quiver(t, m): t.rect(m, 21, 9, 23, 20)
+        c.rim(quiver, 'leather')
+    with c.at(0, b + P.sec):
+        c.px('feather', 21, 7); c.px('feather', 22, 7); c.px('team', 22, 8); c.px('team', 23, 8); c.px('feather', 21, 8)
+    with c.at(0, b):
+        c.rect('tunic', 11, 15, 20, 23)
+        c.rect('leather', 12, 15, 19, 20)
+        c.rect('leather', 11, 21, 20, 21); c.rect('gold', 15, 21, 16, 21)
+        c.rect('team', 12, 22, 19, 22)
+        c.rect('tunic', 12, 23, 19, 24)
+    # brazo derecho (contrafase) y brazo del arco
+    with c.at(0, b - P.s):
+        c.rect('tunic', 21, 15, 22, 19); c.rect('leather', 21, 18, 22, 20); c.px('skin', 21, 21); c.px('skin', 22, 21)
+    with c.at(0, b + P.s):
+        c.rect('tunic', 9, 15, 10, 18); c.rect('leather', 9, 18, 10, 19)
+        c.rect('skin', 7, 16, 8, 18)
+        cx, cy, rx, ry = 8, 15.5, 5.4, 11.5
+        for y in range(H):
+            for x in range(W):
+                d = ((x + .5 - cx) / rx) ** 2 + ((y + .5 - cy) / ry) ** 2
+                if 0.62 <= d <= 1.0 and x <= 8: c.px('wood', x, y)
+        c.line('string', 8, 4, 8, 27)
+    with c.at(0, b):
+        c.ell('hood', 15.5, 8.6, 6.2, 6.4)
+        c.poly('hood', [(10.5, 13), (20.5, 13), (21, 16), (10, 16)])
+        c.rect('skin', 12, 9, 19, 13); c.px(None, 12, 13); c.px(None, 19, 13)
+        c.rect('hood', 12, 8, 19, 8); c.rect('hood', 12, 9, 13, 9); c.rect('hood', 18, 9, 19, 9)
+        c.px('eye', 14, 11); c.px('eye', 17, 11)
+        c.px('white', 14, 10); c.px('white', 17, 10)
+        c.px('mouth', 15, 13); c.px('mouth', 16, 13)
+    with c.at(sw if P.sec == 0 else 0, b + P.sec):
+        c.poly('hood', [(15.5, 0), (19, 4), (12, 4)])
     return c
 
 
 CHARS = {'guerrero': warrior, 'mago': mage, 'aldeano': villager, 'arquero': archer}
+ANIMS = {'idle': IDLE, 'walk': WALK}
+
+
+def strip(fn, poses, team_hex):
+    frames = [render(fn(p), team_hex)[0] for p in poses]
+    img = Image.new('RGBA', (W * len(frames), H), (0, 0, 0, 0))
+    for i, f in enumerate(frames): img.paste(f, (i * W, 0))
+    return img
 
 
 def main():
@@ -321,13 +377,20 @@ def main():
     sheet = Image.new('RGBA', (W * len(CHARS), H * len(TEAMS)), (0, 0, 0, 0))
     for ti, (tname, thex) in enumerate(TEAMS.items()):
         for ci, (cname, fn) in enumerate(CHARS.items()):
-            img, pal = render(fn(), thex)
+            img, pal = render(fn(Pose()), thex)
             img.save(os.path.join(OUT, f'{cname}_{tname}.png'))
             img.resize((W * 8, H * 8), Image.NEAREST).save(os.path.join(OUT, f'{cname}_{tname}_x8.png'))
             sheet.paste(img, (ci * W, ti * H))
             meta.setdefault(cname, {})[tname] = pal
+            for an, poses in ANIMS.items():
+                strip(fn, poses, thex).save(os.path.join(OUT, f'{cname}_{tname}_{an}.png'))
     sheet.save(os.path.join(OUT, 'spritesheet.png'))
     sheet.resize((sheet.width * 6, sheet.height * 6), Image.NEAREST).save(os.path.join(OUT, 'spritesheet_x6.png'))
+    # hoja de contacto de la caminata (azul), 4x, para revisión
+    rows = [strip(fn, WALK, TEAMS['azul']) for fn in CHARS.values()]
+    cs = Image.new('RGBA', (W * len(WALK), H * len(rows)), (43, 35, 64, 255))
+    for i, r in enumerate(rows): cs.alpha_composite(r, (0, i * H))
+    cs.resize((cs.width * 3, cs.height * 3), Image.NEAREST).save(os.path.join(OUT, 'caminata_contacto_x3.png'))
     json.dump(meta, open(os.path.join(OUT, 'sprites.json'), 'w'), indent=1)
     print('ok', list(CHARS))
 
