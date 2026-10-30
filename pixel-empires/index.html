@@ -142,7 +142,7 @@ function buildSprites() {
 
 // ================= Estado del juego =================
 let units, blds, ress, resGrid, projs, fx, blocked, nextId, sel, cam, placing, over, running = false, time = 0;
-let ai, msgT = 0, uiDirty = true, lastInfo = '', miniT = 0, drag = null, mouse = { x: 0, y: 0 }, keys = {};
+let ai, msgT = 0, uiDirty = true, lastInfo = '', miniT = 0, drag = null, mouse = { x: -1, y: -1 }, keys = {};
 
 const inB = (x, y) => x >= 0 && y >= 0 && x < MW && y < MH;
 const free = (x, y) => inB(x, y) && !blocked[y * MW + x];
@@ -650,9 +650,9 @@ function drawMini() {
 function update(dt) {
   time += dt;
   const sp = 260 * dt / (S / 3), edge = 8;
-  if (keys['a'] || keys['arrowleft'] || (mouse.x < edge && mouse.x >= 0)) cam.x -= sp;
+  if (keys['a'] || keys['arrowleft'] || (mouse.x >= 0 && mouse.x < edge)) cam.x -= sp;
   if (keys['d'] || keys['arrowright'] || mouse.x > innerWidth - edge) cam.x += sp;
-  if (keys['w'] || keys['arrowup'] || (mouse.y < edge && mouse.y >= 0)) cam.y -= sp;
+  if (keys['w'] || keys['arrowup'] || (mouse.y >= 0 && mouse.y < edge)) cam.y -= sp;
   if (keys['s'] || keys['arrowdown'] || mouse.y > innerHeight - edge) cam.y += sp;
   clampCam();
   for (const u of units) updateUnit(u, dt);
