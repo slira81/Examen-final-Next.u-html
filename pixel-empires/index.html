@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pixel Empires</title>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#111;font-family:"Courier New",monospace;color:#f4e9c8;user-select:none;-webkit-user-select:none}
+canvas#game{position:absolute;left:0;top:0;image-rendering:pixelated;cursor:crosshair}
+.panel{position:absolute;background:#3a2a1a;border:3px solid #c9a24a;box-shadow:0 0 0 3px #1b120a}
+#top{left:8px;top:8px;display:flex;gap:18px;padding:6px 12px;font-weight:bold;font-size:15px}
+#top b{color:#fff}
+#msg{color:#ffb74a;min-width:200px}
+#bottom{left:8px;right:8px;bottom:8px;display:flex;gap:12px;padding:8px;height:128px}
+#mini{width:128px;height:128px;image-rendering:pixelated;border:2px solid #1b120a;cursor:pointer;background:#000;flex:none}
+#info{flex:1;font-size:14px;line-height:1.45;overflow:hidden}
+#cmds{display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap;width:380px;flex:none}
+button{font:bold 13px "Courier New",monospace;color:#f4e9c8;background:#6b4a26;border:2px solid #c9a24a;padding:6px 10px;cursor:pointer;text-align:left}
+button:hover{background:#8a6030}
+button small{display:block;font-weight:normal;color:#e0c97f;font-size:11px}
+#overlay{position:absolute;inset:0;background:rgba(10,6,2,.82);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;padding:20px}
+#overlay h1{margin:0;font-size:48px;color:#ffd23a;text-shadow:4px 4px 0 #6b2d0a;letter-spacing:2px}
+#overlay p{margin:0;max-width:560px;line-height:1.5}
+#overlay button{font-size:20px;padding:10px 28px}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="top" class="panel">
+  <span>MADERA <b id="wood">0</b></span>
+  <span>ORO <b id="gold">0</b></span>
+  <span>POB. <b id="pop">0</b></span>
+  <span id="msg"></span>
+</div>
+<div id="bottom" class="panel">
+  <canvas id="mini" width="64" height="64"></canvas>
+  <div id="info"></div>
+  <div id="cmds"></div>
+</div>
+<div id="overlay">
+  <h1 id="otitle">PIXEL EMPIRES</h1>
+  <p id="otext">Construye tu aldea, reúne madera y oro, entrena un ejército y destruye el Centro Urbano enemigo (rojo) antes de que destruya el tuyo (azul).</p>
+  <p style="font-size:13px;color:#e0c97f">Clic izq: seleccionar / arrastrar para caja &nbsp;·&nbsp; Clic der: mover, recolectar, construir o atacar<br>WASD / flechas / bordes: cámara &nbsp;·&nbsp; 1, 2: comandos &nbsp;·&nbsp; Espacio: ir a tu base &nbsp;·&nbsp; Esc: cancelar</p>
+  <button id="play">JUGAR</button>
+</div>
+
+<script>
+"use strict";
+// ================= Constantes y datos =================
+const T = 16, MW = 64, MH = 64, WW = MW * T, WH = MH * T;
+const TEAM = [
+  { main: '#3b6fe0', dark: '#274a9e', light: '#8fb2ff', wood: 0, gold: 0 },
+  { main: '#d83b3b', dark: '#8e2424', light: '#ff9a8f', wood: 0, gold: 0 },
+];
+const UT = {
+  villager: { n: 'Aldeano', hp: 25, sp: 34, dmg: 2, rate: 1,   reach: 13, cost: [50, 0],  time: 6 },
+  soldier:  { n: 'Soldado', hp: 60, sp: 38, dmg: 7, rate: 0.9, reach: 14, cost: [30, 30], time: 9 },
+  archer:   { n: 'Arquero', hp: 35, sp: 36, dmg: 5, rate: 1.1, reach: 70, cost: [40, 40], time: 9 },
+};
+const BT = {
+  tc:       { n: 'Centro Urbano', w: 3, h: 3, hp: 700, pop: 10, time: 1 },
+  house:    { n: 'Casa',          w: 2, h: 2, hp: 150, pop: 5,  cost: [30, 0],  time: 12 },
+  barracks: { n: 'Cuartel',       w: 3, h: 2, hp: 350, pop: 0,  cost: [100, 0], time: 25 },
+};
+const $ = id => document.getElementById(id);
+const cv = $('game'), ctx = cv.getContext('2d');
+let S = 3, VW = 480, VH = 300;
+
+let seed = 1;
+const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+
+// ================= Sprites (pixel art generado por código) =================
+const PAL = { S: '#f1c27d', H: '#6b4423', B: '#4a3322', G: '#9aa0a8', W: '#dfe3e8', K: '#2b2b2b', O: '#8a5a2b', L: '#2f8f3a' };
+const GRID = {
+  villager: ["..HHHH..", ".HSSSSH.", "..SSSS..", ".TTTTTT.", "STTTTTTS", "S.TTTT.S", "..TTTT..", "..B..B..", "..B..B..", ".BB..BB."],
+  soldier:  ["..GGGG..", ".GGWWGG.", "..SSSS..", "WTTTTTT.", "WTTTTTTG", "W.TTTTGG", "..TTTT..", "..K..K..", "..K..K..", ".KK..KK."],
+  archer:   ["..LLLL..", ".LLSSLL.", "..SSSS..", "O.TTTT..", "O.TTTTS.", "O.TTTT..", "O.TTTT..", "..B..B..", "..B..B..", ".BB..BB."],
+};
+const mk = (w, h, fn) => { const c = document.createElement('canvas'); c.width = w; c.height = h; fn(c.getContext('2d')); return c; };
+const R = (c, col, x, y, w, h) => { c.fillStyle = col; c.fillRect(x, y, w, h); };
+const SPR = { unit: {}, bld: {}, ground: [] };
+
+function buildSprites() {
+  for (const type in GRID) {
+    SPR.unit[type] = [0, 1].map(team => [false, true].map(flip => mk(8, 10, c => {
+      GRID[type].forEach((row, y) => [...row].forEach((ch, x) => {
+        if (ch === '.') return;
+        R(c, ch === 'T' ? TEAM[team].main : PAL[ch], flip ? 7 - x : x, y, 1, 1);
+      }));
+    })));
+  }
+  SPR.bld.tc = [0, 1].map(i => mk(48, 48, c => {
+    const t = TEAM[i];
+    R(c, 'rgba(0,0,0,.25)', 2, 42, 46, 5);
+    R(c, '#c8b896', 4, 22, 40, 22); R(c, '#a89a78', 4, 22, 40, 2);
+    for (let y = 28; y < 44; y += 5) R(c, '#b0a283', 4, y, 40, 1);
+    for (let x = 8; x < 44; x += 9) R(c, '#b0a283', x, 24, 1, 20);
+    for (let j = 0; j < 16; j++) { const half = Math.min(24, 6 + Math.floor(j * 1.15)); R(c, j % 4 === 0 ? t.dark : t.main, 24 - half, 6 + j, half * 2, 1); }
+    R(c, '#3b2a1c', 20, 30, 8, 14); R(c, '#5a4128', 21, 31, 6, 13);
+    R(c, '#2b3a55', 9, 29, 6, 6); R(c, '#2b3a55', 33, 29, 6, 6);
+    R(c, '#444', 23, 0, 1, 8); R(c, t.light, 24, 0, 7, 4);
+  }));
+  SPR.bld.house = [0, 1].map(i => mk(32, 32, c => {
+    const t = TEAM[i];
+    R(c, 'rgba(0,0,0,.25)', 3, 28, 27, 3);
+    R(c, '#d9c9a0', 5, 15, 22, 14); R(c, '#bfae86', 5, 15, 22, 1);
+    for (let j = 0; j < 10; j++) { const half = Math.min(14, 3 + Math.floor(j * 1.6)); R(c, j % 3 === 0 ? t.dark : t.main, 16 - half, 6 + j, half * 2, 1); }
+    R(c, '#3b2a1c', 14, 21, 5, 8); R(c, '#2b3a55', 8, 19, 4, 4); R(c, '#2b3a55', 21, 19, 4, 4);
+  }));
+  SPR.bld.barracks = [0, 1].map(i => mk(48, 32, c => {
+    const t = TEAM[i];
+    R(c, 'rgba(0,0,0,.25)', 2, 28, 46, 3);
+    R(c, '#7a5a3a', 3, 12, 42, 18);
+    for (let x = 6; x < 45; x += 6) R(c, '#5f4429', x, 12, 1, 18);
+    R(c, t.main, 1, 5, 46, 8); R(c, t.dark, 1, 12, 46, 2); R(c, t.light, 1, 5, 46, 1);
+    R(c, '#d8d8d8', 18, 16, 9, 11); R(c, t.main, 20, 18, 5, 7);
+    for (let i2 = 0; i2 < 8; i2++) { R(c, '#eee', 5 + i2, 16 + i2, 1, 1); R(c, '#eee', 12 - i2, 16 + i2, 1, 1); }
+    R(c, '#2b1c10', 34, 18, 9, 12);
+    R(c, '#444', 44, 0, 1, 8); R(c, t.light, 38, 0, 6, 4);
+  }));
+  SPR.tree = mk(16, 20, c => {
+    R(c, 'rgba(0,0,0,.2)', 3, 17, 10, 3);
+    R(c, '#5b3a1e', 7, 13, 3, 6);
+    R(c, '#1f5a2a', 3, 6, 10, 8); R(c, '#1f5a2a', 5, 3, 6, 3);
+    R(c, '#2f7d38', 4, 5, 8, 7); R(c, '#2f7d38', 6, 2, 4, 3);
+    R(c, '#4ea84e', 5, 4, 3, 3); R(c, '#4ea84e', 9, 7, 2, 2);
+  });
+  SPR.gold = mk(16, 16, c => {
+    R(c, 'rgba(0,0,0,.2)', 1, 13, 14, 3);
+    R(c, '#7b7b84', 2, 6, 12, 8); R(c, '#8b8b94', 4, 3, 8, 4); R(c, '#5f5f68', 2, 12, 12, 2);
+    R(c, '#ffd23a', 4, 6, 3, 3); R(c, '#ffd23a', 9, 9, 3, 3); R(c, '#e0a800', 6, 11, 2, 2);
+    R(c, '#fff2a0', 4, 6, 1, 1); R(c, '#fff2a0', 9, 9, 1, 1);
+  });
+  for (let v = 0; v < 3; v++) SPR.ground.push(mk(T, T, c => {
+    R(c, ['#4c9a3c', '#559f42', '#47923a'][v], 0, 0, T, T);
+    const r = (n) => (Math.sin(n * 91.7 + v * 13.3) * 43758.5453) % 1;
+    for (let i = 0; i < 6; i++) { const a = Math.abs(r(i)), b = Math.abs(r(i + 20)); R(c, '#3d8530', Math.floor(a * 15), Math.floor(b * 15), 1, 2); }
+    if (v === 1) R(c, '#e8e04a', 11, 4, 1, 1);
+  }));
+}
+
+// ================= Estado del juego =================
+let units, blds, ress, resGrid, projs, fx, blocked, nextId, sel, cam, placing, over, running = false, time = 0;
+let ai, msgT = 0, uiDirty = true, lastInfo = '', miniT = 0, drag = null, mouse = { x: 0, y: 0 }, keys = {};
+
+const inB = (x, y) => x >= 0 && y >= 0 && x < MW && y < MH;
+const free = (x, y) => inB(x, y) && !blocked[y * MW + x];
+const popCap = t => blds.reduce((s, b) => s + (b.team === t && b.done && !b.dead ? BT[b.type].pop : 0), 0);
+const popUsed = t => units.reduce((s, u) => s + (u.team === t ? 1 : 0), 0) + blds.reduce((s, b) => s + (b.team === t ? b.queue.length : 0), 0);
+
+function addRes(kind, tx, ty, amt) {
+  if (!free(tx, ty)) return;
+  const r = { k: 'r', kind, tx, ty, amt, dead: false };
+  ress.push(r); resGrid[ty * MW + tx] = r; blocked[ty * MW + tx] = 1;
+}
+function setBlock(b, v) { for (let y = b.ty; y < b.ty + b.h; y++) for (let x = b.tx; x < b.tx + b.w; x++) blocked[y * MW + x] = v; }
+function addBld(type, team, tx, ty, done) {
+  const d = BT[type];
+  const b = { id: nextId++, k: 'b', type, team, tx, ty, w: d.w, h: d.h, hp: done ? d.hp : d.hp * 0.1, maxhp: d.hp, done, progress: done ? 1 : 0, queue: [], qt: 0, dead: false };
+  blds.push(b); setBlock(b, 1); return b;
+}
+function addUnit(type, team, x, y) {
+  const d = UT[type];
+  const u = { id: nextId++, k: 'u', type, team, x, y, hp: d.hp, maxhp: d.hp, order: { t: 'idle' }, path: [], cd: 0, carry: 0, ckind: null, gt: 0, rp: 0, sc: 0, face: 1, moving: false, dead: false };
+  units.push(u); return u;
+}
+
+function newGame() {
+  seed = (Date.now() & 0xfffff) + 1;
+  blocked = new Uint8Array(MW * MH); resGrid = new Array(MW * MH).fill(null);
+  units = []; blds = []; ress = []; projs = []; fx = []; sel = []; nextId = 1; placing = null; over = false;
+  TEAM.forEach(t => { t.wood = 200; t.gold = 100; });
+  ai = { t: 0, wave: 6, attacking: false };
+  const bases = [[8, 52], [53, 9]];
+  bases.forEach((p, i) => {
+    const b = addBld('tc', i, p[0], p[1], true);
+    for (let k = 0; k < 3; k++) addUnit('villager', i, (p[0] + k) * T + 8, (p[1] + 3) * T + 8);
+  });
+  const near = (x, y) => bases.some(p => Math.hypot(x - (p[0] + 1), y - (p[1] + 1)) < 5);
+  // oro: dos minas cerca de cada base y varias al centro
+  [[17, 50], [17, 52], [43, 11], [43, 9]].forEach(p => addRes('gold', p[0], p[1], 800));
+  [[32, 32], [31, 33], [20, 20], [44, 44], [30, 10], [10, 30]].forEach(p => addRes('gold', p[0], p[1], 800));
+  // bosques: algunos garantizados cerca de las bases + aleatorios
+  const clumps = [[9, 42], [54, 21], [20, 57], [44, 6], [3, 45], [60, 18]];
+  for (let c = 0; c < 22; c++) clumps.push([rnd() * MW, rnd() * MH]);
+  clumps.forEach(([cx, cy]) => {
+    const n = 10 + Math.floor(rnd() * 16);
+    for (let i = 0; i < n; i++) {
+      const x = Math.floor(cx + (rnd() - 0.5) * 8), y = Math.floor(cy + (rnd() - 0.5) * 8);
+      if (!near(x, y) && !bases.some(p => Math.hypot(x - p[0] - 1, y - p[1] - 1) < 7)) addRes('tree', x, y, 100);
+    }
+  });
+  cam = { x: bases[0][0] * T - VW / 2 + 24, y: bases[0][1] * T - VH / 2 + 24 };
+  clampCam(); uiDirty = true;
+}
+
+// ================= Pathfinding (BFS en rejilla) =================
+const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+function findPath(sx, sy, goal) {
+  sx = Math.min(MW - 1, Math.max(0, sx)); sy = Math.min(MH - 1, Math.max(0, sy));
+  const prev = new Int16Array(MW * MH).fill(-1);
+  const s = sy * MW + sx; prev[s] = s; const q = [s];
+  for (let i = 0; i < q.length; i++) {
+    const c = q[i], x = c % MW, y = (c / MW) | 0;
+    if (goal(x, y)) {
+      const path = []; let k = c;
+      while (k !== s) { path.push({ x: (k % MW) * T + T / 2, y: ((k / MW) | 0) * T + T / 2 }); k = prev[k]; }
+      return path.reverse();
+    }
+    for (const [dx, dy] of DIRS) {
+      const nx = x + dx, ny = y + dy;
+      if (!inB(nx, ny)) continue;
+      const n = ny * MW + nx;
+      if (prev[n] >= 0 || blocked[n]) continue;
+      if (dx && dy && (blocked[y * MW + nx] || blocked[ny * MW + x])) continue;
+      prev[n] = c; q.push(n);
+    }
+  }
+  return null;
+}
+const rectOf = e => e.k === 'u' ? { x0: e.x, y0: e.y, x1: e.x, y1: e.y }
+  : { x0: e.tx * T, y0: e.ty * T, x1: (e.tx + (e.w || 1)) * T, y1: (e.ty + (e.h || 1)) * T };
+const distRect = (px, py, r) => Math.hypot(Math.max(r.x0 - px, 0, px - r.x1), Math.max(r.y0 - py, 0, py - r.y1));
+const reachGoal = (r, reach) => (x, y) => distRect(x * T + T / 2, y * T + T / 2, r) <= reach - 4;
+
+// ================= Unidades =================
+function setOrder(u, o) { u.order = o; u.path = []; u.rp = 0; u.gt = 0; }
+function setMove(u, x, y) {
+  const gx = Math.floor(x / T), gy = Math.floor(y / T), gb = !free(gx, gy);
+  setOrder(u, { t: 'move' });
+  const p = findPath(Math.floor(u.x / T), Math.floor(u.y / T), (a, b) => (a === gx && b === gy) || (gb && Math.max(Math.abs(a - gx), Math.abs(b - gy)) <= 1));
+  if (!p) return;
+  if (!gb) { if (p.length) p.pop(); p.push({ x, y }); }
+  u.path = p;
+}
+function stepMove(u, dt) {
+  if (!u.path.length) return false;
+  const p = u.path[0], dx = p.x - u.x, dy = p.y - u.y, d = Math.hypot(dx, dy), s = UT[u.type].sp * dt;
+  if (d <= s) { u.x = p.x; u.y = p.y; u.path.shift(); } else { u.x += dx / d * s; u.y += dy / d * s; }
+  if (Math.abs(dx) > 0.1) u.face = dx > 0 ? 1 : -1;
+  u.moving = true; return true;
+}
+// true: en alcance, false: avanzando, null: inalcanzable
+function approach(u, rc, reach, dt, repath) {
+  if (distRect(u.x, u.y, rc) <= reach) return true;
+  if (!u.path.length || (repath && (u.rp -= dt) <= 0)) {
+    u.rp = 0.5;
+    const p = findPath(Math.floor(u.x / T), Math.floor(u.y / T), reachGoal(rc, reach));
+    if (!p) { u.path = []; return null; }
+    u.path = p.length ? p : [{ x: Math.min(Math.max(u.x, rc.x0), rc.x1), y: Math.min(Math.max(u.y, rc.y0), rc.y1) }];
+  }
+  stepMove(u, dt); return false;
+}
+function findRes(u, kind, maxd = 20 * T) {
+  let best = null, bd = maxd;
+  for (const r of ress) {
+    if (r.dead || r.kind !== kind) continue;
+    const d = Math.hypot(r.tx * T + 8 - u.x, r.ty * T + 8 - u.y);
+    if (d < bd) { bd = d; best = r; }
+  }
+  return best;
+}
+function nearestTC(u) {
+  let best = null, bd = 1e9;
+  for (const b of blds) if (b.team === u.team && b.type === 'tc' && b.done && !b.dead) { const d = distRect(u.x, u.y, rectOf(b)); if (d < bd) { bd = d; best = b; } }
+  return best;
+}
+function nearestEnemy(u, range) {
+  let best = null, bd = range;
+  for (const e of units) if (e.team !== u.team && !e.dead) { const d = Math.hypot(e.x - u.x, e.y - u.y); if (d < bd) { bd = d; best = e; } }
+  for (const e of blds) if (e.team !== u.team && !e.dead) { const d = distRect(u.x, u.y, rectOf(e)); if (d < bd) { bd = d; best = e; } }
+  return best;
+}
+function startGather(u, r) {
+  const kind = r.kind;
+  if (u.carry > 0 && u.ckind !== kind) u.carry = 0;
+  setOrder(u, { t: 'gather', res: r, kind });
+}
+function burst(x, y, col, n) { for (let i = 0; i < n; i++) fx.push({ x, y, vx: (Math.random() - 0.5) * 50, vy: -Math.random() * 40, l: 0.5 + Math.random() * 0.4, c: col }); }
+function kill(e) {
+  if (e.dead) return; e.dead = true;
+  if (e.k === 'b') { setBlock(e, 0); burst((e.tx + e.w / 2) * T, (e.ty + e.h / 2) * T, '#777', 24); burst((e.tx + e.w / 2) * T, (e.ty + e.h / 2) * T, '#e0a000', 12); }
+  else burst(e.x, e.y - 4, '#c22', 6);
+}
+function killRes(r) { r.dead = true; blocked[r.ty * MW + r.tx] = 0; resGrid[r.ty * MW + r.tx] = null; }
+function hit(a, t) {
+  const d = UT[a.type];
+  const rc = rectOf(t);
+  if (d.reach > 30) projs.push({ x: a.x, y: a.y - 6, tx: (rc.x0 + rc.x1) / 2, ty: (rc.y0 + rc.y1) / 2, l: 0 });
+  t.hp -= d.dmg * (t.k === 'b' && a.type === 'archer' ? 0.5 : 1);
+  if (t.k === 'u' && t.type !== 'villager' && t.order.t === 'idle') setOrder(t, { t: 'attack', target: a, auto: true });
+  if (t.hp <= 0) kill(t);
+}
+function updateUnit(u, dt) {
+  const d = UT[u.type], o = u.order; u.cd = Math.max(0, u.cd - dt); u.moving = false;
+  switch (o.t) {
+    case 'move': if (!stepMove(u, dt)) setOrder(u, { t: 'idle' }); break;
+    case 'idle':
+      if (u.type !== 'villager' && (u.sc -= dt) <= 0) { u.sc = 0.5; const e = nearestEnemy(u, 110); if (e) setOrder(u, { t: 'attack', target: e, auto: true }); }
+      break;
+    case 'attack': {
+      const tg = o.target;
+      if (tg.dead) { setOrder(u, { t: 'idle' }); break; }
+      const rc = rectOf(tg), r = approach(u, rc, d.reach, dt, tg.k === 'u');
+      if (r === null) setOrder(u, { t: 'idle' });
+      else if (r) { u.face = (rc.x0 + rc.x1) / 2 >= u.x ? 1 : -1; if (u.cd <= 0) { hit(u, tg); u.cd = d.rate; } }
+      else if (o.auto && Math.hypot(tg.x === undefined ? 0 : tg.x - u.x, tg.y === undefined ? 0 : tg.y - u.y) > 200) setOrder(u, { t: 'idle' });
+      break;
+    }
+    case 'gather': {
+      let r = o.res;
+      if (r.dead) {
+        r = findRes(u, o.kind);
+        if (!r) { u.carry > 0 ? setOrder(u, { t: 'return', kind: o.kind }) : setOrder(u, { t: 'idle' }); break; }
+        o.res = r;
+      }
+      if (u.carry >= 10) { setOrder(u, { t: 'return', res: r, kind: o.kind }); break; }
+      const rc = rectOf(r), a = approach(u, rc, d.reach, dt, false);
+      if (a === null) setOrder(u, { t: 'idle' });
+      else if (a) {
+        u.face = rc.x0 + 8 >= u.x ? 1 : -1; u.gt += dt;
+        if (u.gt >= 0.7) { u.gt = 0; u.carry++; u.ckind = r.kind; r.amt--; if (r.amt <= 0) killRes(r); }
+      }
+      break;
+    }
+    case 'return': {
+      const tc = nearestTC(u);
+      if (!tc) { setOrder(u, { t: 'idle' }); break; }
+      const a = approach(u, rectOf(tc), d.reach, dt, false);
+      if (a === null) setOrder(u, { t: 'idle' });
+      else if (a) {
+        TEAM[u.team][u.ckind === 'tree' ? 'wood' : 'gold'] += u.carry; u.carry = 0;
+        const r = o.res && !o.res.dead ? o.res : findRes(u, o.kind);
+        r ? startGather(u, r) : setOrder(u, { t: 'idle' });
+      }
+      break;
+    }
+    case 'build': {
+      const b = o.b;
+      if (b.dead || b.done) {
+        const r = findRes(u, 'tree'); r ? startGather(u, r) : setOrder(u, { t: 'idle' }); break;
+      }
+      const a = approach(u, rectOf(b), d.reach, dt, false);
+      if (a === null) setOrder(u, { t: 'idle' });
+      else if (a) {
+        const bt = BT[b.type].time;
+        b.progress += dt / bt; b.hp = Math.min(b.maxhp, b.hp + b.maxhp * 0.9 * dt / bt);
+        if (b.progress >= 1) { b.done = true; b.hp = b.maxhp; }
+      }
+      break;
+    }
+  }
+}
+function spawnPoint(b) {
+  const ring = [];
+  for (let x = b.tx - 1; x <= b.tx + b.w; x++) for (let y = b.ty - 1; y <= b.ty + b.h; y++)
+    if (x < b.tx || x >= b.tx + b.w || y < b.ty || y >= b.ty + b.h) ring.push([x, y]);
+  ring.sort((p, q) => q[1] - p[1]);
+  const f = ring.find(p => free(p[0], p[1])) || ring[0];
+  return { x: f[0] * T + 8, y: f[1] * T + 8 };
+}
+function updateBld(b, dt) {
+  if (!b.done || !b.queue.length) return;
+  b.qt += dt;
+  const type = b.queue[0];
+  if (b.qt >= UT[type].time) {
+    b.qt = 0; b.queue.shift();
+    const p = spawnPoint(b), u = addUnit(type, b.team, p.x, p.y);
+    if (type === 'villager') { const r = findRes(u, 'tree'); if (r) startGather(u, r); }
+  }
+}
+function queueUnit(b, type) {
+  const d = UT[type], tm = TEAM[b.team];
+  if (b.queue.length >= 5) return 'Cola llena';
+  if (popUsed(b.team) >= popCap(b.team)) return 'Necesitas más casas';
+  if (tm.wood < d.cost[0] || tm.gold < d.cost[1]) return 'Recursos insuficientes';
+  tm.wood -= d.cost[0]; tm.gold -= d.cost[1]; b.queue.push(type); return null;
+}
+function separate() {
+  for (let i = 0; i < units.length; i++) for (let j = i + 1; j < units.length; j++) {
+    const a = units[i], b = units[j], dx = b.x - a.x, dy = b.y - a.y, d2 = dx * dx + dy * dy;
+    if (d2 > 0 && d2 < 36) {
+      const d = Math.sqrt(d2), p = (6 - d) / 2, ux = dx / d * p, uy = dy / d * p;
+      if (free(Math.floor((a.x - ux) / T), Math.floor((a.y - uy) / T))) { a.x -= ux; a.y -= uy; }
+      if (free(Math.floor((b.x + ux) / T), Math.floor((b.y + uy) / T))) { b.x += ux; b.y += uy; }
+    }
+  }
+}
+
+// ================= IA enemiga =================
+function findSpot(w, h, cx, cy) {
+  for (let r = 3; r <= 16; r++) {
+    const c = [];
+    for (let dx = -r; dx <= r; dx++) for (let dy = -r; dy <= r; dy++) if (Math.max(Math.abs(dx), Math.abs(dy)) === r) c.push([cx + dx, cy + dy]);
+    c.sort(() => rnd() - 0.5);
+    for (const [x, y] of c) {
+      let ok = true;
+      for (let a = x - 1; a <= x + w && ok; a++) for (let b = y - 1; b <= y + h; b++) if (!free(a, b)) { ok = false; break; }
+      if (ok) return { x, y };
+    }
+  }
+  return null;
+}
+function aiTick(dt) {
+  ai.t += dt; if (ai.t < 2) return; ai.t = 0;
+  const tm = TEAM[1], tc = blds.find(b => b.team === 1 && b.type === 'tc' && !b.dead);
+  if (!tc) return;
+  const vs = units.filter(u => u.team === 1 && u.type === 'villager'), ms = units.filter(u => u.team === 1 && u.type !== 'villager');
+  const myB = t => blds.filter(b => b.team === 1 && b.type === t && !b.dead);
+  const idle = vs.filter(v => v.order.t === 'idle');
+  const spare = () => idle.pop() || vs.find(v => v.order.t === 'gather' && !v.carry);
+  const build = (type, v) => {
+    const d = BT[type], s = findSpot(d.w, d.h, tc.tx + 1, tc.ty + 1);
+    if (!s || tm.wood < d.cost[0]) return;
+    tm.wood -= d.cost[0]; setOrder(v, { t: 'build', b: addBld(type, 1, s.x, s.y, false) });
+  };
+  const used = popUsed(1), cap = popCap(1);
+  if (used + 3 >= cap && !myB('house').some(b => !b.done) && tm.wood >= 30) { const v = spare(); if (v) build('house', v); }
+  if (!myB('barracks').length && vs.length >= 5 && tm.wood >= 100) { const v = spare(); if (v) build('barracks', v); }
+  if (tc.queue.length < 1 && vs.length < 9) queueUnit(tc, 'villager');
+  const bk = myB('barracks').find(b => b.done);
+  if (bk && bk.queue.length < 2) queueUnit(bk, rnd() < 0.5 ? 'soldier' : 'archer');
+  if (myB('barracks').length && tm.gold < tm.wood) {
+    const v = vs.find(v => v.order.t === 'gather' && v.order.kind === 'tree' && !v.carry), r = v && findRes(v, 'gold');
+    if (v && r) startGather(v, r);
+  }
+  for (const v of idle) {
+    const r = (tm.gold < tm.wood * 0.5 ? findRes(v, 'gold') : null) || findRes(v, 'tree');
+    if (r) startGather(v, r);
+  }
+  const targetFor = () => {
+    let best = null, bd = 1e9;
+    for (const e of blds.concat(units)) if (e.team === 0 && !e.dead) { const d = Math.hypot((e.tx !== undefined ? e.tx * T : e.x) - tc.tx * T, (e.ty !== undefined ? e.ty * T : e.y) - tc.ty * T); if (d < bd) { bd = d; best = e; } }
+    return best;
+  };
+  if (!ai.attacking && ms.length >= ai.wave) { ai.attacking = true; ai.wave += 3; }
+  if (ai.attacking) {
+    if (ms.length < 3) ai.attacking = false;
+    else for (const m of ms) if (m.order.t === 'idle' || (m.order.t === 'attack' && m.order.target.dead)) { const t = targetFor(); if (t) setOrder(m, { t: 'attack', target: t }); }
+  }
+}
+
+// ================= Entrada =================
+const toWorld = (cx, cy) => ({ x: cx / S + cam.x, y: cy / S + cam.y });
+function clampCam() {
+  cam.x = Math.max(0, Math.min(cam.x, Math.max(0, WW - VW)));
+  cam.y = Math.max(0, Math.min(cam.y, Math.max(0, WH + 150 / S - VH)));
+}
+function say(t) { $('msg').textContent = t; msgT = 2.5; }
+function pickOwn(wx, wy) {
+  let best = null, bd = 9;
+  for (const u of units) if (u.team === 0) { const d = Math.hypot(u.x - wx, u.y - 3 - wy); if (d < bd) { bd = d; best = u; } }
+  if (best) return best;
+  return blds.find(b => b.team === 0 && wx >= b.tx * T && wx < (b.tx + b.w) * T && wy >= b.ty * T && wy < (b.ty + b.h) * T) || null;
+}
+function pickEnemy(wx, wy) {
+  let best = null, bd = 9;
+  for (const u of units) if (u.team !== 0) { const d = Math.hypot(u.x - wx, u.y - 3 - wy); if (d < bd) { bd = d; best = u; } }
+  if (best) return best;
+  return blds.find(b => b.team !== 0 && wx >= b.tx * T && wx < (b.tx + b.w) * T && wy >= b.ty * T && wy < (b.ty + b.h) * T) || null;
+}
+function setSel(a) { sel = a; uiDirty = true; }
+function placeValid(tx, ty, type) {
+  const d = BT[type];
+  for (let y = ty; y < ty + d.h; y++) for (let x = tx; x < tx + d.w; x++) if (!free(x, y)) return false;
+  return true;
+}
+function startPlace(type) {
+  const d = BT[type], tm = TEAM[0];
+  if (tm.wood < d.cost[0] || tm.gold < d.cost[1]) return say('Recursos insuficientes');
+  placing = type;
+}
+function ghostTile() {
+  const w = toWorld(mouse.x, mouse.y), d = BT[placing];
+  return { x: Math.floor(w.x / T - d.w / 2 + 0.5), y: Math.floor(w.y / T - d.h / 2 + 0.5) };
+}
+cv.addEventListener('contextmenu', e => e.preventDefault());
+cv.addEventListener('mousedown', e => {
+  if (!running) return;
+  const w = toWorld(e.clientX, e.clientY);
+  if (e.button === 0) {
+    if (placing) {
+      const g = ghostTile(), d = BT[placing];
+      if (!placeValid(g.x, g.y, placing)) return say('No se puede construir aquí');
+      if (TEAM[0].wood < d.cost[0]) return say('Recursos insuficientes');
+      TEAM[0].wood -= d.cost[0];
+      const b = addBld(placing, 0, g.x, g.y, false);
+      sel.filter(s => s.k === 'u' && s.type === 'villager').forEach(v => setOrder(v, { t: 'build', b }));
+      if (!e.shiftKey) placing = null;
+      return;
+    }
+    drag = { x0: e.clientX, y0: e.clientY, x1: e.clientX, y1: e.clientY };
+  } else if (e.button === 2) {
+    if (placing) { placing = null; return; }
+    rightClick(w);
+  }
+});
+window.addEventListener('mousemove', e => {
+  mouse.x = e.clientX; mouse.y = e.clientY;
+  if (drag) { drag.x1 = e.clientX; drag.y1 = e.clientY; }
+  if (miniDown) miniGo(e);
+});
+window.addEventListener('mouseup', e => {
+  miniDown = false;
+  if (!drag || e.button !== 0) return;
+  const d = drag; drag = null;
+  if (Math.hypot(d.x1 - d.x0, d.y1 - d.y0) < 5) {
+    const w = toWorld(d.x0, d.y0), o = pickOwn(w.x, w.y);
+    if (e.shiftKey && o) setSel(sel.includes(o) ? sel.filter(s => s !== o) : sel.concat(o));
+    else setSel(o ? [o] : []);
+  } else {
+    const a = toWorld(Math.min(d.x0, d.x1), Math.min(d.y0, d.y1)), b = toWorld(Math.max(d.x0, d.x1), Math.max(d.y0, d.y1));
+    const inBox = units.filter(u => u.team === 0 && u.x >= a.x && u.x <= b.x && u.y >= a.y && u.y <= b.y);
+    setSel(e.shiftKey ? [...new Set(sel.concat(inBox))] : inBox);
+  }
+});
+function rightClick(w) {
+  const us = sel.filter(s => s.k === 'u');
+  if (!us.length) return;
+  const tx = Math.floor(w.x / T), ty = Math.floor(w.y / T);
+  const tgt = pickEnemy(w.x, w.y);
+  if (tgt) { us.forEach(u => setOrder(u, { t: 'attack', target: tgt })); fx.push({ x: w.x, y: w.y, l: 0.4, ring: true, c: '#f33' }); return; }
+  const r = inB(tx, ty) ? resGrid[ty * MW + tx] : null;
+  const ob = blds.find(b => b.team === 0 && !b.done && !b.dead && w.x >= b.tx * T && w.x < (b.tx + b.w) * T && w.y >= b.ty * T && w.y < (b.ty + b.h) * T);
+  const rest = [];
+  us.forEach(u => {
+    if (u.type === 'villager' && r) startGather(u, r);
+    else if (u.type === 'villager' && ob) setOrder(u, { t: 'build', b: ob });
+    else rest.push(u);
+  });
+  fx.push({ x: w.x, y: w.y, l: 0.4, ring: true, c: r ? '#ffd23a' : '#7f7' });
+  const cols = Math.ceil(Math.sqrt(rest.length));
+  rest.forEach((u, i) => setMove(u, w.x + ((i % cols) - (cols - 1) / 2) * 10, w.y + (Math.floor(i / cols) - (Math.ceil(rest.length / cols) - 1) / 2) * 10));
+}
+window.addEventListener('keydown', e => {
+  if (!running) return;
+  keys[e.key.toLowerCase()] = true;
+  if (e.key === 'Escape') { placing = null; setSel([]); }
+  if (e.key === ' ') { e.preventDefault(); const tc = blds.find(b => b.team === 0 && b.type === 'tc' && !b.dead); if (tc) { cam.x = (tc.tx + 1.5) * T - VW / 2; cam.y = (tc.ty + 1.5) * T - VH / 2; clampCam(); } }
+  if (e.key === '1' || e.key === '2') { const b = $('cmds').children[Number(e.key) - 1]; if (b) b.click(); }
+  if (e.key.startsWith('Arrow')) e.preventDefault();
+});
+window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+window.addEventListener('blur', () => { keys = {}; });
+let miniDown = false;
+const mini = $('mini');
+function miniGo(e) {
+  const r = mini.getBoundingClientRect();
+  cam.x = (e.clientX - r.left) / r.width * WW - VW / 2; cam.y = (e.clientY - r.top) / r.height * WH - VH / 2; clampCam();
+}
+mini.addEventListener('mousedown', e => { if (e.button === 0) { miniDown = true; miniGo(e); } });
+mini.addEventListener('contextmenu', e => e.preventDefault());
+
+// ================= UI =================
+function buildCmds() {
+  const c = $('cmds'); c.innerHTML = '';
+  const add = (label, cost, fn) => { const b = document.createElement('button'); b.innerHTML = `${label}<small>${cost}</small>`; b.onclick = fn; c.appendChild(b); };
+  const one = sel.length === 1 && sel[0].k === 'b' ? sel[0] : null;
+  const train = (b, t) => { const e = queueUnit(b, t); if (e) say(e); };
+  if (one && one.team === 0 && one.done) {
+    if (one.type === 'tc') add('Aldeano [1]', '50 madera', () => train(one, 'villager'));
+    if (one.type === 'barracks') { add('Soldado [1]', '30 madera · 30 oro', () => train(one, 'soldier')); add('Arquero [2]', '40 madera · 40 oro', () => train(one, 'archer')); }
+  }
+  if (sel.some(s => s.k === 'u' && s.type === 'villager')) { add('Casa [1]', '30 madera · +5 pob.', () => startPlace('house')); add('Cuartel [2]', '100 madera', () => startPlace('barracks')); }
+}
+function infoText() {
+  if (!sel.length) return '<b>Pixel Empires</b><br>Selecciona unidades con clic o arrastrando.<br>Clic derecho: mover, recolectar, construir o atacar.<br>Objetivo: destruir el Centro Urbano rojo.';
+  if (sel.length === 1) {
+    const e = sel[0], n = e.k === 'u' ? UT[e.type].n : BT[e.type].n;
+    let s = `<b>${n}</b><br>Vida: ${Math.ceil(e.hp)} / ${e.maxhp}`;
+    if (e.k === 'u') s += e.type === 'villager' ? `<br>Carga: ${e.carry} ${e.carry ? (e.ckind === 'tree' ? 'madera' : 'oro') : ''}<br>Orden: ${e.order.t}` : `<br>Ataque: ${UT[e.type].dmg}`;
+    else if (!e.done) s += `<br>Construyendo: ${Math.floor(e.progress * 100)}%`;
+    else if (e.queue.length) s += `<br>Entrenando: ${UT[e.queue[0]].n} ${Math.floor(e.qt / UT[e.queue[0]].time * 100)}% (cola: ${e.queue.length})`;
+    return s;
+  }
+  const c = {}; sel.forEach(e => { c[UT[e.type].n] = (c[UT[e.type].n] || 0) + 1; });
+  return `<b>${sel.length} unidades</b><br>` + Object.entries(c).map(([k, v]) => `${v} ${k}`).join(', ');
+}
+function updateUI(dt) {
+  if (msgT > 0 && (msgT -= dt) <= 0) $('msg').textContent = '';
+  $('wood').textContent = TEAM[0].wood; $('gold').textContent = TEAM[0].gold;
+  const used = popUsed(0), cap = popCap(0); $('pop').textContent = used + '/' + cap;
+  if (uiDirty) { buildCmds(); uiDirty = false; }
+  const t = infoText(); if (t !== lastInfo) { $('info').innerHTML = t; lastInfo = t; }
+}
+
+// ================= Render =================
+function resize() {
+  S = Math.max(2, Math.round(innerHeight / 300));
+  VW = Math.ceil(innerWidth / S); VH = Math.ceil(innerHeight / S);
+  cv.width = VW; cv.height = VH; cv.style.width = VW * S + 'px'; cv.style.height = VH * S + 'px';
+  ctx.imageSmoothingEnabled = false;
+  if (cam) clampCam();
+}
+window.addEventListener('resize', resize);
+const bar = (x, y, w, f) => { R(ctx, '#300', x, y, w, 2); R(ctx, f > 0.5 ? '#3c3' : f > 0.25 ? '#ec3' : '#e33', x, y, Math.max(1, Math.round(w * f)), 2); };
+function draw() {
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, VW, VH);
+  const cx = Math.round(cam.x), cy = Math.round(cam.y);
+  const x0 = Math.max(0, Math.floor(cx / T)), y0 = Math.max(0, Math.floor(cy / T)), x1 = Math.min(MW - 1, Math.floor((cx + VW) / T)), y1 = Math.min(MH - 1, Math.floor((cy + VH) / T));
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) ctx.drawImage(SPR.ground[(x * 7 + y * 13 + ((x * y) % 5)) % 3], x * T - cx, y * T - cy);
+  const L = [];
+  for (const r of ress) if (!r.dead && r.tx >= x0 - 1 && r.tx <= x1 + 1 && r.ty >= y0 - 1 && r.ty <= y1 + 1) L.push({ y: r.ty * T + T, e: r });
+  for (const b of blds) L.push({ y: (b.ty + b.h) * T, e: b });
+  for (const u of units) L.push({ y: u.y + 4, e: u });
+  L.sort((a, b) => a.y - b.y);
+  for (const { e } of L) {
+    if (e.k === 'r') ctx.drawImage(e.kind === 'tree' ? SPR.tree : SPR.gold, e.tx * T - cx, e.ty * T + T - (e.kind === 'tree' ? 20 : 16) - cy);
+    else if (e.k === 'b') {
+      const spr = SPR.bld[e.type][e.team], bx = e.tx * T - cx, by = (e.ty + e.h) * T - spr.height - cy;
+      ctx.globalAlpha = e.done ? 1 : 0.5 + 0.5 * e.progress; ctx.drawImage(spr, bx, by); ctx.globalAlpha = 1;
+      if (sel.includes(e)) { ctx.strokeStyle = '#7f7'; ctx.lineWidth = 1; ctx.strokeRect(bx + 0.5, e.ty * T - cy + 0.5, e.w * T - 1, e.h * T - 1); }
+      if (!e.done) bar(bx, by - 4, e.w * T, e.progress);
+      else if (e.hp < e.maxhp || sel.includes(e)) bar(bx, by - 4, e.w * T, e.hp / e.maxhp);
+    } else {
+      const bob = e.moving && Math.floor(time * 8) % 2 ? -1 : 0, ux = Math.round(e.x - cx), uy = Math.round(e.y - cy);
+      if (sel.includes(e)) { ctx.strokeStyle = '#7f7'; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(ux, uy + 1, 6, 3, 0, 0, 7); ctx.stroke(); }
+      else R(ctx, 'rgba(0,0,0,.25)', ux - 3, uy, 7, 2);
+      ctx.drawImage(SPR.unit[e.type][e.team][e.face < 0 ? 1 : 0], ux - 4, uy - 8 + bob);
+      if (e.carry > 0) R(ctx, e.ckind === 'tree' ? '#8a5a2b' : '#ffd23a', ux - 1, uy - 11 + bob, 3, 2);
+      if (e.hp < e.maxhp || sel.includes(e)) bar(ux - 5, uy - 13, 10, e.hp / e.maxhp);
+    }
+  }
+  for (const p of projs) R(ctx, '#fff', Math.round(p.x - cx), Math.round(p.y - cy), 2, 1);
+  for (const f of fx) {
+    if (f.ring) { ctx.strokeStyle = f.c; ctx.lineWidth = 1; const r = (0.4 - f.l) * 30 + 2; ctx.strokeRect(Math.round(f.x - cx - r), Math.round(f.y - cy - r / 2), r * 2, r); }
+    else R(ctx, f.c, Math.round(f.x - cx), Math.round(f.y - cy), 2, 2);
+  }
+  if (placing) {
+    const g = ghostTile(), d = BT[placing], ok = placeValid(g.x, g.y, placing), spr = SPR.bld[placing][0];
+    ctx.globalAlpha = 0.65; ctx.drawImage(spr, g.x * T - cx, (g.y + d.h) * T - spr.height - cy); ctx.globalAlpha = 0.45;
+    R(ctx, ok ? '#3f3' : '#f33', g.x * T - cx, g.y * T - cy, d.w * T, d.h * T); ctx.globalAlpha = 1;
+  }
+  if (drag && Math.hypot(drag.x1 - drag.x0, drag.y1 - drag.y0) >= 5) {
+    ctx.strokeStyle = '#7f7'; ctx.lineWidth = 1;
+    ctx.strokeRect(Math.min(drag.x0, drag.x1) / S + 0.5, Math.min(drag.y0, drag.y1) / S + 0.5, Math.abs(drag.x1 - drag.x0) / S, Math.abs(drag.y1 - drag.y0) / S);
+  }
+}
+const mctx = mini.getContext('2d');
+function drawMini() {
+  mctx.fillStyle = '#3d7a30'; mctx.fillRect(0, 0, 64, 64);
+  for (const r of ress) if (!r.dead) { mctx.fillStyle = r.kind === 'gold' ? '#ffd23a' : '#1f5a2a'; mctx.fillRect(r.tx, r.ty, 1, 1); }
+  for (const b of blds) { mctx.fillStyle = TEAM[b.team].main; mctx.fillRect(b.tx, b.ty, b.w, b.h); }
+  for (const u of units) { mctx.fillStyle = TEAM[u.team].light; mctx.fillRect(Math.floor(u.x / T), Math.floor(u.y / T), 1, 1); }
+  mctx.strokeStyle = '#fff'; mctx.lineWidth = 1; mctx.strokeRect(cam.x / T + 0.5, cam.y / T + 0.5, VW / T, VH / T);
+}
+
+// ================= Bucle principal =================
+function update(dt) {
+  time += dt;
+  const sp = 260 * dt / (S / 3), edge = 8;
+  if (keys['a'] || keys['arrowleft'] || (mouse.x < edge && mouse.x >= 0)) cam.x -= sp;
+  if (keys['d'] || keys['arrowright'] || mouse.x > innerWidth - edge) cam.x += sp;
+  if (keys['w'] || keys['arrowup'] || (mouse.y < edge && mouse.y >= 0)) cam.y -= sp;
+  if (keys['s'] || keys['arrowdown'] || mouse.y > innerHeight - edge) cam.y += sp;
+  clampCam();
+  for (const u of units) updateUnit(u, dt);
+  for (const b of blds) updateBld(b, dt);
+  separate();
+  aiTick(dt);
+  for (const p of projs) { p.l += dt; p.x += (p.tx - p.x) * Math.min(1, dt * 12); p.y += (p.ty - p.y) * Math.min(1, dt * 12); }
+  projs = projs.filter(p => p.l < 0.18);
+  for (const f of fx) { f.l -= dt; if (!f.ring) { f.x += f.vx * dt; f.y += f.vy * dt; f.vy += 80 * dt; } }
+  fx = fx.filter(f => f.l > 0);
+  const n = units.length + blds.length;
+  units = units.filter(u => !u.dead); blds = blds.filter(b => !b.dead); ress = ress.filter(r => !r.dead);
+  if (units.length + blds.length !== n || sel.some(s => s.dead)) { sel = sel.filter(s => !s.dead); uiDirty = true; }
+  const mine = blds.some(b => b.team === 0 && b.type === 'tc'), theirs = blds.some(b => b.team === 1 && b.type === 'tc');
+  if (!over && (!mine || !theirs)) endGame(mine);
+}
+function endGame(won) {
+  over = true; running = false;
+  $('otitle').textContent = won ? '¡VICTORIA!' : 'DERROTA';
+  $('otext').textContent = won ? 'Has destruido el Centro Urbano enemigo. ¡Tu imperio perdura!' : 'Tu Centro Urbano ha caído. El imperio enemigo domina la tierra.';
+  $('play').textContent = 'JUGAR DE NUEVO';
+  $('overlay').classList.remove('hide');
+}
+let last = 0;
+function loop(ts) {
+  const dt = Math.min(0.05, (ts - last) / 1000 || 0); last = ts;
+  if (running) update(dt);
+  if (units) { draw(); updateUI(dt); if ((miniT -= dt) <= 0) { miniT = 0.2; drawMini(); } }
+  requestAnimationFrame(loop);
+}
+$('play').onclick = () => { newGame(); running = true; $('overlay').classList.add('hide'); };
+buildSprites(); resize(); requestAnimationFrame(loop);
+</script>
+</body>
+</html>
