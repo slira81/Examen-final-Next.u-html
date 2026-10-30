@@ -1,0 +1,104 @@
+<title>Galería de Personajes</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+/* Layout: escenario oscuro con tarjetas de personaje en rejilla; sprites a 8x sobre piso de baldosas */
+:root{--bg:#17131f;--panel:#221b30;--line:#3a2f52;--fg:#efe9f7;--mute:#b5a9c9;--accent:#f0b84a;--stage1:#2b2340;--stage2:#2f2646;--font-d:"Pixelify Sans","Courier New",monospace;--font-b:"IBM Plex Sans",system-ui,sans-serif;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font:15px/1.55 var(--font-b);padding-block:28px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1080px;margin:0 auto;display:grid;gap:36px}
+h1,h2,h3{font-family:var(--font-d);margin:0;text-wrap:balance;letter-spacing:.5px}
+h1{font-size:clamp(28px,5vw,44px);color:var(--accent)}
+h2{font-size:22px}
+h3{font-size:22px}
+.lead{max-width:62ch;color:var(--mute);margin:8px 0 0}
+header{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between}
+.toggle{display:flex;gap:0;border:2px solid var(--line)}
+.toggle button{font:600 13px var(--font-d);color:var(--mute);background:transparent;border:0;padding:8px 18px;cursor:pointer;letter-spacing:.5px}
+.toggle button[aria-pressed=true]{background:var(--accent);color:#2a1a05}
+.toggle button:focus-visible,.card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+.card{background:var(--panel);border:2px solid var(--line);display:flex;flex-direction:column;min-width:0}
+.stage{background:conic-gradient(var(--stage1) 25%,var(--stage2) 0 50%,var(--stage1) 0 75%,var(--stage2) 0) 0 0/32px 32px;display:grid;place-items:center;padding:18px 0;border-bottom:2px solid var(--line)}
+.spr{width:min(256px,80%);aspect-ratio:1;image-rendering:pixelated;animation:bob 1s steps(1) infinite}
+@keyframes bob{0%{transform:translateY(0)}50%{transform:translateY(-3%)}}
+.body{padding:14px 16px 16px;display:grid;gap:6px}
+.body p{margin:0;color:var(--mute);font-size:14px}
+.body .role{color:var(--accent);font:500 12px var(--font-b);text-transform:uppercase;letter-spacing:.12em}
+.pal{display:grid;gap:6px;margin-top:8px}
+.row{display:grid;grid-template-columns:70px 1fr;gap:8px;align-items:center;font-size:12px;color:var(--mute)}
+.ramp{display:grid;grid-template-columns:repeat(4,1fr);height:16px;border:1px solid var(--line)}
+section{display:grid;gap:14px}
+.strip{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-end;background:var(--panel);border:2px solid var(--line);padding:18px}
+.strip figure{margin:0;display:grid;gap:6px;justify-items:center;font-size:12px;color:var(--mute)}
+.strip img{image-rendering:pixelated}
+.sil{filter:brightness(0) invert(.88)}
+.sizes img{margin:0 6px}
+.scale{display:flex;align-items:flex-end;gap:4px}
+.refs{display:grid;gap:8px;padding:0;margin:0;list-style:none}
+.refs a{color:var(--accent)}
+.refs li{color:var(--mute)}
+.tech{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.tech div{border-left:3px solid var(--accent);padding:2px 0 2px 12px;color:var(--mute);font-size:14px}
+.tech b{display:block;color:var(--fg);font-family:var(--font-d);font-size:16px;font-weight:500}
+@media (prefers-reduced-motion:reduce){.spr{animation:none}}
+</style>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Galería de Personajes</h1>
+      <p class="lead">Cuatro unidades de Pixel Empires dibujadas a 32×32 píxeles. Cámbialas entre el bando azul y el rojo, y revisa la silueta y el tamaño real dentro del juego.</p>
+    </div>
+    <div class="toggle" role="group" aria-label="Bando"><button id="t-azul" aria-pressed="true">AZUL</button><button id="t-rojo" aria-pressed="false">ROJO</button></div>
+  </header>
+
+  <section><div class="grid" id="grid">%%CARDS%%</div></section>
+
+  <section>
+    <h2>Prueba de silueta</h2>
+    <p class="lead" style="margin:0">Si el color desaparece, ¿se sigue distinguiendo quién es quién? Cada clase tiene una forma propia: escudo y espada, triángulo con bastón, sombrero ancho con hacha, y arco curvo.</p>
+    <div class="strip" id="sil"></div>
+  </section>
+
+  <section>
+    <h2>Tamaño dentro del juego</h2>
+    <div class="strip sizes" id="sizes"></div>
+  </section>
+
+  <section>
+    <h2>Técnica de dibujo</h2>
+    <div class="tech">
+      <div><b>Rampas con cambio de matiz</b>Cada material tiene 4 tonos. Las sombras se enfrían hacia el violeta y las luces se calientan hacia el amarillo, sin usar negro ni blanco puros.</div>
+      <div><b>Luz arriba a la izquierda</b>Los bordes superiores e izquierdos son claros y los inferiores y derechos oscuros. Las áreas anchas tienen volumen cilíndrico.</div>
+      <div><b>Contorno selectivo</b>Línea de 1 px con el tono oscuro del material vecino, más suave en el lado iluminado. Las armas llevan contorno interior para separarse del cuerpo.</div>
+      <div><b>Un color de equipo</b>El material "equipo" reemplaza al azul o al rojo, así cada diseño sirve para ambos bandos con el mismo código.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Referencias consultadas</h2>
+    <ul class="refs">
+      <li><a href="https://lospec.com/articles/category:articles" target="_blank" rel="noopener">Lospec: artículos de pixel art</a>, contorno selectivo (más oscuro en sombra, más claro en luz).</li>
+      <li><a href="https://www.gamedev.net/articles/visual-arts/color-palettes-r4964/" target="_blank" rel="noopener">GameDev.net: Color Palettes</a>, rampas con cambio de matiz de unos 20° por tono.</li>
+      <li><a href="https://community.aseprite.org/t/how-do-i-make-cohesive-color-palettes-on-aseprite/7983" target="_blank" rel="noopener">Foro de Aseprite: paletas coherentes</a>, ramps que se cruzan para ahorrar colores.</li>
+      <li><a href="https://lpc.opengameart.org/static/LPC-Style-Guide/build/styleguide.html" target="_blank" rel="noopener">Guía de estilo LPC (OpenGameArt)</a>, proporciones y sombreado de personajes de RPG.</li>
+      <li><a href="https://pixeljoint.com/forum/forum_posts.asp?TID=25625" target="_blank" rel="noopener">PixelJoint: sprites de 32×32</a>, evitar contornos negros sólidos.</li>
+    </ul>
+  </section>
+</div>
+<script>
+const D=%%DATA%%,NAMES=%%NAMES%%,ORDER=%%ORDER%%,LABELS=%%LABELS%%;
+let team='azul';
+function render(){
+  document.querySelectorAll('.card').forEach(c=>{
+    const k=c.dataset.c,d=D[k][team];
+    c.querySelector('.spr').src=d.src;
+    c.querySelector('.pal').innerHTML=Object.entries(d.pal).map(([m,r])=>`<div class="row"><span>${NAMES[m]||m}</span><div class="ramp" title="${r.join(' ')}">${r.map(x=>`<i style="background:${x}"></i>`).join('')}</div></div>`).join('');
+  });
+  document.getElementById('sil').innerHTML=ORDER.map(k=>`<figure><img class="sil" src="${D[k][team].src}" width="128" height="128" alt=""><span>${LABELS[k]}</span></figure>`).join('');
+  document.getElementById('sizes').innerHTML=[1,2,3].map(s=>`<figure><div class="scale">${ORDER.map(k=>`<img src="${D[k][team].src}" width="${32*s}" height="${32*s}" alt="${LABELS[k]}">`).join('')}</div><span>${s}×${s===1?' (tamaño real)':''}</span></figure>`).join('');
+  ['azul','rojo'].forEach(t=>document.getElementById('t-'+t).setAttribute('aria-pressed',t===team));
+}
+['azul','rojo'].forEach(t=>document.getElementById('t-'+t).onclick=()=>{team=t;render()});
+render();
+</script>
