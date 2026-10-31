@@ -1078,7 +1078,7 @@ U.human_cav = {
       c.rect('steel', 15, 5, 21, 11); c.rect('team', 15, 8, 21, 12); c.rect('gold', 15, 11, 21, 11);
       const h = T(0, 0); limb(c, 'steel', 20, 7, Math.round(h[0]) - 2, Math.round(h[1]) - 1);
       c.rim((t, m) => { rb(t, m, T, -12, 8, 2); rp(t, m, T, [[-2, -1], [2, -1], [1, -4], [-1, -4]]); rp(t, m, T, [[-1, -12], [1, -12], [0, -15]]); }, 'cloth');
-      for (const y of [-10, -7, 1, 4, 7]) rb(c, 'team', T, y, y + 1.2, 2);
+      for (const y of [-6, 1, 4, 7]) rb(c, 'team', T, y, y + 1.2, 2);
       rp(c, 'steel', T, [[-2, -1], [2, -1], [1, -4], [-1, -4]]); rp(c, 'blade', T, [[-1, -12], [1, -12], [0, -15]]);
       c.at(0, P.sec, () => rp(c, 'team', T, [[1, -12], [5.5, -11.5 + P.sw * .5], [4, -10.5], [5.5, -9.5 + P.sw * .5], [1, -9]]));
       c.rect('steel', Math.round(h[0]) - 1, Math.round(h[1]) - 1, Math.round(h[0]), Math.round(h[1]));
@@ -1090,7 +1090,7 @@ U.human_cav = {
       c.poly('team', [[13, 8], [17, 8], [17, 12], [15, 14.5], [13, 12]]); c.rect('white', 15, 8, 15, 13); c.rect('white', 13, 10, 17, 10);
       if (a === 2) for (let i = 0; i < 4; i++) c.glow(6 + i * 2, 12, 60, '#ffffff');
     });
-    c.at(P.sec === 0 ? P.sw : 0, b + P.sec, () => { c.ell('team', 17.5, 1.5, 2, 1.4); c.rect('team', 13, 1, 17, 2); c.px('team', 12, 3); });
+    c.at(P.sec === 0 ? P.sw : 0, b + P.sec, () => { c.ell('feather', 17.5, 1.5, 2, 1.4); c.rect('feather', 13, 1, 17, 2); c.px('feather', 12, 3); c.px('team', 17, 1); });
   },
 };
 
@@ -1279,6 +1279,7 @@ U.elf_inf = {
     c.at(0, b, () => {
       c.rect('silver', 12, 13, 19, 20);
       for (const y of [15, 17, 19]) for (let x = 12 + (y & 2 ? 1 : 0); x <= 19; x += 2) c.px('silver.0', x, y);
+      c.poly('leaf', [[13, 13], [18, 13], [15.5, 16]]); c.px('gold', 15, 13); c.px('gold', 16, 13);
       c.poly('leaf', [[11.5, 21], [19.5, 21], [20.5, 23], [18, 24], [15.5, 22.5], [13, 24], [10.5, 23]]);
       c.rect('team', 12, 20, 19, 21);
       c.poly('silver', [[9, 13], [12.5, 12.5], [12.5, 15.5], [10, 16]]); c.poly('silver', [[22, 13], [18.5, 12.5], [18.5, 15.5], [21, 16]]);
@@ -1729,7 +1730,7 @@ function ram(c, P, lunge) {
     c.ell('ua_wool', 28.5, 15.5, 3.4, 3.6);
     c.poly('ua_ramface', [[28, 12.5], [32.5, 12.5], [37.5, 16.5], [37, 19.5], [33.5, 20.5], [29, 18]]);
     c.px('eye', 33, 15); c.px('ua_ramface.0', 37, 19); c.rect('ua_ramface.2', 34, 15, 36, 15);
-    c.rim((t, m) => { t.ring(m, 29.5, 15.5, 4.2, 4, .2); t.poly(m, [[30.5, 18.5], [33, 19], [31.5, 21]]); }, 'ua_horn');
+    c.rim((t, m) => { t.ring(m, 29.5, 15.5, 4.2, 4, .2, (x, y) => !(y >= 17 && x >= 30)); t.poly(m, [[30, 17.5], [32.5, 18.5], [32, 20.5], [30.5, 19.5]]); }, 'ua_horn');
     c.px('ua_horn.0', 29, 15); c.px('ua_horn.0', 30, 16); c.px('ua_horn.0', 28, 17); c.px('ua_horn.3', 28, 12); c.px('ua_horn.0', 26, 16); c.px('ua_horn.0', 32, 14);
   });
   qleg(c, P, 'ua_ramface', 'ua_hoof', 12, 22 + b, 0, 0, 2, 2, 2.5);
@@ -1832,7 +1833,7 @@ U.dwarf_siege = {
       }
       if (a === 3) { c.ell('ua_smoke', 36.5, 11.5, 2.2, 2); c.ell('ua_smoke', 34.5, 8, 1.8, 1.6); c.px('ua_smoke.3', 35, 10); }
     });
-    c.at(0, b, () => { c.rect('darkwood', 18, 15, 24, 18); c.rect('iron', 18, 15, 24, 15); c.rect('team', 20, 16, 22, 17); });   // muñón
+    c.at(0, b, () => { c.rect('darkwood', 17, 15, 25, 19); c.rect('iron', 17, 15, 25, 15); c.rect('team', 18, 16, 24, 18); c.rect('gold', 21, 16, 21, 18); });   // muñón con placa del equipo
     wheel(c, 21, 23.5, 6, r, 'darkwood', 'wood', 3, 'iron', 'darkwood.0'); c.px('gold', 20, 22);
   },
 };
@@ -2870,7 +2871,7 @@ U.neutral_ogre = {
 const B = PE.ART.buildings;
 PE.addMats({
   bld_elfwood: '#cdb07e', bld_bark: '#8c8578', bld_moon: '#d3d0c2', bld_elfglass: '#62e0a6',
-  bld_granite: '#7d7984', bld_slate: '#4f5a74', bld_hide: '#b48c5e', bld_turf: '#6c9440',
+  bld_granite: '#7d7984', bld_slate: '#4f5a74', bld_hide: '#b48c5e', bld_turf: '#86a346',
   bld_logend: '#dbb47a', bld_glass: '#78b4ff', bld_pumpkin: '#e0832c', bld_cabbage: '#93c862',
   bld_mush: '#c94a3c', bld_grape: '#7b3f9e', bld_horse: '#b0703e', bld_rag: '#9a8a6a', bld_elfleaf: '#3f9a78',
 });
@@ -3072,11 +3073,11 @@ function hay(c, x, yb, w = 7, h = 5) {
   c.rect(T('straw', 3), x + 1, yb - h + 1, x + w - 2, yb - h + 1);
   c.line(T('thatch', 0), x + 2, yb - h + 1, x + 2, yb); c.line(T('thatch', 0), x + w - 3, yb - h + 1, x + w - 3, yb);
 }
-// Pila de troncos vista de frente (testas)
+// Pila de troncos vista de frente (testas con anillos)
 function logEnds(c, x, yb, n, m = 'darkwood') {
   for (let row = 0; row < n; row++) for (let i = 0; i < n - row; i++) {
-    const cx = x + 2 + i * 4 + row * 2, cy = yb - 1.5 - row * 3.4;
-    c.ell(m, cx, cy, 2.2, 2.1); c.ell('bld_logend', cx, cy, 1.4, 1.3); c.px(T('bld_logend', 0), cx - .5, cy - .5);
+    const cx = x + 2.5 + i * 5 + row * 2.5, cy = yb - 2 - row * 4.2;
+    c.ell(m, cx, cy, 2.6, 2.5); c.ell('bld_logend', cx, cy, 1.8, 1.7); c.px(T('bld_logend', 0), cx - .5, cy - .5); c.px(T('bld_logend', 3), cx - 1.5, cy - 1.5);
   }
 }
 // Tronco tumbado (vista lateral)
@@ -3309,7 +3310,7 @@ const G = {
     c.line(T(K.wood, 1), 2, 54, 9, 54); c.line(T(K.wood, 0), 2, 52, 9, 52); c.rect(K.beam, 2, 51, 2, 55); c.rect(K.beam, 9, 51, 9, 55);
   },
   workshop(c, f, K) {
-    const g = K.hall(c, 2, 30, 60, 15, 16, { f, door: 18, dw: 11, dh: 10, open: true, wins: [5], sh: 3 });
+    const g = K.hall(c, 3, 31, 60, 17, 18, { f, door: 18, dw: 11, dh: 10, open: true, wins: [6], sh: 3 });
     c.ring(K.wood, 18, 55.5, 4, 4, 0.5); c.line(K.wood, 18, 52, 18, 59); c.line(K.wood, 14, 55, 22, 55);
     gear(c, 9, g.wy - 4, 4, f, K.metal);
     // grúa: mástil, pluma y carga que oscila
@@ -3333,22 +3334,29 @@ const G = {
   },
   market(c, f, K) {
     const st = (x0, x1, ya, yc) => { c.rect(K.beam, x0 + 1, ya + 4, x0 + 1, yc + 4); c.rect(K.beam, x1 - 1, ya + 4, x1 - 1, yc + 4); K.awn(c, x0, x1, ya, ya + 5, f); counter(c, K, x0 + 1, x1 - 1, yc); };
-    st(7, 40, 20, 39); c.rect('bld_hole2', 9, 26, 38, 38); for (let x = 11; x < 38; x += 5) { c.rect(K.wood, x, 30, x + 2, 37); c.px(T(K.wood, 2), x, 30); }
-    st(1, 19, 32, 47); st(28, 46, 30, 45);
+    // puesto principal techado al estilo de la raza, con estantes de mercancía
+    c.rect('bld_hole2', 9, 24, 38, 40); for (let x = 11; x < 37; x += 5) { c.rect(K.wood, x, 29, x + 2, 36); c.px(T(K.wood, 2), x, 29); goods(c, x, x + 2, 28); }
+    c.rect(K.beam, 8, 22, 9, 43); c.rect(K.beam, 38, 22, 39, 43);
+    K.roof(c, 5, 42, 23, 11, {}); counter(c, K, 9, 38, 39);
+    banner(c, 21, 23, 6, 4, f, { sway: 0, rod: K.metal, emb: (x, y) => { c.px('gold', x - .5, y); c.px('gold', x + .5, y); } });
+    st(3, 19, 32, 47); st(28, 44, 30, 45);
     barrel(c, 20, 54); barrel(c, 22, 49); crate(c, 25, 54, 5); sack(c, 14, 54); sack(c, 33, 54);
-    K.flag(c, 23, 6, f, { ph: 13, len: 6 });
+    K.flag(c, 41, 5, f, { ph: 10, len: 4 });
   },
   lumber(c, f, K) {
-    K.shed(c, 2, 29, 30, 11, f);
-    logEnds(c, 4, 30, 4, K.beam);
-    pennant(c, 28, 3, f, { ph: 8 });
-    // caballete con tronco y sierra
-    c.line(K.beam, 18, 41, 22, 36); c.line(K.beam, 22, 41, 18, 36); c.line(K.beam, 25, 41, 29, 36); c.line(K.beam, 29, 41, 25, 36);
-    logSide(c, 14, 30, 36, K.wood, 3);
-    const sx = [0, 2, 3, 1][f];
-    c.at(sx, 0, () => { c.rect(K.blade, 20, 37, 21, 39); c.line(T(K.blade, 0), 20, 40, 21, 40); c.rect(K.wood, 20, 30, 21, 33); c.rect(K.blade, 21, 33, 21, 36); });
-    for (let i = 0; i < 3; i++) c.glow(19 + sx + i * 2 - (f & 1), 41 - (i & 1), 200, '#e8d4a0');
-    c.rect(K.beam, 3, 38, 8, 42); c.rect('bld_logend', 3, 38, 8, 38); c.line(K.wood, 7, 37, 10, 33); c.rect(K.blade, 9, 32, 11, 33);
+    K.shed(c, 3, 28, 30, 11, f);
+    logEnds(c, 5, 30, 3, K.beam); logEnds(c, 19, 30, 2, K.beam);
+    pennant(c, 4, 3, f, { ph: 8 });
+    // caballete con tronco y sierra de foso que sube y baja
+    for (const x of [15, 26]) { c.line(K.beam, x, 41, x + 3, 35); c.line(K.beam, x + 3, 41, x, 35); }
+    logSide(c, 13, 30, 36, K.wood, 3);
+    c.ell('sand', 22.5, 41.5, 3.5, 1.4); c.px(T('sand', 3), 21, 41);
+    const s2 = [0, 1, 2, 1][f];
+    c.at(0, s2, () => { c.rect(T(K.blade, 2), 22, 30, 22, 39); for (let y = 31; y < 39; y += 2) c.px(T(K.blade, 0), 23, y); c.rect(K.wood, 20, 29, 25, 29); c.rect(K.wood, 20, 39, 25, 39); c.px(T(K.wood, 0), 25, 39); });
+    for (let i = 0; i < 2; i++) c.glow(20 + i * 5, 38 + md(f + i * 2, 4), 200, '#ead6a4');
+    // tocón con hacha clavada
+    c.rect(K.beam, 3, 38, 8, 42); c.rect('bld_logend', 3, 38, 8, 38); c.px(T('bld_logend', 0), 5, 38);
+    c.line(K.wood, 7, 37, 10, 33); c.rect(K.blade, 9, 31, 11, 32); c.px(T(K.blade, 3), 9, 31); c.px(K.blade, 12, 31);
   },
   mine(c, f, K) {
     K.mound(c, f);
@@ -3413,7 +3421,7 @@ HUM.W = {
   crenV(c, x, y0, y1) { for (let y = y0; y <= y1; y++) c.px(T('stone', md(y, 4) === 0 ? 3 : md(y, 4) === 1 ? 0 : 2), x, y); },
   post(c, f) {
     wbox(c, HUM.W, 2, 13, 18, 27, 16);
-    for (let x = 2; x <= 13; x++) if (md(x, 3) < 2) { c.px(T('stone', 3), x, 1); c.px(T('stone', 1), x, 0); }
+    for (let x = 2; x <= 13; x++) if (md(x, 3) < 2) c.px(T('stone', 3), x, 1);
     HUM.W.crenV(c, 2, 2, 11); HUM.W.crenV(c, 13, 2, 11);
     for (let x = 2; x <= 13; x++) if (md(x, 3) < 2) { c.px(T('stone', 3), x, 9); c.px(T('stone', md(x, 3) ? 0 : 1), x, 10); c.px(T('stone', md(x, 3) ? 0 : 1), x, 11); }
     banner(c, 6, 13, 4, 6, f, { sway: 0, emb: (x, y) => { c.px('gold', x - .5, y); c.px('gold', x + .5, y); } });
@@ -3451,7 +3459,7 @@ HUM.portal = (c, x0, x1, yb, yt) => {
   c.rect('wood', x0 - 1, yt, x1 + 1, yt + 2); c.rect(T('wood', 2), x0 - 1, yt, x1 + 1, yt); c.px('bld_logend', x0 - 1, yt + 1); c.px('bld_logend', x1 + 1, yt + 1);
 };
 HUM.farm = (c, f) => {
-  R(c, 'dirt', 2, 6, 45, 45, (x, y) => (md(y, 4) === 3 ? 0 : md(y, 4) === 0 ? 2 : null));
+  R(c, 'dirt', 2, 6, 45, 45, (x, y) => (md(y, 4) === 3 ? 0 : md(y, 4) === 2 && hs(x, y) % 3 === 0 ? 2 : 1));
   fenceH(c, 1, 46, 6); fenceV(c, 1, 6, 46); fenceV(c, 46, 6, 46); fenceH(c, 1, 46, 46);
   for (let y = 9; y <= 44; y += 4) for (let x = 4; x <= 43; x += 2) {
     if (x > 34 && x < 42 && y < 22) continue;
@@ -3493,7 +3501,7 @@ const HUMS = {
     for (let k = 0; k < 8; k++) { const a = k * PI / 4; c.line(T('stone', 1), 23.5, 40, 23.5 + Math.cos(a) * 4, 40 + Math.sin(a) * 4); }
     c.ell(T('gold', gl), 23.5, 40, 1.2, 1.2); c.px(T('red', 2), 21, 37); c.px(T('red', 2), 26, 43); c.px(T('team', 3), 26, 37); c.px(T('team', 3), 21, 43);
     HUM.roof(c, 14, 33, 29, 4, { ins: 9 });
-    c.rect('gold', 23, 0, 24, 4); c.rect('gold', 21, 1, 26, 1); aura(c, 23.5, 2, 5, 70 + gl * 20, '#ffe98a');
+    c.rect('gold', 23, 1, 24, 4); c.rect('gold', 21, 2, 26, 2); aura(c, 23.5, 3, 5, 70 + gl * 20, '#ffe98a');
     c.rect('stone', 19, 52, 28, 68); c.rect('bld_hole', 20, 55, 27, 68); c.rect('wood', 20, 56, 27, 68); tex(c, 'wood', 20, 56, 27, 68, P.plankV(20, 2));
     c.rect('stone', 20, 55, 20, 56); c.rect('stone', 27, 55, 27, 56); c.px('stone', 21, 55); c.px('stone', 26, 55); c.rect('gold', 23, 61, 24, 61);
     banner(c, 16, 47, 3, 9, f, { sway: 0 }); banner(c, 29, 47, 3, 9, f, { sway: 0 });
@@ -3513,8 +3521,7 @@ const HUMS = {
     R(c, 'stone', 18, 30, 45, 86, P.brick(18, 30, 5, 3));
     R(c, 'darkwood', 18, 23, 45, 26, P.plankH(23, 2)); battl(c, T('stone', 2), 18, 45, 23, 2, 2, 2);
     R(c, 'stone', 17, 27, 46, 30, P.brick(17, 27, 4, 2, 0)); battl(c, 'stone', 17, 46, 26, 2, 2, 2); c.rect(T('stone', 2), 17, 27, 46, 27);
-    R(c, 'stone', 27, 12, 36, 24, P.brick(27, 12, 5, 3)); HUM.roof(c, 25, 38, 11, 0, { ins: 6 });
-    flag(c, 31, 1, f, { ph: 3, len: 0, tip: false });
+    R(c, 'stone', 27, 13, 36, 24, P.brick(27, 13, 5, 3)); HUM.roof(c, 25, 38, 12, 2, { ins: 6 }); c.px('gold', 31, 1); c.px('gold', 32, 1);
     for (const x of [22, 30, 38]) HUM.win(c, x, 40, 3, 5); for (const x of [22, 38]) HUM.win(c, x, 56, 3, 5);
     banner(c, 29, 52, 6, 12, f, { emb: (x, y) => { c.rect('gold', x, y - 1, x + 1, y + 2); c.rect('gold', x - 1, y, x + 2, y); } });
     // muralla frontal
@@ -3543,7 +3550,7 @@ const HUMS = {
     c.line('darkwood', 10, 54, 11, 31); c.line('darkwood', 21, 54, 20, 31); c.line('darkwood', 12, 44, 19, 44);
     HUM.win(c, 15, 37, 2, 3); HUM.door(c, 16, 61, 4, 6);
     HUM.roof(c, 8, 23, 30, 16, { m: 'team', ins: 7 }); c.rect('darkwood', 15, 14, 16, 16);
-    sails(c, 15.5, 25.5, 14, f, { cloth: 'cloth', spar: 'darkwood' });
+    sails(c, 15.5, 25.5, 13, f, { cloth: 'cloth', spar: 'darkwood' });
     pennant(c, 16, 2, f, { ph: 12 });
     sack(c, 4, 62); sack(c, 23, 62); sack(c, 26, 62);
   },
@@ -3604,7 +3611,7 @@ const ELF = {
     c.rect(T('bld_elfwood', 0), x0 + 1, wy, x1 - 1, wy);
     ELF.roof(c, x0 - 2, x1 + 2, wy - 1, rt, { val: o.val });
     if (o.gable) ELF.gable(c, o.gable.x, Math.min(o.gable.hw, 6), wy + 1, o.gable.h);
-    if (o.chim != null) ELF.lantern(c, x1, wy + 1, f);
+    if (o.chim != null) ELF.lantern(c, x1 - 3, wy + 1, f);
     if (o.door !== false) ELF.door(c, o.door ?? cx, yb - 2, o.dw || 5, o.dh || Math.min(wh - 3, 9), o);
     (o.wins || []).forEach(x => ELF.win(c, x, o.wy ?? wy + 4, o.ww || 3, o.whh || 4));
     return { wy, rt };
@@ -3632,7 +3639,7 @@ const ELF = {
   },
   farm(c, f) {   // viñedo: espalderas con vides y uvas/bayas
     R(c, 'dirt', 2, 6, 45, 45, (x, y) => (md(y, 8) === 7 ? 0 : null));
-    for (let x = 1; x <= 46; x += 3) { c.px('bld_elfleaf', x, 5); c.px(T('bld_elfleaf', 2), x + 1, 5); c.px('bld_elfleaf', x, 46); }
+    for (let x = 1; x <= 45; x += 3) { c.px('bld_elfleaf', x, 5); c.px(T('bld_elfleaf', 2), x + 1, 5); c.px('bld_elfleaf', x, 46); }
     for (let y = 6; y <= 46; y += 3) { c.px('bld_elfleaf', 1, y); c.px('bld_elfleaf', 46, y); }
     for (let r = 0; r < 5; r++) {
       const y = 14 + r * 8;
@@ -3656,8 +3663,8 @@ ELF.W = {
   crenV(c, x, y0, y1) { for (let y = y0; y <= y1; y++) if (md(y, 3) === 0) c.px(T('bld_elfleaf', 3), x, y); },
   post(c, f) {
     wbox(c, ELF.W, 5, 10, 19, 26, 15);
-    c.ell('bld_elfleaf', 7.5, 4, 5, 3.5); tex(c, 'bld_elfleaf', 2, 0, 13, 8, P.scale(0, 0, 4, 3));
-    pennant(c, 8, 0, f, { pole: 'silver', ph: 4, len: 5 }); c.rect(T('bld_elfglass', PUL[f]), 7, 15, 8, 17); c.rect('gold', 6, 18, 9, 18);
+    c.ell('bld_elfleaf', 7.5, 5.5, 5, 3.5); tex(c, 'bld_elfleaf', 2, 1, 13, 10, P.scale(0, 0, 4, 3));
+    pennant(c, 8, 2, f, { pole: 'silver', ph: 3, len: 5 }); c.rect(T('bld_elfglass', PUL[f]), 7, 15, 8, 17); c.rect('gold', 6, 18, 9, 18);
   },
   deco(c, f, m) { if (m === 10) { c.rect('team', 7, 17, 8, 21); c.px(T('team', 0), 7, 22); c.px('silver', 7, 17); c.px('silver', 8, 17); } if (m === 5) { c.px('team', 7, 10); c.px('team', 8, 11); } },
   gate(c, f, horiz, open, Hg) {
@@ -3674,7 +3681,7 @@ ELF.W = {
       else { c.rect('bld_hole2', 4, y0, 11, y1); c.rect(T('bld_elfwood', 2), 4, y0, 4, y1); c.rect(T('bld_elfwood', 2), 11, y0, 11, y1); }
     }
   },
-  gtop(c, f, Hg) { pennant(c, 7, 16 - Hg - 4, f, { pole: 'silver', ph: 4, len: 5 }); },
+  gtop(c, f, Hg) { pennant(c, 7, Math.max(1, 16 - Hg - 3), f, { pole: 'silver', ph: 3, len: 5 }); },
 };
 
 // ------------------------------------------------------------- elfos: tipos especiales
@@ -3696,7 +3703,7 @@ const ELFS = {
     ELF.win(c, 31, 54, 3, 5); ELF.win(c, 31, 70, 3, 4);
     c.rect(T('gold', 2), 26, 93, 37, 93);
     banner(c, 9, 36, 3, 14, f, { rod: 'silver', emb: (x, y) => c.px('gold', x, y) }); banner(c, 52, 36, 3, 14, f, { rod: 'silver', emb: (x, y) => c.px('gold', x, y) });
-    flag(c, 32, 1, f, { pole: 'silver', tail: true, hgt: 3, len: 9, ph: 3 });
+    flag(c, 32, 2, f, { pole: 'silver', tail: true, hgt: 3, len: 9, ph: 3, tip: false });
     for (let k = 0; k < 6; k++) c.glow(Math.round(32 + Math.sin(k * 2.4 + f * 0.8) * 26), Math.round(40 + Math.cos(k * 1.9 + f * 0.6) * 6), 210, '#c8ff9a');
   },
   temple(c, f) {
@@ -3710,7 +3717,7 @@ const ELFS = {
     for (const x of [7, 15, 30, 38]) { c.rect('bld_moon', x, 41, x + 2, 62); c.rect(T('bld_moon', 2), x, 41, x, 62); c.rect(T('bld_moon', 0), x + 2, 41, x + 2, 62); c.rect('gold', x - 1, 40, x + 3, 40); for (let y = 44; y < 62; y += 4) c.px('bld_elfleaf', x + (y & 4 ? 0 : 2), y); }
     c.rect('bld_moon', 5, 35, 42, 39); c.rect('gold', 5, 37, 42, 37); c.rect(T('bld_moon', 2), 5, 35, 42, 35);
     ELF.roof(c, 4, 43, 34, 5, { rib: 'gold', val: false });
-    c.rect('gold', 23, 0, 24, 3); aura(c, 23.5, 2, 6, 80 + pu * 30, '#c8ffb0');
+    c.rect('gold', 23, 1, 24, 3); aura(c, 23.5, 2, 6, 80 + pu * 30, '#c8ffb0');
     banner(c, 11, 41, 3, 10, f, { rod: 'gold', sway: 0 }); banner(c, 34, 41, 3, 10, f, { rod: 'gold', sway: 0 });
     for (let k = 0; k < 4; k++) c.glow(Math.round(23.5 + Math.sin(k * 1.6 + f) * 9), 30 - md(f * 2 + k * 3, 10), 200, '#b8ff8a');
   },
@@ -3724,7 +3731,7 @@ const ELFS = {
     c.rect('bld_elfwood', 8, 16, 23, 25); tex(c, 'bld_elfwood', 8, 16, 23, 25, P.plankV(8, 3));
     ELF.win(c, 10, 19, 2, 4); ELF.win(c, 15, 19, 2, 4); ELF.win(c, 20, 19, 2, 4);
     c.line('silver', 4, 23, 27, 23); for (let x = 4; x <= 27; x += 3) c.rect('silver', x, 23, x, 25);
-    ELF.roof(c, 6, 25, 15, 0, {});
+    ELF.roof(c, 6, 25, 15, 3, {});
     banner(c, 14, 30, 4, 10, f, { rod: 'silver', emb: (x, y) => c.px('gold', x, y) });
   },
   castle(c, f) {
@@ -3733,9 +3740,9 @@ const ELFS = {
       c.rect('gold', x0 - 1, yt, x1 + 1, yt); for (let x = x0; x <= x1; x++) if (md(x, 2)) c.px(T('bld_moon', 0), x, yt + 1);
       ELF.roof(c, x0 - 2, x1 + 2, yt - 1, yt - rh, {});
       for (let y = yt + 6; y < yb - 10; y += 14) ELF.win(c, Math.round((x0 + x1) / 2) - 1, y, 3, 6);
-      if (fl) flag(c, Math.round((x0 + x1 + 1) / 2), yt - rh - 9, f, { pole: 'silver', tail: true, hgt: 3, len: 7, ph: 7, dir: fl });
+      if (fl) flag(c, Math.round((x0 + x1 + 1) / 2), Math.max(2, yt - rh - 8), f, { pole: 'silver', tail: true, hgt: 3, len: 7, ph: 6, dir: fl, tip: false });
     };
-    spire(25, 38, 96, 30, 26, 1);
+    spire(25, 38, 96, 30, 22, 1);
     banner(c, 29, 52, 6, 14, f, { rod: 'gold', emb: (x, y) => { c.rect('gold', x - .5, y - 1, x + .5, y + 2); c.px('gold', x - 1.5, y); c.px('gold', x + 1.5, y); } });
     // muralla curva con arcos
     R(c, 'bld_moon', 12, 82, 51, 108, P.brick(12, 82, 8, 4, 0)); c.rect(T('bld_moon', 2), 12, 82, 51, 82); c.rect('gold', 12, 83, 51, 83);
@@ -3829,7 +3836,7 @@ const DWA = {
     DWA.roof(c, x0 - 1, x1 + 1, yt + 7, yt, { ins: 2 });
   },
   mound(c) {
-    c.poly('bld_granite', [[0, 43], [2, 22], [8, 12], [15, 8], [22, 11], [29, 18], [31, 43]]);
+    c.poly('bld_granite', [[1, 43], [3, 22], [8, 12], [15, 8], [22, 11], [28, 18], [30, 43]]);
     tex(c, 'bld_granite', 0, 6, 31, 42, P.stones(0, 8, 5, 5, 9));
     c.poly('snow', [[8, 13], [15, 8], [22, 11], [20, 13], [16, 11], [12, 14]]);
   },
@@ -3864,7 +3871,7 @@ DWA.W = {
   crenV(c, x, y0, y1) { for (let y = y0; y <= y1; y++) c.px(T('bld_granite', md(y, 4) === 3 ? 0 : 2), x, y); },
   post(c, f) {
     wbox(c, DWA.W, 1, 14, 18, 27, 15);
-    for (let x = 1; x <= 14; x++) if (md(x, 4) < 3) { c.px(T('stone', 2), x, 1); c.px(T('bld_granite', 1), x, 0); }
+    for (let x = 1; x <= 14; x++) if (md(x, 4) < 3) c.px(T('stone', 2), x, 1);
     DWA.W.crenH(c, 1, 14, 13); glyph(c, 6, 18, f, 1); glyph(c, 9, 20, f, 3);
     banner(c, 2, 15, 3, 7, f, { rod: 'gold', sway: 0 }); banner(c, 11, 15, 3, 7, f, { rod: 'gold', sway: 0 });
   },
@@ -3892,12 +3899,16 @@ const DWAS = {
   tc(c, f) {
     const g = DWA.hall(c, 8, 55, 91, 26, 26, { f, door: false, wins: [], chim: 44 });
     DWA.chim(c, 15, g.rt - 2, g.wy - 6, f);
+    // campanario de piedra con campana de oro sobre el tejado
+    R(c, 'bld_granite', 25, 22, 38, g.wy - 8, P.brick(25, 22, 7, 4)); c.rect(T('bld_granite', 2), 25, 22, 25, g.wy - 8); c.rect(T('bld_granite', 0), 38, 22, 38, g.wy - 8);
+    c.rect('bld_hole', 28, 26, 35, 35); c.rect(T('bld_granite', 1), 28, 26, 28, 26); c.rect(T('bld_granite', 1), 35, 26, 35, 26); c.rect('gold', 24, 36, 39, 36);
+    bell(c, 31.5, 27, f); DWA.roof(c, 23, 40, 21, 10, { ins: 7 }); c.rect('gold', 31, 7, 32, 9);
     DWA.gable(c, 31, 14, g.wy - 2, 13, f); glyph(c, 30, g.wy - 9, f, 2);
     for (const x of [14, 46]) DWA.win(c, x, 74, 4, 4);
     banner(c, 20, 70, 4, 12, f, { rod: 'gold', emb: (x, y) => { c.px('gold', x, y); c.px('gold', x, y - 1); } }); banner(c, 39, 70, 4, 12, f, { rod: 'gold', emb: (x, y) => { c.px('gold', x, y); c.px('gold', x, y - 1); } });
     DWA.door(c, 31.5, 88, 10, 14);
     // torres flanqueantes
-    for (const [x0, x1, d] of [[1, 12, -1], [51, 62, 1]]) {
+    for (const [x0, x1, d] of [[2, 12, -1], [51, 61, 1]]) {
       R(c, 'bld_granite', x0, 44, x1, 92, P.brick(x0, 44, 6, 4)); c.rect(T('bld_granite', 2), x0, 44, x0, 92); c.rect(T('bld_granite', 0), x1, 44, x1, 92);
       R(c, 'stone', x0 - 1, 40, x1 + 1, 44, (x, y) => (y === 40 ? 2 : md(x, 3) === 0 ? 0 : 1)); c.rect('gold', x0 - 1, 44, x1 + 1, 44);
       for (let x = x0 - 1; x <= x1 + 1; x++) if (md(x, 4) < 3) { c.px(T('bld_granite', md(x, 4) === 2 ? 0 : 1), x, 38); c.px(T('bld_granite', md(x, 4) === 2 ? 0 : 1), x, 39); c.px(T('stone', 2), x, 37); }
@@ -3916,7 +3927,7 @@ const DWAS = {
     for (const x of [6, 14, 31, 39]) { R(c, 'stone', x, 38, x + 3, 62, (xx, y) => (xx === x ? 2 : xx === x + 3 ? 0 : md(y, 5) === 4 ? 0 : null)); c.rect('gold', x - 1, 38, x + 4, 39); c.rect(T('stone', 2), x - 1, 61, x + 4, 62); }
     DWA.gable(c, 23, 21, 36, 12, f); c.rect('stone', 2, 35, 45, 37); c.rect('gold', 2, 37, 45, 37); c.rect(T('stone', 2), 2, 35, 45, 35);
     glyph(c, 22, 28, f, 1); aura(c, 23.5, 30, 4, 60 + pu * 25, '#9ff8f2');
-    for (const x of [1, 43]) { c.rect('iron', x, 60, x + 3, 61); c.rect('iron', x + 1, 62, x + 2, 65); flame(c, x + 1.5, 59, f, 2); }
+    for (const x of [1, 42]) { c.rect('iron', x, 60, x + 3, 61); c.rect('iron', x + 1, 62, x + 2, 65); flame(c, x + 1.5, 59, f, 2); }
     banner(c, 10, 41, 3, 10, f, { rod: 'gold', sway: 0 }); banner(c, 35, 41, 3, 10, f, { rod: 'gold', sway: 0 });
   },
   tower(c, f) {
@@ -3932,7 +3943,7 @@ const DWAS = {
     DWA.door(c, 16, 75, 6, 8); DWA.flag(c, 8, 4, f, { ph: 13 });
   },
   castle(c, f) {
-    c.poly('rock', [[0, 74], [4, 40], [14, 22], [24, 8], [32, 3], [40, 9], [50, 22], [60, 40], [63, 74]]);
+    c.poly('rock', [[1, 74], [5, 40], [14, 22], [24, 8], [32, 3], [40, 9], [50, 22], [59, 40], [63, 74]]);
     tex(c, 'rock', 0, 0, 63, 74, P.stones(0, 0, 6, 6, 11));
     c.poly('snow', [[17, 18], [24, 8], [32, 3], [40, 9], [47, 18], [41, 16], [36, 12], [31, 15], [26, 12], [21, 17]]);
     const g = DWA.hall(c, 16, 47, 82, 34, 18, { f, door: false, wins: [20, 41], chim: 40, ban: [25, 36] });
@@ -3941,7 +3952,7 @@ const DWAS = {
     R(c, 'stone', 11, 79, 52, 84, (x, y) => (y === 79 ? 2 : md(x, 4) === 0 ? 0 : 1)); c.rect('gold', 11, 84, 52, 84);
     for (let x = 11; x <= 52; x++) if (md(x, 4) < 3) { c.px(T('stone', 2), x, 76); c.px(T('bld_granite', md(x, 4) === 2 ? 0 : 1), x, 77); c.px(T('bld_granite', md(x, 4) === 2 ? 0 : 1), x, 78); }
     DWA.door(c, 31.5, 109, 12, 16); for (let i = 0; i < 4; i++) glyph(c, 24 + i * 4, 86, f, i);
-    for (const [x0, x1, d] of [[1, 14, -1], [49, 62, 1]]) {
+    for (const [x0, x1, d] of [[2, 14, -1], [49, 61, 1]]) {
       R(c, 'bld_granite', x0, 58, x1, 110, P.brick(x0, 58, 7, 4)); c.rect(T('bld_granite', 2), x0, 58, x0, 110); c.rect(T('bld_granite', 0), x1, 58, x1, 110);
       R(c, 'stone', x0 - 1, 52, x1 + 1, 58, (x, y) => (y === 52 ? 2 : md(x, 4) === 0 ? 0 : 1)); c.rect('gold', x0 - 1, 58, x1 + 1, 58);
       DWA.roof(c, x0 - 2, x1 + 2, 51, 38, { ins: 6 });
@@ -3949,18 +3960,19 @@ const DWAS = {
       DWA.flag(c, d < 0 ? x0 + 7 : x1 - 6, 26, f, { ph: 12, dir: d < 0 ? -1 : 1 });
     }
   },
-  mill(c, f) {
-    const g = DWA.hall(c, 3, 19, 61, 20, 16, { f, door: 10, dw: 4, dh: 7, wins: [9], ban: [], wy: 46 });
-    DWA.chim(c, 5, g.rt - 2, g.wy - 4, f, { w: 4 });
-    banner(c, 14, 44, 3, 6, f, { rod: 'gold', sway: 0 });
-    // canal de piedra y rueda hidráulica
-    R(c, 'stone', 20, 28, 31, 31, (x, y) => (y === 28 ? 2 : md(x, 4) === 0 ? 0 : 1)); c.rect('water', 20, 29, 31, 29); c.px(T('water', 3), 22 + f * 2, 29);
-    c.rect('stone', 29, 32, 31, 62); tex(c, 'stone', 29, 32, 31, 62, (x, y) => (md(y, 4) === 3 ? 0 : x === 29 ? 2 : null));
-    waterwheel(c, 24, 46, 8.5, f, 'wood');
-    for (let y = 32; y < 38; y++) c.px(T('water', md(y + f, 3) ? 2 : 3), 21, y);
-    for (let k = 0; k < 3; k++) c.glow(19 + k * 3, 61 - md(f + k, 3), 160, '#cfe8ff');
-    c.rect('water', 17, 60, 28, 62); c.px(T('water', 3), 18 + f * 2, 61);
-    sack(c, 0, 62);
+  mill(c, f) {   // molino de agua: torre de piedra, acueducto y rueda hidráulica
+    R(c, 'bld_granite', 3, 24, 18, 61, P.brick(3, 24, 6, 4)); c.rect(T('bld_granite', 2), 3, 24, 3, 61); c.rect(T('bld_granite', 0), 18, 24, 18, 61);
+    R(c, 'bld_granite', 2, 58, 19, 61, P.brick(2, 58, 8, 2, 0)); c.rect('gold', 3, 26, 18, 26);
+    DWA.roof(c, 1, 20, 23, 11, { ins: 5 }); DWA.chim(c, 5, 8, 16, f, { w: 3 });
+    DWA.win(c, 9, 31, 3, 3); DWA.door(c, 8.5, 57, 4, 7); glyph(c, 14, 44, f, 1);
+    banner(c, 12, 30, 4, 9, f, { rod: 'gold', emb: (x, y) => c.px('gold', x, y) });
+    c.ell('stone', 4, 59, 3, 3); c.ell(T('stone', 0), 4, 59, 1, 1);
+    // acueducto con canal de agua que cae sobre la rueda
+    R(c, 'stone', 27, 30, 30, 61, (x, y) => (md(y, 4) === 3 ? 0 : x === 27 ? 2 : x === 30 ? 0 : null));
+    R(c, 'stone', 19, 26, 30, 29, (x, y) => (y === 26 ? 2 : y === 29 ? 0 : md(x, 4) === 0 ? 0 : 1)); c.rect('water', 19, 27, 30, 27); c.px(T('water', 3), 21 + ((f * 2) % 8), 27);
+    for (let y = 30; y < 37; y++) c.px(T('water', md(y - f, 3) ? 2 : 3), 19, y);
+    waterwheel(c, 22, 45, 7, f, 'wood'); gear(c, 22, 45, 2.2, f, 'iron', 6);
+    c.rect('water', 13, 60, 29, 62); c.px(T('water', 3), 15 + ((f * 3) % 12), 61); for (let k = 0; k < 3; k++) c.glow(16 + k * 4, 58 - md(f + k, 3), 160, '#cfe8ff');
   },
 };
 
@@ -4011,11 +4023,11 @@ const ORC = {
   },
   hall(c, x0, x1, yb, wh, rh, o = {}) {
     const wy = yb - wh + 1, f = o.f || 0, cx = (x0 + x1) / 2, rt = wy - Math.round(rh * 1.15);
-    c.rect('dirt', x0 - 2, yb - 1, x1 + 2, yb); tex(c, 'dirt', x0 - 2, yb - 1, x1 + 2, yb, (x, y) => (y === yb - 1 ? (md(x, 4) ? 2 : null) : 0));
+    c.rect('dirt', Math.max(1, x0 - 2), yb - 1, Math.min(c.w - 2, x1 + 2), yb); tex(c, 'dirt', x0 - 2, yb - 1, x1 + 2, yb, (x, y) => (y === yb - 1 ? (md(x, 4) ? 2 : null) : 0));
     logsV(c, x0, wy - 2, x1, yb - 1, true, x0);
     for (let x = x0; x <= x1; x++) if (md(x, 3) !== 1) { c.px(T('leather', 1), x, wy + 3); c.px(T('leather', 0), x, yb - 4); }
     ORC.roof(c, x0 - 3, x1 + 3, wy, rt, { ins: o.ins });
-    tusk(c, x0 - 3, wy, -1); tusk(c, x1 + 3, wy, 1);
+    tusk(c, Math.max(3, x0 - 3), wy, -1); tusk(c, Math.min(c.w - 4, x1 + 3), wy, 1);
     if (o.chim != null) smoke(c, Math.round(cx) - .5, rt - 4, f, { col: '#6e6878', a: 190 });
     if (o.gable) ORC.gable(c, o.gable.x, o.gable.hw, wy - 1, o.gable.h);
     if (o.door !== false) ORC.door(c, o.door ?? cx, yb - 1, o.dw || 5, o.dh || Math.min(wh - 3, 8), o);
@@ -4029,7 +4041,7 @@ const ORC = {
     logsV(c, x0 + 1, yt + 6, x1 - 1, yb, false, 1);
     c.rect('darkwood', x0, yt + 3, x0 + 1, yb); c.rect('darkwood', x1 - 1, yt + 3, x1, yb);
     trap(c, 'bld_hide', x0 - 2, x1 + 2, yt + 8, yt, 2); tex(c, 'bld_hide', x0 - 2, yt, x1 + 2, yt + 8, (x, y) => (md(y - yt, 4) === 3 ? (md(x, 2) ? 0 : 2) : null));
-    c.rect(T('team', 1), x0 + 4, yt + 3, x1 - 4, yt + 4); tusk(c, x0 - 2, yt + 8, -1); tusk(c, x1 + 2, yt + 8, 1);
+    c.rect(T('team', 1), x0 + 4, yt + 3, x1 - 4, yt + 4); tusk(c, x0, yt + 8, -1); tusk(c, x1, yt + 8, 1);
   },
   mound(c) {
     c.ell('rock', 16, 34, 15.5, 22); c.rect(null, 0, 43, 31, 60);
@@ -4047,7 +4059,7 @@ const ORC = {
     R(c, 'dirt', 2, 6, 45, 45, (x, y) => (md(y, 8) >= 6 ? 0 : md(y, 8) === 0 ? 2 : null));
     for (let x = 1; x <= 46; x += 5) { c.rect(T('darkwood', 1), x, 3, x, 7); c.rect(T('darkwood', 1), x, 43, x, 47); }
     c.line(T('wood', 0), 1, 5, 46, 5); c.line(T('wood', 0), 1, 45, 46, 45); c.line(T('wood', 0), 1, 5, 1, 45); c.line(T('wood', 0), 46, 5, 46, 45);
-    skull(c, 0, 1); skull(c, 45, 1);
+    skull(c, 1, 1); skull(c, 44, 1);
     for (let r = 0; r < 5; r++) for (let i = 0; i < 6; i++) {
       const x = 5 + i * 7 + (r & 1) * 3, y = 12 + r * 8;
       if (x > 42) continue;
@@ -4066,9 +4078,9 @@ ORC.W = {
   crenH(c, x0, x1, y) { for (let x = x0; x <= x1; x++) { const k = Math.floor(x / 3), xx = md(x, 3), m = k & 1 ? 'wood' : 'darkwood', h = 2 + hs(k, 5) % 2; for (let j = 1; j <= h - (xx === 1 ? 0 : 1); j++) c.px(T(m, j === h - (xx === 1 ? 0 : 1) ? 2 : xx === 2 ? 0 : 1), x, y - j); } },
   crenV(c, x, y0, y1) { for (let y = y0; y <= y1; y++) if (md(y, 3) === 1) { c.px(T('darkwood', 2), x, y); c.px(T('darkwood', 2), x, y - 1); } },
   post(c, f) {   // tótem con cráneo y estandarte
-    R(c, 'wood', 5, 0, 10, 27, (x, y) => (x === 5 ? 2 : x === 10 ? 0 : md(y, 6) === 5 ? 0 : null));
+    R(c, 'wood', 5, 2, 10, 27, (x, y) => (x === 5 ? 2 : x === 10 ? 0 : md(y, 6) === 5 ? 0 : null));
     c.rect('red', 5, 7, 10, 7); c.px('eye', 6, 9); c.px('eye', 9, 9); c.rect('bone', 6, 11, 9, 11); c.px('bone', 6, 12); c.px('bone', 9, 12);
-    c.rect('red', 5, 17, 10, 17); tusk(c, 4, 4, -1); tusk(c, 11, 4, 1); skull(c, 6, 1);
+    c.rect('red', 5, 17, 10, 17); tusk(c, 4, 5, -1); tusk(c, 11, 5, 1); skull(c, 6, 2);
     banner(c, 6, 19, 4, 5, f, { rod: 'bone', sway: 0 });
   },
   deco(c, f, m) { if (m === 10) { skull(c, 7, 19); c.rect('team', 6, 22, 9, 24); } if (m === 5) { c.px('team', 7, 8); c.px('team', 8, 8); c.px(T('team', 0), 8, 9); } },
@@ -4112,25 +4124,27 @@ const ORCS = {
     for (const x of [3, 58]) { c.rect('iron', x, 84, x + 3, 85); c.rect('iron', x + 1, 86, x + 2, 91); flame(c, x + 1.5, 83, f, 2); }
     ORC.flag(c, 10, 30, f, { ph: 22 }); ORC.flag(c, 53, 30, f, { ph: 22, dir: -1 });
     banner(c, 15, 68, 4, 8, f, { rod: 'bone' }); banner(c, 45, 68, 4, 8, f, { rod: 'bone' });
-    spikes(c, 0, 63, 92, 'iron');
+    spikes(c, 1, 62, 92, 'iron');
   },
-  temple(c, f) {
+  temple(c, f) {   // choza del chamán: cúpula de pieles, gran cráneo con cuernos, tótems y hoguera mágica
     const pu = PUL[f];
     c.rect('dirt', 2, 66, 45, 68);
-    c.ell('bld_hide', 23.5, 52, 18, 16); c.rect(null, 0, 63, 47, 71);
-    tex(c, 'bld_hide', 0, 30, 47, 62, (x, y) => (md(y, 5) === 4 ? (md(x, 2) ? 0 : 2) : null));
-    for (const d of [-1, 1]) for (let i = 0; i < 4; i++) c.line(T('bld_hide', 0), 23.5 + d * (4 + i * 4), 62, 23.5 + d * (2 + i * 2), 37 + i);
-    c.rect('team', 8, 47, 39, 48); for (let x = 9; x < 39; x += 5) c.px(T('team', 0), x, 49);
-    // gran cráneo de bestia sobre la entrada
-    c.rect('bld_hole', 18, 54, 29, 65); c.rect('bld_hole', 19, 53, 28, 53);
-    c.ell('bone', 23.5, 46, 7, 5); c.rect('bone', 19, 47, 28, 52); c.rect('ol', 20, 46, 22, 48); c.rect('ol', 25, 46, 27, 48);
-    c.px(T('glowR', 0), 21, 47); c.px('glowR', 26, 47); c.rect('ol', 23, 50, 24, 51); for (let x = 19; x <= 28; x += 2) c.px(T('bone', 3), x, 53);
-    tusk(c, 17, 52, -1); tusk(c, 30, 52, 1); c.line('bone', 17, 42, 13, 36); c.line('bone', 30, 42, 34, 36); c.px('bone', 12, 35); c.px('bone', 35, 35);
-    for (const x of [2, 41]) { R(c, 'wood', x, 40, x + 4, 66, (xx, y) => (xx === x ? 2 : xx === x + 4 ? 0 : md(y, 8) === 7 ? 0 : null)); c.rect('red', x, 44, x + 4, 44); c.px(pu > 1 ? 'glowG' : T('purple', 2), x + 1, 47); c.px(pu > 1 ? 'glowG' : T('purple', 2), x + 3, 47); skull(c, x + 1, 37); }
+    c.ell('bld_hide', 23.5, 58, 19, 28); c.rect(null, 0, 64, 47, 71);
+    tex(c, 'bld_hide', 0, 28, 47, 63, (x, y) => (md(y, 5) === 4 ? (md(x, 2) ? 0 : 2) : hs(x >> 2, y / 5 | 0) % 9 === 0 ? 0 : null));
+    for (const d of [-1, 1]) for (let i = 0; i < 4; i++) c.line(T('bld_hide', 0), 23.5 + d * (4 + i * 4), 63, 23.5 + d * (1 + i * 1.5), 31 + i * 2);
+    c.rect('team', 6, 40, 41, 41); for (let x = 7; x < 41; x += 5) { c.px(T('team', 0), x, 42); c.px(T('team', 0), x + 1, 43); }
+    c.line('darkwood', 18, 33, 29, 22); c.line('darkwood', 29, 33, 18, 22); c.px('bone', 17, 21); c.px('bone', 30, 21);
+    // gran cráneo de bestia con cuernos sobre la entrada
+    c.rect('bld_hole', 18, 55, 29, 65); c.rect('bld_hole', 19, 54, 28, 54);
+    for (const d of [-1, 1]) { const x = 23.5 + d * 6; c.line('bone', x, 47, x + d * 4, 43); c.line('bone', x + d * 4, 43, x + d * 6, 37); c.line(T('bone', 3), x + d * 6, 37, x + d * 5, 33); c.px(T('bone', 0), x + d * 1, 48); }
+    c.ell('bone', 23.5, 47, 7, 5); c.rect('bone', 19, 48, 28, 53); c.rect('ol', 20, 47, 22, 49); c.rect('ol', 25, 47, 27, 49);
+    c.px(pu > 1 ? 'glowR' : T('red', 2), 21, 48); c.px(pu > 1 ? 'glowR' : T('red', 2), 26, 48); c.rect('ol', 23, 51, 24, 52); for (let x = 19; x <= 28; x += 2) c.px(T('bone', 3), x, 54);
+    tusk(c, 17, 53, -1); tusk(c, 30, 53, 1);
+    for (const x of [1, 42]) { R(c, 'wood', x, 34, x + 4, 66, (xx, y) => (xx === x ? 2 : xx === x + 4 ? 0 : md(y, 8) === 7 ? 0 : null)); c.rect('red', x, 38, x + 4, 38); c.rect('red', x, 52, x + 4, 52); c.px(pu > 1 ? 'glowG' : T('purple', 2), x + 1, 41); c.px(pu > 1 ? 'glowG' : T('purple', 2), x + 3, 41); c.rect('bone', x + 1, 44, x + 3, 44); skull(c, x + 1, 31); }
     flame(c, 23.5, 69, f, 2); c.rect('darkwood', 19, 69, 28, 70); c.line('darkwood', 20, 68, 27, 70);
     aura(c, 23.5, 66, 8, 50 + pu * 20, '#b8ff8a');
-    for (let k = 0; k < 3; k++) c.glow(Math.round(23.5 + Math.sin(k * 2 + f) * 4), 62 - md(f * 3 + k * 4, 12), 220, '#b8ff8a');
-    ORC.flag(c, 40, 24, f, { ph: 12 });
+    for (let k = 0; k < 3; k++) c.glow(Math.round(23.5 + Math.sin(k * 2 + f) * 4), 64 - md(f * 3 + k * 4, 12), 220, '#b8ff8a');
+    ORC.flag(c, 37, 9, f, { ph: 14 });
   },
   tower(c, f) {
     for (const [a, b] of [[6, 10], [21, 25]]) { c.line('darkwood', a, 79, b, 28); c.line('darkwood', a + 1, 79, b + 1, 28); }
@@ -4138,9 +4152,9 @@ const ORCS = {
     for (let y = 40; y < 78; y += 4) c.rect('wood', 14, y, 17, y); c.rect('darkwood', 14, 38, 14, 78); c.rect('darkwood', 17, 38, 17, 78);
     logsV(c, 4, 22, 27, 33, true, 2); c.rect(T('leather', 0), 4, 27, 27, 27); c.rect('wood', 3, 32, 28, 34); c.rect(T('wood', 2), 3, 32, 28, 32);
     banner(c, 12, 35, 7, 9, f, { rod: 'bone', emb: (x, y) => skull(c, Math.round(x) - 1, Math.round(y) - 1) });
-    ORC.roof(c, 3, 28, 21, 2, { ins: 11 });
+    ORC.roof(c, 3, 28, 21, 5, { ins: 11 });
     skull(c, 4, 19); skull(c, 25, 19); spikes(c, 4, 27, 21, 'iron');
-    ORC.flag(c, 28, 8, f, { ph: 12 });
+    ORC.flag(c, 3, 8, f, { ph: 12 });
   },
   castle(c, f) {
     // fortaleza central: base de piedra, cuerpo de troncos y gran tienda con cuernos
@@ -4154,12 +4168,12 @@ const ORCS = {
     c.rect('darkwood', 23, 86, 24, 109); c.rect('darkwood', 39, 86, 40, 109); c.rect('wood', 21, 89, 42, 91); tusk(c, 22, 89, -1); tusk(c, 41, 89, 1); skull(c, 30, 86);
     spikes(c, 12, 51, 82, 'iron');
     // torres de vigía laterales
-    for (const [x0, d] of [[1, -1], [49, 1]]) {
+    for (const [x0, d] of [[2, -1], [48, 1]]) {
       c.line('darkwood', x0 + 1, 110, x0 + 2, 62); c.line('darkwood', x0 + 12, 110, x0 + 11, 62);
       for (let y = 70; y < 106; y += 12) { c.line('wood', x0 + 2, y + 10, x0 + 11, y); c.line('wood', x0 + 11, y + 10, x0 + 2, y); }
       logsV(c, x0, 52, x0 + 13, 62, true, x0); c.rect('wood', x0 - 1, 61, x0 + 14, 63);
       ORC.roof(c, x0 - 2, x0 + 15, 51, 36, { ins: 7 }); skull(c, x0 + 5, 56);
-      ORC.flag(c, d < 0 ? x0 + 1 : x0 + 12, 26, f, { ph: 9, dir: d });
+      ORC.flag(c, d < 0 ? x0 + 1 : x0 + 12, 26, f, { ph: 9, dir: -d });
     }
     for (const x of [8, 52]) { c.rect('iron', x, 104, x + 3, 105); flame(c, x + 1.5, 103, f, 1); }
   },
@@ -4167,9 +4181,9 @@ const ORCS = {
     logsV(c, 10, 30, 21, 61, false, 0); c.poly(null, [[9, 30], [12, 30], [9, 62]]); c.poly(null, [[20, 30], [23, 30], [23, 62]]);
     for (let x = 9; x <= 22; x++) if (md(x, 3) !== 1) { c.px(T('leather', 0), x, 38); c.px(T('leather', 0), x, 52); }
     c.rect('dirt', 6, 61, 25, 62); ORC.door(c, 16, 61, 4, 7); ORC.roof(c, 8, 23, 30, 16, { ins: 6 });
-    sails(c, 16, 25, 14, f, { cloth: 'bld_hide', spar: 'darkwood', frame: 'darkwood', w0: 2, w1: 5 });
+    sails(c, 15.5, 25, 13, f, { cloth: 'bld_hide', spar: 'darkwood', frame: 'darkwood', w0: 2, w1: 4 });
     for (let k = 0; k < 4; k++) { const a = k * PI / 2 + f * PI / 8; c.px(T('team', 1), 16 + Math.cos(a) * 9 - Math.sin(a) * 2, 25 + Math.sin(a) * 9 + Math.cos(a) * 2); c.px(T('team', 1), 16 + Math.cos(a) * 11 - Math.sin(a) * 3, 25 + Math.sin(a) * 11 + Math.cos(a) * 3); }
-    skull(c, 15, 21); sack(c, 1, 62); sack(c, 25, 62);
+    skull(c, 15, 21); sack(c, 2, 62); sack(c, 25, 62);
   },
 };
 
@@ -4232,7 +4246,7 @@ const GIA = {
     GIA.roof(c, x0 - 3, x1 + 3, yt + 7, yt);
   },
   mound(c) {
-    for (const [x, y, rx, ry] of [[16, 30, 15, 14], [7, 34, 7, 9], [25, 33, 7, 10], [16, 18, 9, 7]]) c.ell('rock', x, y, rx, ry);
+    for (const [x, y, rx, ry] of [[16, 30, 14.5, 14], [7.5, 34, 6.5, 9], [24.5, 33, 6.5, 10], [16, 18, 9, 7]]) c.ell('rock', x, y, rx, ry);
     c.rect(null, 0, 43, 31, 60); tex(c, 'rock', 0, 0, 31, 42, P.stones(0, 4, 6, 6, 10));
     c.ell('bld_turf', 16, 13, 8, 3); tex(c, 'bld_turf', 0, 8, 31, 16, P.turf(0, 10));
   },
@@ -4243,8 +4257,8 @@ const GIA = {
   },
   farm(c, f) {   // coles enormes en hileras, borde de piedras y menhir con tela
     R(c, 'dirt', 3, 6, 44, 44, (x, y) => (md(y, 9) >= 7 ? 0 : md(y, 9) === 0 ? 2 : null));
-    for (let x = 1; x <= 45; x += 6) { c.ell('rock', x + 2.5, 4.5, 3, 2.2); c.ell('rock', x + 2.5, 45.5, 3, 2.2); }
-    for (let y = 9; y <= 42; y += 6) { c.ell('rock', 2, y + .5, 2, 2.6); c.ell('rock', 45, y + .5, 2, 2.6); }
+    for (let x = 1; x <= 40; x += 6) { c.ell('rock', x + 3.5, 4.5, 3, 2.2); c.ell('rock', x + 3.5, 45.5, 3, 2.2); }
+    for (let y = 9; y <= 42; y += 6) { c.ell('rock', 2.5, y + .5, 1.8, 2.6); c.ell('rock', 44.5, y + .5, 1.8, 2.6); }
     tex(c, 'rock', 0, 0, 47, 47, (x, y) => (hs(x, y) % 5 === 0 ? 0 : null));
     for (let r = 0; r < 4; r++) for (let i = 0; i < 5; i++) {
       const x = 7 + i * 8 + (r & 1) * 3, y = 13 + r * 9;
@@ -4288,26 +4302,33 @@ const GIAS = {
   tc(c, f) {
     const g = GIA.hall(c, 6, 57, 90, 22, 28, { f, door: false, wins: [12, 47], chim: 18, ban: [19, 42] });
     smoke(c, 46, g.rt + 2, f, { col: '#a49eae', a: 170 });
+    // arco de colmillos de mamut con gong de bronce
+    c.ring('bone', 31.5, 64, 17, 30, 0.86, (x, y) => y < 60); c.ring(T('bone', 3), 31.5, 64, 17, 30, 0.95, (x, y) => y < 60 && x < 31);
+    c.line('string', 31, 35, 31, 40); c.at([0, 1, 0, -1][f], 0, () => { c.ell('copper', 31.5, 45, 5, 5); c.ell(T('copper', 0), 31.5, 45, 3.5, 3.5); c.ell(T('copper', 2), 31.5, 45, 2.2, 2.2); c.px(T('copper', 3), 30, 43); });
     // gran trilito de entrada con runa
     c.rect('bld_hole', 26, 72, 37, 90); c.rect('team', 26, 72, 37, 75); tex(c, 'team', 26, 72, 37, 75, (x) => (md(x, 3) === 2 ? 0 : null));
     menhir(c, 21, 91, 5, 28, f, { rune: false }); menhir(c, 38, 91, 5, 28, f, { rune: false });
     R(c, 'stone', 18, 59, 45, 64, (x, y) => (y === 59 ? 2 : y === 64 ? 0 : hs(x, y) % 11 === 0 ? 0 : null)); glyph(c, 30, 60, f, 2); glyph(c, 34, 60, f, 0);
-    menhir(c, 0, 93, 6, 34, f, { cloth: true, v: 1 }); menhir(c, 58, 93, 6, 34, f, { cloth: true, v: 3 });
-    GIA.flag(c, 31, 16, f, { ph: 18 });
+    menhir(c, 1, 93, 5, 34, f, { cloth: true, v: 1 }); menhir(c, 57, 93, 5, 34, f, { cloth: true, v: 3 });
+    GIA.flag(c, 31, 14, f, { ph: 20 });
     R(c, 'stone', 23, 91, 40, 93, (x, y) => (y === 91 ? 2 : null));
   },
-  temple(c, f) {   // círculo de piedras con altar rúnico brillante
+  temple(c, f) {   // círculo de piedras (trilitos) con altar rúnico brillante
     const pu = PUL[f];
-    c.ell('bld_turf', 23.5, 56, 22, 12); tex(c, 'bld_turf', 0, 40, 47, 70, P.turf(0, 44));
-    const ring = (back) => { for (let k = 0; k < 8; k++) { const a = PI * (back ? 1 : 0) + PI * (k + .5) / 8, x = Math.round(23.5 + Math.cos(a) * 19) - 2, y = Math.round(56 + Math.sin(a) * 9); if ((Math.sin(a) < 0) === back) menhir(c, x, y, 5, back ? 20 : 17, f, { v: k, rune: !back }); } };
-    ring(true);
-    R(c, 'rock', 16, 54, 31, 60, (x, y) => (y === 54 ? 2 : y === 60 ? 0 : null)); c.rect(T('rock', 3), 16, 54, 31, 54);
-    glyph(c, 18, 56, f, 0); glyph(c, 22, 56, f, 1); glyph(c, 26, 56, f, 3);
-    c.ell(T('rune', pu), 23.5, 48, 3, 3); c.ell(T('rune', 3), 23.5, 48, 1.4, 1.4);
-    aura(c, 23.5, 46, 10, 50 + pu * 30, '#9ff8f2');
-    for (let k = 0; k < 4; k++) c.glow(Math.round(23.5 + Math.sin(k * 1.7 + f) * 6), 44 - md(f * 3 + k * 4, 14), 220, '#9ff8f2');
-    ring(false);
-    GIA.flag(c, 3, 22, f, { ph: 18 });
+    c.ell('bld_turf', 23.5, 57, 23, 12); tex(c, 'bld_turf', 0, 44, 47, 70, P.turf(0, 45));
+    // fila trasera: trilitos altos
+    for (const [x, yb, h] of [[2, 54, 24], [10, 50, 28], [19, 48, 31], [28, 50, 28], [36, 54, 24]]) menhir(c, x, yb, 6, h, f, { v: x, rune: x === 19 });
+    R(c, 'stone', 1, 25, 17, 28, (x, y) => (y === 25 ? 2 : y === 28 ? 0 : null)); R(c, 'stone', 27, 25, 42, 28, (x, y) => (y === 25 ? 2 : y === 28 ? 0 : null));
+    R(c, 'stone', 16, 16, 31, 19, (x, y) => (y === 16 ? 2 : y === 19 ? 0 : null)); glyph(c, 22, 16, f, 3);
+    // altar y orbe rúnico
+    R(c, 'rock', 15, 55, 32, 61, (x, y) => (y === 55 ? 3 : y === 61 ? 0 : x === 15 ? 2 : x === 32 ? 0 : null));
+    glyph(c, 17, 57, f, 0); glyph(c, 22, 57, f, 1); glyph(c, 27, 57, f, 3);
+    c.ell(T('rune', pu), 23.5, 49, 3.2, 3.2); c.ell(T('rune', 3), 23.5, 49, 1.5, 1.5);
+    aura(c, 23.5, 47, 11, 50 + pu * 30, '#9ff8f2');
+    for (let k = 0; k < 4; k++) c.glow(Math.round(23.5 + Math.sin(k * 1.7 + f) * 6), 46 - md(f * 3 + k * 4, 14), 220, '#9ff8f2');
+    // fila delantera baja, con hueco central de entrada
+    for (const [x, yb, h] of [[1, 63, 13], [8, 67, 11], [34, 67, 11], [41, 63, 13]]) menhir(c, x, yb, 5, h, f, { v: x, rune: false, cloth: x === 8 || x === 34 });
+    GIA.flag(c, 44, 6, f, { ph: 18, dir: -1 });
   },
   tower(c, f) {   // torre de megalitos apilados con plataforma de troncos
     const blocks = [[6, 70, 25, 78], [7, 61, 24, 69], [6, 52, 25, 60], [8, 43, 23, 51], [7, 34, 24, 42]];
@@ -4339,7 +4360,7 @@ const GIAS = {
     c.poly('rock', [[8, 62], [24, 62], [21, 30], [11, 30]]); tex(c, 'rock', 7, 30, 25, 62, P.stones(0, 30, 5, 4, 7));
     GIA.door(c, 16, 61, 5, 7);
     GIA.roof(c, 7, 24, 30, 17); GIA.logH(c, 8, 23, 30, 2);
-    sails(c, 16, 26, 14, f, { cloth: 'wood', spar: 'darkwood', frame: 'darkwood', w0: 3, w1: 4, lattice: true });
+    sails(c, 15.5, 26, 13, f, { cloth: 'wood', spar: 'darkwood', frame: 'darkwood', w0: 3, w1: 4, lattice: true });
     for (let k = 0; k < 4; k++) { const a = k * PI / 2 + f * PI / 8; c.px(T('team', 2), 16 + Math.cos(a) * 12 - Math.sin(a) * 2, 26 + Math.sin(a) * 12 + Math.cos(a) * 2); c.px(T('team', 1), 16 + Math.cos(a) * 12 - Math.sin(a) * 3, 26 + Math.sin(a) * 12 + Math.cos(a) * 3); }
     sack(c, 2, 62); sack(c, 26, 62); c.ell('rock', 4, 58, 3, 2);
   },
@@ -4348,7 +4369,7 @@ const GIAS = {
 // ------------------------------------------------------------- neutrales
 const NEU = {
   bandit_camp: [48, 56, (c, f) => {   // tiendas raídas, fogata, botín
-    c.rect('dirt', 4, 46, 44, 53); tex(c, 'dirt', 4, 46, 44, 53, (x, y) => (hs(x, y) % 6 === 0 ? 0 : hs(x, y) % 7 === 0 ? 2 : null)); c.px(null, 4, 46); c.px(null, 44, 46); c.px(null, 4, 53); c.px(null, 44, 53);
+    c.ell('dirt', 24, 50, 21, 4.5); tex(c, 'dirt', 2, 45, 46, 55, (x, y) => (hs(x, y) % 9 === 0 ? 0 : hs(x, y) % 11 === 0 ? 2 : 1));
     // tienda principal en A con remiendos
     c.poly('bld_rag', [[2, 44], [26, 44], [15, 18], [13, 18]]);
     tex(c, 'bld_rag', 2, 18, 26, 44, (x, y) => (md(44 - y, 6) === 5 ? (md(x, 2) ? 0 : null) : null));
@@ -4366,7 +4387,7 @@ const NEU = {
     for (let k = 0; k < 7; k++) { const a = k * PI * 2 / 7; c.rect('rock', 24 + Math.cos(a) * 4, 50 + Math.sin(a) * 1.8, 24 + Math.cos(a) * 4 + 1, 50 + Math.sin(a) * 1.8); }
     c.line('darkwood', 21, 51, 27, 49); c.line('darkwood', 21, 49, 27, 51); flame(c, 24, 50, f, 2);
     aura(c, 24, 47, 9, 70, '#ffb050'); smoke(c, 24, 42, f, { col: '#9a94a6', a: 120 }); embers(c, 24, 44, f, 2);
-    logSide(c, 11, 18, 54, 'wood', 3); logSide(c, 29, 35, 55, 'wood', 3);
+    logSide(c, 12, 18, 54, 'wood', 2); logSide(c, 28, 34, 54, 'wood', 2);
     // estandarte rojo harapiento
     flag(c, 4, 10, f, { m: 'red', pole: 'darkwood', ph: 34, len: 7, hgt: 5, tail: true, tip: false }); skull(c, 3, 7);
     c.line('darkwood', 44, 53, 46, 41); c.px('steel', 46, 40); c.px('steel', 46, 39); c.line('darkwood', 42, 54, 43, 42); c.px('steel', 43, 41);
@@ -4419,7 +4440,7 @@ const NEU = {
     c.rect('sack', 6, 20, 11, 23); c.rect('bld_rag', 18, 14, 22, 18); c.rect(T('leather', 1), 23, 19, 27, 21);
     c.line('darkwood', 8, 12, 4, 6); c.line('darkwood', 23, 10, 27, 4); skull(c, 14, 9);
     // chimenea de tubo con humo
-    c.rect('iron', 22, 4, 24, 12); c.rect(T('iron', 2), 21, 3, 25, 4); smoke(c, 23, 2, f, { col: '#8f9a7e', a: 160 });
+    c.rect('iron', 22, 8, 24, 13); c.rect(T('iron', 2), 21, 7, 25, 8); smoke(c, 23, 6, f, { col: '#8f9a7e', a: 170, n: 2, grow: 0.25 });
     // farol verde, olla y huesos
     c.line('darkwood', 28, 42, 28, 30); c.line('darkwood', 28, 30, 30, 30); c.rect('iron', 29, 31, 30, 33); c.px(f & 1 ? 'glowG' : T('bld_elfglass', 2), 29, 32); c.glow(31, 32, 120, '#b8ff8a'); c.glow(31, 31, 80, '#b8ff8a');
     c.ell('iron', 4, 41, 3, 2); c.rect(T('bld_elfglass', 1), 2, 39, 6, 39); c.glow(3 + (f & 1) * 2, 37 - (f >> 1), 200, '#b8ff8a');
@@ -6930,7 +6951,8 @@ function newGame(cfg) {
   });
   // diplomacia inicial
   const n = G.players.length;
-  for (let a = 0; a < 9; a++) { G.stance[a] = []; G.rel[a] = []; for (let b = 0; b < 9; b++) { const same = a < n && b < n && G.players[a].teamGroup > 0 && G.players[a].teamGroup === G.players[b].teamGroup; G.stance[a][b] = a === b ? 'ally' : same ? 'ally' : 'enemy'; G.rel[a][b] = same ? 80 : -10; } }
+  for (let a = 0; a < 9; a++) { G.stance[a] = []; G.rel[a] = []; for (let b = 0; b < 9; b++) { const same = a < n && b < n && G.players[a].teamGroup > 0 && G.players[a].teamGroup === G.players[b].teamGroup; G.stance[a][b] = a === b ? 'ally' : same ? 'ally' : 'enemy'; G.rel[a][b] = same ? 80 : -25 + Math.floor(G.map.rnd() * 40); } }
+  G.fought = {};
   // bases iniciales
   G.players.forEach((p, i) => {
     const s = G.map.starts[i];
@@ -7104,7 +7126,7 @@ function setMove(u, x, y, amove) {
 function moveStep(u, dt) {
   if (!u.path.length) return false;
   const p = u.path[0], dx = p.x - u.x, dy = p.y - u.y, d = Math.hypot(dx, dy);
-  const ti = tileOf(u.y) * G.map.W + tileOf(u.x), s = uStats(u).sp * (TR_SPEED[G.map.terr[ti]] || 1) * dt;
+  const ti = tileOf(u.y) * G.map.W + tileOf(u.x), base = u.order.cap ? Math.min(u.order.cap, uStats(u).sp) : uStats(u).sp, s = base * (TR_SPEED[G.map.terr[ti]] || 1) * dt;
   if (d <= s) { u.x = p.x; u.y = p.y; u.path.shift(); } else { u.x += dx / d * s; u.y += dy / d * s; }
   if (Math.abs(dx) > 0.5) u.face = dx > 0 ? 1 : -1;
   u.moving = true; return true;
@@ -7128,7 +7150,8 @@ function approach(u, e, reach, dt) {
 }
 function cmdMove(units, x, y, amove) {
   const n = units.length, cols = Math.ceil(Math.sqrt(n)), sp = 12;
-  units.forEach((u, i) => setMove(u, x + ((i % cols) - (cols - 1) / 2) * sp, y + (Math.floor(i / cols) - (Math.ceil(n / cols) - 1) / 2) * sp, amove));
+  const cap = n > 1 && units.every(u => isMil(u)) ? Math.min(...units.map(u => uStats(u).sp)) : 0;
+  units.forEach((u, i) => { setMove(u, x + ((i % cols) - (cols - 1) / 2) * sp, y + (Math.floor(i / cols) - (Math.ceil(n / cols) - 1) / 2) * sp, amove); if (cap) u.order.cap = cap; });
 }
 function cmdAttack(units, tgt) { for (const u of units) if (u.def.atk > 0 || u.def.heal) setOrder(u, { t: 'attack', target: tgt, forced: true }); }
 function startGather(u, r) { const ty = RES_TYPE[r.kind]; if (u.carry > 0 && u.ckind !== ty) u.carry = 0; setOrder(u, { t: 'gather', res: r, kind: r.kind }); }
@@ -7219,8 +7242,10 @@ function applyHit(att, tgt, dmg, primary, team) {
   if (tgt.dead) return;
   team = team ?? att.team;
   dmg = Math.max(1, dmg);
-  tgt.hp -= dmg;
-  if (isPlayer(team) && isPlayer(tgt.team) && team !== tgt.team && G.stance[team][tgt.team] !== 'enemy') declareWar(team, tgt.team, true);
+  tgt.hp -= dmg; tgt.flash = 0.09;
+  if (primary && att && att.def && !att.def.proj && Math.random() < 0.35) { const c = centerOf(tgt); addFx(tgt.k === 'u' ? 'fx_blood' : 'fx_dust', c.x + (Math.random() - 0.5) * 8, c.y - (tgt.k === 'u' ? 8 : 0) + (Math.random() - 0.5) * 6); }
+  if (isPlayer(team) && isPlayer(tgt.team) && team !== tgt.team) { if (G.stance[team][tgt.team] !== 'enemy' && att && att.k === 'u' && att.order && att.order.forced) declareWar(team, tgt.team, true); G.fought[Math.min(team, tgt.team) + '_' + Math.max(team, tgt.team)] = G.time; }
+  if (tgt.team === G.human || team === G.human) G.battleNear = G.time;
   const aU = att && att.k === 'u' && !att.dead ? att : null;
   if (tgt.k === 'u') {
     tgt.lastCombat = G.time;
@@ -7328,7 +7353,7 @@ function updUnit(u, dt) {
   if (u.buffT > G.time && u.buff.regen) regen += u.buff.regen;
   if (regen > 0 && u.hp < u.maxhp && G.time - u.lastCombat > 2) u.hp = Math.min(u.maxhp, u.hp + regen * dt);
   // experiencia pendiente: se gana al sobrevivir al enfrentamiento (5 s sin combatir)
-  if (u.pxp > 0 && G.time - u.lastCombat > 5) { gainXP(u, u.pxp); u.pxp = 0; }
+  if (u.pxp > 0 && G.time - u.lastCombat > 5) { if (u.team === G.human && u.pxp >= 3 && u.lvl < LEVEL_MAX) G.texts.push({ x: u.x, y: u.y - 30, text: '+' + Math.floor(u.pxp) + ' XP', color: '#ffe08a', t: 0, life: 1.4 }); gainXP(u, u.pxp); u.pxp = 0; }
   if (u.inside) { if (u.inside.dead) ejectOne(u, u.inside); else { u.hp = Math.min(u.maxhp, u.hp + dt * 0.8); return; } }
   if (u.stun > 0) { u.stun -= dt; u.anim = 'idle'; return; }
   // golpe en curso
@@ -7419,7 +7444,7 @@ function healTarget(u, t) {
 function doAttackOrder(u, o, dt) {
   const t = o.target, d = u.def;
   const done = () => { if (o.resume && o.resume.t === 'move') setMove(u, o.resume.x, o.resume.y, o.resume.amove); else setOrder(u, { t: 'idle', home: o.home }); };
-  if (!t || t.dead || (t.k === 'u' && !o.forced && !canHarm(u.team, t.team) && !d.heal)) return done();
+  if (!t || t.dead || (!o.forced && !d.heal && t.team !== u.team && !isEnemy(u.team, t.team))) return done();
   if (d.heal && !canHarm(u.team, t.team) && t.hp >= t.maxhp) return done();
   if (t.k === 'u' && t.team !== u.team && G.human === u.team && !G.cfg.revealed && !o.forced) { /* sigue */ }
   if (o.auto && o.home && dist(u, o.home) > d.los * T * 2.2) { setMove(u, o.home.x, o.home.y); return; }
@@ -7699,8 +7724,8 @@ function simStep(dt) {
   G.time += dt;
   sgRebuild(G.units);
   for (let i = SIM_TIMERS.length - 1; i >= 0; i--) if (G.time >= SIM_TIMERS[i].at) { const t = SIM_TIMERS.splice(i, 1)[0]; t.fn(); }
-  for (const u of G.units) if (!u.dead) updUnit(u, dt);
-  for (const b of G.blds) if (!b.dead) updBld(b, dt);
+  for (const u of G.units) if (!u.dead) { updUnit(u, dt); if (u.flash > 0) u.flash -= dt; }
+  for (const b of G.blds) if (!b.dead) { updBld(b, dt); if (b.flash > 0) b.flash -= dt; }
   updGenerals(dt);
   updProjs(dt);
   separate();
@@ -8251,7 +8276,10 @@ function disaster() {
 'use strict';
 const STANCE_N = { ally: 'Aliado', neutral: 'Neutral', enemy: 'Enemigo' };
 function changeRel(a, b, v) { if (!G.rel[a]) return; G.rel[a][b] = clamp((G.rel[a][b] || 0) + v, -100, 100); }
-function setStance(a, b, s) { G.stance[a][b] = s; G.stance[b][a] = s; G.fogDirty = true; }
+function setStance(a, b, s) {
+  G.stance[a][b] = s; G.stance[b][a] = s; G.fogDirty = true;
+  if (s !== 'enemy') { (G.treaty = G.treaty || {})[Math.min(a, b) + '_' + Math.max(a, b)] = G.time; for (const u of G.units) if (!u.dead && (u.team === a || u.team === b) && u.order.t === 'attack' && u.order.target && (u.order.target.team === a || u.order.target.team === b) && u.order.target.team !== u.team) setOrder(u, { t: 'idle' }); }
+}
 function strength(t) {
   let s = 0; for (const u of G.units) if (!u.dead && u.team === t && isMil(u)) s += costSum(u.def.cost) * levelMods(u.lvl).hp;
   for (const b of G.blds) if (!b.dead && b.team === t && b.def.atk) s += 150;
@@ -8260,10 +8288,11 @@ function strength(t) {
 function nameOf(t) { return t === G.human ? 'Tú' : G.players[t].name; }
 function declareWar(a, b, auto) {
   if (a === b || G.stance[a][b] === 'enemy') return;
+  if (!auto && !G.players[a].human && G.time - ((G.treaty || {})[Math.min(a, b) + '_' + Math.max(a, b)] ?? -999) < 240) return;
   setStance(a, b, 'enemy'); changeRel(b, a, -40); changeRel(a, b, -20);
   if (a === G.human) G.msg('Has declarado la guerra a ' + G.players[b].name, '#ff8a6a');
   else if (b === G.human) G.msg(G.players[a].name + (auto ? ' te ataca: ¡estáis en guerra!' : ' te ha declarado la guerra'), '#ff6a5a', { sound: 'horn' });
-  else if (G.human >= 0) G.msg(G.players[a].name + ' declara la guerra a ' + G.players[b].name, '#d0c8e8');
+  else G.msg(G.players[a].name + ' declara la guerra a ' + G.players[b].name, '#d0c8e8');
   // los aliados de b se enfadan con a
   for (const q of G.players) if (q.alive && q.id !== b && q.id !== a && G.stance[q.id][b] === 'ally') changeRel(q.id, a, -15);
 }
@@ -8285,12 +8314,12 @@ function aiConsider(ai, from, type) {
 }
 /** Propuesta de un jugador a otro (humano → IA se resuelve al instante). */
 function propose(from, to, type) {
-  if (G.players[to].human) { G.proposals.push({ from, to, type, t: G.time }); return null; }
+  if (G.players[to].human) { if (G.proposals.some(p => p.from === from && p.type === type)) return null; G.proposals.push({ from, to, type, t: G.time }); G.msg(G.players[from].name + (type === 'alliance' ? ' propone una alianza' : ' propone la paz') + ' (responde a la derecha)', '#9fe8ff', { sound: 'alert' }); return null; }
   const [ok, why] = aiConsider(to, from, type);
   if (ok) {
     setStance(from, to, type === 'alliance' ? 'ally' : 'neutral'); changeRel(to, from, 10);
     if (from === G.human || to === G.human) G.msg(G.players[to].name + ' acepta ' + (type === 'alliance' ? 'la alianza' : 'la paz') + '.', '#9fe8a0', { sound: 'treasure' });
-    else if (G.human >= 0) G.msg(G.players[from].name + ' y ' + G.players[to].name + (type === 'alliance' ? ' forman una alianza' : ' firman la paz'), '#d0c8e8');
+    else G.msg(G.players[from].name + ' y ' + G.players[to].name + (type === 'alliance' ? ' forman una alianza' : ' firman la paz'), '#d0c8e8');
   } else {
     changeRel(to, from, -2);
     if (from === G.human) G.msg(G.players[to].name + ' rechaza: ' + why, '#ffb070');
@@ -8319,7 +8348,8 @@ function diploStep(dt) {
     if (a.id >= b.id) continue;
     const st = G.stance[a.id][b.id];
     // deriva natural de la relación
-    const drift = st === 'enemy' ? -0.6 : st === 'ally' ? 1.2 : 0.6;
+    const lastFight = G.fought[a.id + '_' + b.id] ?? -999, calm = G.time - lastFight > 240;
+    const drift = st === 'enemy' ? (calm ? 1.5 : -1) : st === 'ally' ? 1.2 : 0.8;
     changeRel(a.id, b.id, drift); changeRel(b.id, a.id, drift);
     // enemigos comunes acercan
     for (const c of ps) if (c.id !== a.id && c.id !== b.id && G.stance[a.id][c.id] === 'enemy' && G.stance[b.id][c.id] === 'enemy') { changeRel(a.id, b.id, 0.8); changeRel(b.id, a.id, 0.8); }
@@ -8330,9 +8360,11 @@ function diploStep(dt) {
   const others = ps.filter(q => q.id !== a.id); if (!others.length) return;
   const b = others[Math.floor(Math.random() * others.length)];
   const st = G.stance[a.id][b.id], rel = G.rel[a.id][b.id], sa = strength(a.id), sb = strength(b.id);
-  if (st === 'enemy' && G.time > 300 && (rel > 15 || sa < sb * 0.5) && Math.random() < 0.5) propose(a.id, b.id, 'peace');
+  const calmAB = G.time - (G.fought[Math.min(a.id, b.id) + '_' + Math.max(a.id, b.id)] ?? -999) > 240;
+  if (st === 'enemy' && G.time > 300 && ((rel > 5 && calmAB) || sa < sb * 0.5) && Math.random() < 0.5) propose(a.id, b.id, 'peace');
   else if (st === 'neutral' && rel > 50 && Math.random() < 0.5) propose(a.id, b.id, 'alliance');
   else if (st !== 'enemy' && rel < -35 && sa > sb * 1.2 && G.time > 400) declareWar(a.id, b.id);
+  else if (st === 'neutral' && sa > sb * 1.6 && G.time > 900 && Math.random() < 0.3) { declareWar(a.id, b.id); if (b.human) G.msg(a.name + ' codicia tus tierras', '#ff8a6a'); }
   else if (b.human && st === 'neutral' && sa > sb * 1.5 && Math.random() < 0.35 && G.time > 420) {
     const res = ['gold', 'food', 'wood'][Math.floor(Math.random() * 3)], amt = 150 + Math.floor(Math.random() * 3) * 50;
     G.proposals.push({ from: a.id, to: b.id, type: 'tribute', res, amt, t: G.time });
@@ -8533,13 +8565,14 @@ function drawBld(b, cx, cy) {
   if (sel && b.rally && b.team === G.human) { const fl = Math.floor(VIEW.anim * 4) % 2; c.fillStyle = '#e8e0c8'; c.fillRect(b.rally.x - cx, b.rally.y - cy - 10, 1, 10); c.fillStyle = PE.TEAM_COLORS[teamColorIdx(b.team)].hex; c.fillRect(b.rally.x - cx + 1, b.rally.y - cy - 10 + fl, 5, 3); }
 }
 function drawUnit(u, cx, cy) {
-  const c = VIEW.ctx, def = PE.ART.units[u.key], img0 = unitFrame(u), img = u.face < 0 ? flipped(img0) : img0;
-  const ax = def ? (u.face < 0 ? img0.width - def.ax : def.ax) : 8, ay = def ? def.ay : 14;
+  const c = VIEW.ctx, def = PE.ART.units[u.key], img0 = unitFrame(u), flip = (u.face < 0) !== !!(def && def.face === -1), img = flip ? flipped(img0) : img0;
+  const ax = def ? (flip ? img0.width - def.ax : def.ax) : 8, ay = def ? def.ay : 14;
   const sx = Math.round(u.x - ax - cx), sy = Math.round(u.y - ay - cy);
   const sel = G.sel.includes(u);
   if (sel) { c.strokeStyle = isAlly(u.team, G.human) ? '#8fff7a' : isEnemy(u.team, G.human) ? '#ff6a5a' : '#ffd23a'; c.lineWidth = 1; c.beginPath(); c.ellipse(Math.round(u.x - cx), Math.round(u.y - cy) + 1, u.def.size + 2, (u.def.size + 2) * 0.45, 0, 0, 7); c.stroke(); }
   if (u.stun > 0) c.globalAlpha = 0.8;
   c.drawImage(img, sx, sy);
+  if (u.flash > 0) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.55; c.drawImage(img, sx, sy); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1; }
   if (u.slowT > G.time) { c.globalAlpha = 0.35; c.fillStyle = '#9fe0ff'; c.fillRect(sx + ax - 5, sy + 4, 10, ay - 4); }
   c.globalAlpha = 1;
   const top = sy + (def ? Math.max(0, ay - (def.h - (def.h - ay)) ) : 0);
@@ -8552,7 +8585,7 @@ function drawUnit(u, cx, cy) {
 }
 function drawCorpse(k, cx, cy) {
   const c = VIEW.ctx, def = PE.ART.units[k.key]; if (!def || k.key.startsWith('animal_')) return;
-  const img0 = PE.frame('units', k.key, 0, { team: teamColorIdx(k.team), anim: 'idle' }), img = k.face < 0 ? flipped(img0) : img0;
+  const flip = (k.face < 0) !== (def.face === -1), img0 = PE.frame('units', k.key, 0, { team: teamColorIdx(k.team), anim: 'idle' }), img = flip ? flipped(img0) : img0;
   const fall = Math.min(1, k.t * 3), a = k.t > 8 ? Math.max(0, 1 - (k.t - 8) / 4) : 1;
   c.save(); c.globalAlpha = a * (k.t < 0.4 ? 1 : 0.75); c.translate(Math.round(k.x - cx), Math.round(k.y - cy)); c.rotate(fall * Math.PI / 2 * (k.face < 0 ? -1 : 1));
   c.drawImage(img, -def.ax, -def.ay); c.restore(); c.globalAlpha = 1;
@@ -9293,7 +9326,7 @@ function musicTick() {
   const want = G && G.human >= 0 && G.time - (G.battleNear || -99) < 10 ? 'battle' : 'peace';
   while (MUSIC.nextT < ac.currentTime + 0.4) {
     const s = MUSIC.song, spb = 60 / s.tempo / 2, t = MUSIC.nextT, step = MUSIC.step % 64, bar = Math.floor(step / 8);
-    if (step === 0 && want !== MUSIC.mode) { MUSIC.mode = want; MUSIC.song = MUSIC.songs[want]; }
+    if (step % 16 === 0 && want !== MUSIC.mode) { MUSIC.mode = want; MUSIC.song = MUSIC.songs[want]; }
     const n = s.mel[step], ch = s.prog[bar];
     if (n !== null) tone(t, NOTE(s.toMidi(n)), spb * 1.8, s.battle ? 'square' : 'triangle', s.battle ? 0.05 : 0.08, { vib: !s.battle, lp: s.battle ? 1800 : 2600, att: 0.02 });
     if (step % 8 === 0) { tone(t, NOTE(s.toMidi(ch) - 12), spb * 8, 'sawtooth', 0.05, { lp: 420, att: 0.15 }); tone(t, NOTE(s.toMidi(ch + 4) - 12), spb * 8, 'triangle', 0.035, { att: 0.2 }); }
@@ -9358,6 +9391,13 @@ function startGame(cfg) {
   UI.sig = ''; UI.page = 'root'; UI.placing = null; UI.paused = false; UI.logHTML = ''; UI.prSig = null;
   $('b-speed').textContent = '1x';
   resize();
+  // pre-render progresivo de sprites de las razas y colores presentes (evita tirones)
+  PREWARM.length = 0;
+  for (const pl of G.players) {
+    for (const role of ROLES) for (const anim of ['idle', 'walk', 'attack']) for (let f = 0; f < PE.ANIMS[anim].length; f++) PREWARM.push(['units', pl.race + '_' + role, f, { team: pl.color, anim }]);
+    for (const t in BLD) if (BLD[t].age < 9) for (let f = 0; f < 4; f++) PREWARM.push(['buildings', pl.race + '_' + t, f, { team: pl.color }]);
+  }
+  for (const k in ANIMALS) for (const anim of ['idle', 'walk']) for (let f = 0; f < PE.ANIMS[anim].length; f++) PREWARM.push(['units', 'animal_' + k, f, { team: 6, anim }]);
   G.msg('Bienvenido, ' + (G.human >= 0 ? G.players[G.human].name : 'observador') + '. Recolecta recursos, crece y conquista. Pulsa P para ver la ayuda.', '#ffd27a');
   return G;
 }
@@ -9396,12 +9436,14 @@ function galleryTick(dt) {
 }
 // --------------------------------------------------------------- bucle
 let LAST = 0, ACC = 0;
+const PREWARM = [];
 function frame(ts) {
   const dt = Math.min(0.1, (ts - LAST) / 1000 || 0); LAST = ts;
   try {
     // retratos animados de la pantalla inicial
     if (!$('setup').hidden) document.querySelectorAll('.rport').forEach(cv => { const img = PE.frame('units', cv.dataset.key, Math.floor(ts / 160), { team: 0, anim: 'idle' }); if (cv.width !== img.width * 3) { cv.width = img.width * 3; cv.height = img.height * 3; } const x = cv.getContext('2d'); x.imageSmoothingEnabled = false; x.clearRect(0, 0, cv.width, cv.height); x.drawImage(img, 0, 0, cv.width, cv.height); });
     galleryTick(dt);
+    if (PREWARM.length) { const t0 = performance.now(); while (PREWARM.length && performance.now() - t0 < 4) { const [k, key, f, o] = PREWARM.pop(); if (PE.ART[k][key]) PE.frame(k, key, f, o); } }
     if (G) {
       if (!UI.paused) {
         ACC += dt * G.speed; let n = 0;

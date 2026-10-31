@@ -191,13 +191,14 @@ function drawBld(b, cx, cy) {
   if (sel && b.rally && b.team === G.human) { const fl = Math.floor(VIEW.anim * 4) % 2; c.fillStyle = '#e8e0c8'; c.fillRect(b.rally.x - cx, b.rally.y - cy - 10, 1, 10); c.fillStyle = PE.TEAM_COLORS[teamColorIdx(b.team)].hex; c.fillRect(b.rally.x - cx + 1, b.rally.y - cy - 10 + fl, 5, 3); }
 }
 function drawUnit(u, cx, cy) {
-  const c = VIEW.ctx, def = PE.ART.units[u.key], img0 = unitFrame(u), img = u.face < 0 ? flipped(img0) : img0;
-  const ax = def ? (u.face < 0 ? img0.width - def.ax : def.ax) : 8, ay = def ? def.ay : 14;
+  const c = VIEW.ctx, def = PE.ART.units[u.key], img0 = unitFrame(u), flip = (u.face < 0) !== !!(def && def.face === -1), img = flip ? flipped(img0) : img0;
+  const ax = def ? (flip ? img0.width - def.ax : def.ax) : 8, ay = def ? def.ay : 14;
   const sx = Math.round(u.x - ax - cx), sy = Math.round(u.y - ay - cy);
   const sel = G.sel.includes(u);
   if (sel) { c.strokeStyle = isAlly(u.team, G.human) ? '#8fff7a' : isEnemy(u.team, G.human) ? '#ff6a5a' : '#ffd23a'; c.lineWidth = 1; c.beginPath(); c.ellipse(Math.round(u.x - cx), Math.round(u.y - cy) + 1, u.def.size + 2, (u.def.size + 2) * 0.45, 0, 0, 7); c.stroke(); }
   if (u.stun > 0) c.globalAlpha = 0.8;
   c.drawImage(img, sx, sy);
+  if (u.flash > 0) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.55; c.drawImage(img, sx, sy); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1; }
   if (u.slowT > G.time) { c.globalAlpha = 0.35; c.fillStyle = '#9fe0ff'; c.fillRect(sx + ax - 5, sy + 4, 10, ay - 4); }
   c.globalAlpha = 1;
   const top = sy + (def ? Math.max(0, ay - (def.h - (def.h - ay)) ) : 0);
@@ -210,7 +211,7 @@ function drawUnit(u, cx, cy) {
 }
 function drawCorpse(k, cx, cy) {
   const c = VIEW.ctx, def = PE.ART.units[k.key]; if (!def || k.key.startsWith('animal_')) return;
-  const img0 = PE.frame('units', k.key, 0, { team: teamColorIdx(k.team), anim: 'idle' }), img = k.face < 0 ? flipped(img0) : img0;
+  const flip = (k.face < 0) !== (def.face === -1), img0 = PE.frame('units', k.key, 0, { team: teamColorIdx(k.team), anim: 'idle' }), img = flip ? flipped(img0) : img0;
   const fall = Math.min(1, k.t * 3), a = k.t > 8 ? Math.max(0, 1 - (k.t - 8) / 4) : 1;
   c.save(); c.globalAlpha = a * (k.t < 0.4 ? 1 : 0.75); c.translate(Math.round(k.x - cx), Math.round(k.y - cy)); c.rotate(fall * Math.PI / 2 * (k.face < 0 ? -1 : 1));
   c.drawImage(img, -def.ax, -def.ay); c.restore(); c.globalAlpha = 1;

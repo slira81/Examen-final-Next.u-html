@@ -52,6 +52,13 @@ function startGame(cfg) {
   UI.sig = ''; UI.page = 'root'; UI.placing = null; UI.paused = false; UI.logHTML = ''; UI.prSig = null;
   $('b-speed').textContent = '1x';
   resize();
+  // pre-render progresivo de sprites de las razas y colores presentes (evita tirones)
+  PREWARM.length = 0;
+  for (const pl of G.players) {
+    for (const role of ROLES) for (const anim of ['idle', 'walk', 'attack']) for (let f = 0; f < PE.ANIMS[anim].length; f++) PREWARM.push(['units', pl.race + '_' + role, f, { team: pl.color, anim }]);
+    for (const t in BLD) if (BLD[t].age < 9) for (let f = 0; f < 4; f++) PREWARM.push(['buildings', pl.race + '_' + t, f, { team: pl.color }]);
+  }
+  for (const k in ANIMALS) for (const anim of ['idle', 'walk']) for (let f = 0; f < PE.ANIMS[anim].length; f++) PREWARM.push(['units', 'animal_' + k, f, { team: 6, anim }]);
   G.msg('Bienvenido, ' + (G.human >= 0 ? G.players[G.human].name : 'observador') + '. Recolecta recursos, crece y conquista. Pulsa P para ver la ayuda.', '#ffd27a');
   return G;
 }
@@ -90,12 +97,14 @@ function galleryTick(dt) {
 }
 // --------------------------------------------------------------- bucle
 let LAST = 0, ACC = 0;
+const PREWARM = [];
 function frame(ts) {
   const dt = Math.min(0.1, (ts - LAST) / 1000 || 0); LAST = ts;
   try {
     // retratos animados de la pantalla inicial
     if (!$('setup').hidden) document.querySelectorAll('.rport').forEach(cv => { const img = PE.frame('units', cv.dataset.key, Math.floor(ts / 160), { team: 0, anim: 'idle' }); if (cv.width !== img.width * 3) { cv.width = img.width * 3; cv.height = img.height * 3; } const x = cv.getContext('2d'); x.imageSmoothingEnabled = false; x.clearRect(0, 0, cv.width, cv.height); x.drawImage(img, 0, 0, cv.width, cv.height); });
     galleryTick(dt);
+    if (PREWARM.length) { const t0 = performance.now(); while (PREWARM.length && performance.now() - t0 < 4) { const [k, key, f, o] = PREWARM.pop(); if (PE.ART[k][key]) PE.frame(k, key, f, o); } }
     if (G) {
       if (!UI.paused) {
         ACC += dt * G.speed; let n = 0;

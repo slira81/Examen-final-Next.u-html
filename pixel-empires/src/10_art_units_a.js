@@ -381,7 +381,7 @@ U.human_cav = {
       c.rect('steel', 15, 5, 21, 11); c.rect('team', 15, 8, 21, 12); c.rect('gold', 15, 11, 21, 11);
       const h = T(0, 0); limb(c, 'steel', 20, 7, Math.round(h[0]) - 2, Math.round(h[1]) - 1);
       c.rim((t, m) => { rb(t, m, T, -12, 8, 2); rp(t, m, T, [[-2, -1], [2, -1], [1, -4], [-1, -4]]); rp(t, m, T, [[-1, -12], [1, -12], [0, -15]]); }, 'cloth');
-      for (const y of [-10, -7, 1, 4, 7]) rb(c, 'team', T, y, y + 1.2, 2);
+      for (const y of [-6, 1, 4, 7]) rb(c, 'team', T, y, y + 1.2, 2);
       rp(c, 'steel', T, [[-2, -1], [2, -1], [1, -4], [-1, -4]]); rp(c, 'blade', T, [[-1, -12], [1, -12], [0, -15]]);
       c.at(0, P.sec, () => rp(c, 'team', T, [[1, -12], [5.5, -11.5 + P.sw * .5], [4, -10.5], [5.5, -9.5 + P.sw * .5], [1, -9]]));
       c.rect('steel', Math.round(h[0]) - 1, Math.round(h[1]) - 1, Math.round(h[0]), Math.round(h[1]));
@@ -393,7 +393,7 @@ U.human_cav = {
       c.poly('team', [[13, 8], [17, 8], [17, 12], [15, 14.5], [13, 12]]); c.rect('white', 15, 8, 15, 13); c.rect('white', 13, 10, 17, 10);
       if (a === 2) for (let i = 0; i < 4; i++) c.glow(6 + i * 2, 12, 60, '#ffffff');
     });
-    c.at(P.sec === 0 ? P.sw : 0, b + P.sec, () => { c.ell('team', 17.5, 1.5, 2, 1.4); c.rect('team', 13, 1, 17, 2); c.px('team', 12, 3); });
+    c.at(P.sec === 0 ? P.sw : 0, b + P.sec, () => { c.ell('feather', 17.5, 1.5, 2, 1.4); c.rect('feather', 13, 1, 17, 2); c.px('feather', 12, 3); c.px('team', 17, 1); });
   },
 };
 
@@ -582,6 +582,7 @@ U.elf_inf = {
     c.at(0, b, () => {
       c.rect('silver', 12, 13, 19, 20);
       for (const y of [15, 17, 19]) for (let x = 12 + (y & 2 ? 1 : 0); x <= 19; x += 2) c.px('silver.0', x, y);
+      c.poly('leaf', [[13, 13], [18, 13], [15.5, 16]]); c.px('gold', 15, 13); c.px('gold', 16, 13);
       c.poly('leaf', [[11.5, 21], [19.5, 21], [20.5, 23], [18, 24], [15.5, 22.5], [13, 24], [10.5, 23]]);
       c.rect('team', 12, 20, 19, 21);
       c.poly('silver', [[9, 13], [12.5, 12.5], [12.5, 15.5], [10, 16]]); c.poly('silver', [[22, 13], [18.5, 12.5], [18.5, 15.5], [21, 16]]);
@@ -1032,7 +1033,7 @@ function ram(c, P, lunge) {
     c.ell('ua_wool', 28.5, 15.5, 3.4, 3.6);
     c.poly('ua_ramface', [[28, 12.5], [32.5, 12.5], [37.5, 16.5], [37, 19.5], [33.5, 20.5], [29, 18]]);
     c.px('eye', 33, 15); c.px('ua_ramface.0', 37, 19); c.rect('ua_ramface.2', 34, 15, 36, 15);
-    c.rim((t, m) => { t.ring(m, 29.5, 15.5, 4.2, 4, .2); t.poly(m, [[30.5, 18.5], [33, 19], [31.5, 21]]); }, 'ua_horn');
+    c.rim((t, m) => { t.ring(m, 29.5, 15.5, 4.2, 4, .2, (x, y) => !(y >= 17 && x >= 30)); t.poly(m, [[30, 17.5], [32.5, 18.5], [32, 20.5], [30.5, 19.5]]); }, 'ua_horn');
     c.px('ua_horn.0', 29, 15); c.px('ua_horn.0', 30, 16); c.px('ua_horn.0', 28, 17); c.px('ua_horn.3', 28, 12); c.px('ua_horn.0', 26, 16); c.px('ua_horn.0', 32, 14);
   });
   qleg(c, P, 'ua_ramface', 'ua_hoof', 12, 22 + b, 0, 0, 2, 2, 2.5);
@@ -1135,7 +1136,7 @@ U.dwarf_siege = {
       }
       if (a === 3) { c.ell('ua_smoke', 36.5, 11.5, 2.2, 2); c.ell('ua_smoke', 34.5, 8, 1.8, 1.6); c.px('ua_smoke.3', 35, 10); }
     });
-    c.at(0, b, () => { c.rect('darkwood', 18, 15, 24, 18); c.rect('iron', 18, 15, 24, 15); c.rect('team', 20, 16, 22, 17); });   // muñón
+    c.at(0, b, () => { c.rect('darkwood', 17, 15, 25, 19); c.rect('iron', 17, 15, 25, 15); c.rect('team', 18, 16, 24, 18); c.rect('gold', 21, 16, 21, 18); });   // muñón con placa del equipo
     wheel(c, 21, 23.5, 6, r, 'darkwood', 'wood', 3, 'iron', 'darkwood.0'); c.px('gold', 20, 22);
   },
 };

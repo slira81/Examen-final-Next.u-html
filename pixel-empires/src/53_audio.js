@@ -100,7 +100,7 @@ function musicTick() {
   const want = G && G.human >= 0 && G.time - (G.battleNear || -99) < 10 ? 'battle' : 'peace';
   while (MUSIC.nextT < ac.currentTime + 0.4) {
     const s = MUSIC.song, spb = 60 / s.tempo / 2, t = MUSIC.nextT, step = MUSIC.step % 64, bar = Math.floor(step / 8);
-    if (step === 0 && want !== MUSIC.mode) { MUSIC.mode = want; MUSIC.song = MUSIC.songs[want]; }
+    if (step % 16 === 0 && want !== MUSIC.mode) { MUSIC.mode = want; MUSIC.song = MUSIC.songs[want]; }
     const n = s.mel[step], ch = s.prog[bar];
     if (n !== null) tone(t, NOTE(s.toMidi(n)), spb * 1.8, s.battle ? 'square' : 'triangle', s.battle ? 0.05 : 0.08, { vib: !s.battle, lp: s.battle ? 1800 : 2600, att: 0.02 });
     if (step % 8 === 0) { tone(t, NOTE(s.toMidi(ch) - 12), spb * 8, 'sawtooth', 0.05, { lp: 420, att: 0.15 }); tone(t, NOTE(s.toMidi(ch + 4) - 12), spb * 8, 'triangle', 0.035, { att: 0.2 }); }

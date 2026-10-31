@@ -54,7 +54,8 @@ function newGame(cfg) {
   });
   // diplomacia inicial
   const n = G.players.length;
-  for (let a = 0; a < 9; a++) { G.stance[a] = []; G.rel[a] = []; for (let b = 0; b < 9; b++) { const same = a < n && b < n && G.players[a].teamGroup > 0 && G.players[a].teamGroup === G.players[b].teamGroup; G.stance[a][b] = a === b ? 'ally' : same ? 'ally' : 'enemy'; G.rel[a][b] = same ? 80 : -10; } }
+  for (let a = 0; a < 9; a++) { G.stance[a] = []; G.rel[a] = []; for (let b = 0; b < 9; b++) { const same = a < n && b < n && G.players[a].teamGroup > 0 && G.players[a].teamGroup === G.players[b].teamGroup; G.stance[a][b] = a === b ? 'ally' : same ? 'ally' : 'enemy'; G.rel[a][b] = same ? 80 : -25 + Math.floor(G.map.rnd() * 40); } }
+  G.fought = {};
   // bases iniciales
   G.players.forEach((p, i) => {
     const s = G.map.starts[i];
@@ -228,7 +229,7 @@ function setMove(u, x, y, amove) {
 function moveStep(u, dt) {
   if (!u.path.length) return false;
   const p = u.path[0], dx = p.x - u.x, dy = p.y - u.y, d = Math.hypot(dx, dy);
-  const ti = tileOf(u.y) * G.map.W + tileOf(u.x), s = uStats(u).sp * (TR_SPEED[G.map.terr[ti]] || 1) * dt;
+  const ti = tileOf(u.y) * G.map.W + tileOf(u.x), base = u.order.cap ? Math.min(u.order.cap, uStats(u).sp) : uStats(u).sp, s = base * (TR_SPEED[G.map.terr[ti]] || 1) * dt;
   if (d <= s) { u.x = p.x; u.y = p.y; u.path.shift(); } else { u.x += dx / d * s; u.y += dy / d * s; }
   if (Math.abs(dx) > 0.5) u.face = dx > 0 ? 1 : -1;
   u.moving = true; return true;
@@ -252,7 +253,8 @@ function approach(u, e, reach, dt) {
 }
 function cmdMove(units, x, y, amove) {
   const n = units.length, cols = Math.ceil(Math.sqrt(n)), sp = 12;
-  units.forEach((u, i) => setMove(u, x + ((i % cols) - (cols - 1) / 2) * sp, y + (Math.floor(i / cols) - (Math.ceil(n / cols) - 1) / 2) * sp, amove));
+  const cap = n > 1 && units.every(u => isMil(u)) ? Math.min(...units.map(u => uStats(u).sp)) : 0;
+  units.forEach((u, i) => { setMove(u, x + ((i % cols) - (cols - 1) / 2) * sp, y + (Math.floor(i / cols) - (Math.ceil(n / cols) - 1) / 2) * sp, amove); if (cap) u.order.cap = cap; });
 }
 function cmdAttack(units, tgt) { for (const u of units) if (u.def.atk > 0 || u.def.heal) setOrder(u, { t: 'attack', target: tgt, forced: true }); }
 function startGather(u, r) { const ty = RES_TYPE[r.kind]; if (u.carry > 0 && u.ckind !== ty) u.carry = 0; setOrder(u, { t: 'gather', res: r, kind: r.kind }); }
@@ -343,8 +345,10 @@ function applyHit(att, tgt, dmg, primary, team) {
   if (tgt.dead) return;
   team = team ?? att.team;
   dmg = Math.max(1, dmg);
-  tgt.hp -= dmg;
-  if (isPlayer(team) && isPlayer(tgt.team) && team !== tgt.team && G.stance[team][tgt.team] !== 'enemy') declareWar(team, tgt.team, true);
+  tgt.hp -= dmg; tgt.flash = 0.09;
+  if (primary && att && att.def && !att.def.proj && Math.random() < 0.35) { const c = centerOf(tgt); addFx(tgt.k === 'u' ? 'fx_blood' : 'fx_dust', c.x + (Math.random() - 0.5) * 8, c.y - (tgt.k === 'u' ? 8 : 0) + (Math.random() - 0.5) * 6); }
+  if (isPlayer(team) && isPlayer(tgt.team) && team !== tgt.team) { if (G.stance[team][tgt.team] !== 'enemy' && att && att.k === 'u' && att.order && att.order.forced) declareWar(team, tgt.team, true); G.fought[Math.min(team, tgt.team) + '_' + Math.max(team, tgt.team)] = G.time; }
+  if (tgt.team === G.human || team === G.human) G.battleNear = G.time;
   const aU = att && att.k === 'u' && !att.dead ? att : null;
   if (tgt.k === 'u') {
     tgt.lastCombat = G.time;
@@ -452,7 +456,7 @@ function updUnit(u, dt) {
   if (u.buffT > G.time && u.buff.regen) regen += u.buff.regen;
   if (regen > 0 && u.hp < u.maxhp && G.time - u.lastCombat > 2) u.hp = Math.min(u.maxhp, u.hp + regen * dt);
   // experiencia pendiente: se gana al sobrevivir al enfrentamiento (5 s sin combatir)
-  if (u.pxp > 0 && G.time - u.lastCombat > 5) { gainXP(u, u.pxp); u.pxp = 0; }
+  if (u.pxp > 0 && G.time - u.lastCombat > 5) { if (u.team === G.human && u.pxp >= 3 && u.lvl < LEVEL_MAX) G.texts.push({ x: u.x, y: u.y - 30, text: '+' + Math.floor(u.pxp) + ' XP', color: '#ffe08a', t: 0, life: 1.4 }); gainXP(u, u.pxp); u.pxp = 0; }
   if (u.inside) { if (u.inside.dead) ejectOne(u, u.inside); else { u.hp = Math.min(u.maxhp, u.hp + dt * 0.8); return; } }
   if (u.stun > 0) { u.stun -= dt; u.anim = 'idle'; return; }
   // golpe en curso
@@ -543,7 +547,7 @@ function healTarget(u, t) {
 function doAttackOrder(u, o, dt) {
   const t = o.target, d = u.def;
   const done = () => { if (o.resume && o.resume.t === 'move') setMove(u, o.resume.x, o.resume.y, o.resume.amove); else setOrder(u, { t: 'idle', home: o.home }); };
-  if (!t || t.dead || (t.k === 'u' && !o.forced && !canHarm(u.team, t.team) && !d.heal)) return done();
+  if (!t || t.dead || (!o.forced && !d.heal && t.team !== u.team && !isEnemy(u.team, t.team))) return done();
   if (d.heal && !canHarm(u.team, t.team) && t.hp >= t.maxhp) return done();
   if (t.k === 'u' && t.team !== u.team && G.human === u.team && !G.cfg.revealed && !o.forced) { /* sigue */ }
   if (o.auto && o.home && dist(u, o.home) > d.los * T * 2.2) { setMove(u, o.home.x, o.home.y); return; }
@@ -823,8 +827,8 @@ function simStep(dt) {
   G.time += dt;
   sgRebuild(G.units);
   for (let i = SIM_TIMERS.length - 1; i >= 0; i--) if (G.time >= SIM_TIMERS[i].at) { const t = SIM_TIMERS.splice(i, 1)[0]; t.fn(); }
-  for (const u of G.units) if (!u.dead) updUnit(u, dt);
-  for (const b of G.blds) if (!b.dead) updBld(b, dt);
+  for (const u of G.units) if (!u.dead) { updUnit(u, dt); if (u.flash > 0) u.flash -= dt; }
+  for (const b of G.blds) if (!b.dead) { updBld(b, dt); if (b.flash > 0) b.flash -= dt; }
   updGenerals(dt);
   updProjs(dt);
   separate();
