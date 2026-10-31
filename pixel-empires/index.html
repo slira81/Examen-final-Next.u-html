@@ -128,7 +128,7 @@ table.stats-t th{color:var(--gold2);font-weight:600}tr.dead{opacity:.45}
       <div class="opt"><label for="s-map">Mapa</label><select id="s-map"><option value="continental">Continental</option><option value="forest">Bosques profundos</option><option value="mountains">Montañas</option><option value="rivers">Ríos</option><option value="tundra">Tundra</option></select></div>
       <div class="opt"><label for="s-size">Tamaño</label><select id="s-size"><option value="72">Pequeño</option><option value="96" selected>Mediano</option><option value="128">Grande</option></select></div>
       <div class="opt"><label for="s-res">Recursos iniciales</label><select id="s-res"><option value="low">Bajos</option><option value="normal" selected>Normales</option><option value="high">Altos</option></select></div>
-      <div class="opt checks"><label><input type="checkbox" id="s-weather" checked> Clima</label><label><input type="checkbox" id="s-dis" checked> Desastres</label><label><input type="checkbox" id="s-reveal"> Mapa revelado</label></div>
+      <div class="opt checks"><label><input type="checkbox" id="s-weather" checked> Clima</label><label><input type="checkbox" id="s-dis" checked> Desastres</label><label><input type="checkbox" id="s-reveal"> Mapa revelado</label><label><input type="checkbox" id="s-obs"> Solo observar (IA contra IA)</label></div>
     </div>
     <div class="sbtns"><button id="s-help">Cómo jugar</button><button id="s-gallery">Galería de diseños</button><button id="s-start" class="go">COMENZAR</button></div>
   </div>
@@ -3334,7 +3334,7 @@ const G = {
     const g = K.hall(c, 3, 22, 49, 12, 13, { f, door: 9.5, dw: 7, dh: 7, open: true, wins: [], sh: 3 });
     K.chim(c, 18, 16, g.wy - 3, f, { w: 6, col: '#857f92', a: 210, n: 4, forge: true });
     embers(c, 21, 14, f, 3);
-    flame(c, 9, 48, f, 2); c.rect('fire', 7, 48, 12, 49); c.glow(9, 50, 0, '#000');
+    flame(c, 9, 48, f, 2); c.rect('fire', 7, 48, 12, 49);
     c.rect('bld_hole', 16, g.wy + 3, 19, g.wy + 5); c.rect('fire', 16, g.wy + 5, 19, g.wy + 5); c.px('glowY', 17 + (f & 1), g.wy + 5);
     anvil(c, 23, 50); c.line('leather', 27, 43, 29, 45); c.rect(K.metal, 26, 42, 28, 43);
     barrel(c, 1, 50); K.flag(c, 5, g.rt - 6, f, { ph: 8, len: 5, hgt: 3 });
@@ -3902,7 +3902,6 @@ DWA.W = {
 // ------------------------------------------------------------- enanos: tipos especiales
 const DWAS = {
   house(c, f) { DWA.hall(c, 4, 27, 46, 14, 15, { f, door: 11, dw: 5, dh: 7, wins: [19], chim: 19, ban: [] }); banner(c, 18, 41, 3, 3, f, { rod: 'gold', sway: 0 }); },
-  barracks(c, f) { G.barracks(c, f, DWA); },
   tc(c, f) {
     const g = DWA.hall(c, 8, 55, 91, 26, 26, { f, door: false, wins: [], chim: 44 });
     DWA.chim(c, 15, g.rt - 2, g.wy - 6, f);
@@ -8568,7 +8567,7 @@ function drawBld(b, cx, cy) {
   if (b.fire > 0) { const fi = PE.frame('fx', 'fx_fire', (Math.floor(VIEW.anim * 8) + b.id) % 4, { v: 2 }); c.drawImage(fi, sx + b.fp * 8 - fi.width / 2, (b.ty + b.fp / 2) * T - fi.height - cy); }
   const sel = G.sel.includes(b);
   if (sel) { c.strokeStyle = isAlly(b.team, G.human) ? '#8fff7a' : isEnemy(b.team, G.human) ? '#ff6a5a' : '#ffd23a'; c.lineWidth = 1; c.strokeRect(b.tx * T - cx + 0.5, b.ty * T - cy + 0.5, b.fp * T - 1, b.fp * T - 1); }
-  if ((sel || b.hp < b.maxhp) && !b.def.invuln && b.team !== GAIA) bar(sx + 4, sy - 5, b.fp * T - 8, b.done ? b.hp / b.maxhp : b.progress, b.done ? null : '#8ab4ff');
+  if ((sel || (b.hp < b.maxhp && !b.def.flat) || (!b.done && !b.def.flat)) && !b.def.invuln && b.team !== GAIA) bar(sx + 4, sy - 5, b.fp * T - 8, b.done ? b.hp / b.maxhp : b.progress, b.done ? null : '#8ab4ff');
   if (sel && b.rally && b.team === G.human) { const fl = Math.floor(VIEW.anim * 4) % 2; c.fillStyle = '#e8e0c8'; c.fillRect(b.rally.x - cx, b.rally.y - cy - 10, 1, 10); c.fillStyle = PE.TEAM_COLORS[teamColorIdx(b.team)].hex; c.fillRect(b.rally.x - cx + 1, b.rally.y - cy - 10 + fl, 5, 3); }
 }
 function drawUnit(u, cx, cy) {
@@ -9389,7 +9388,8 @@ function startFromSetup() {
     const names = PLAYER_NAMES[race]; players.push({ race, color: i + 1, human: false, team: +r.querySelector('.rt').value, diff: r.querySelector('.rd').value, name: names[Math.floor(Math.random() * names.length)] });
   });
   players[0].name = PLAYER_NAMES[SETUP.race][0];
-  startGame({ seed, size: +$('s-size').value, mapType: $('s-map').value, players, resources: $('s-res').value, weather: $('s-weather').checked, disasters: $('s-dis').checked, revealed: $('s-reveal').checked, diff: $('s-diff').value });
+  const obs = $('s-obs').checked; if (obs) { players[0].human = false; players[0].diff = $('s-diff').value; }
+  startGame({ seed, size: +$('s-size').value, mapType: $('s-map').value, players, resources: $('s-res').value, weather: $('s-weather').checked, disasters: $('s-dis').checked, revealed: $('s-reveal').checked || obs, observer: obs, diff: $('s-diff').value });
 }
 function startGame(cfg) {
   $('setup').hidden = true; $('hud').hidden = false; $('modal').hidden = true; UI.modal = false;

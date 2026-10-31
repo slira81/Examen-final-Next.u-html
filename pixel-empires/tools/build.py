@@ -129,7 +129,7 @@ BODY = r"""
       <div class="opt"><label for="s-map">Mapa</label><select id="s-map"><option value="continental">Continental</option><option value="forest">Bosques profundos</option><option value="mountains">Montañas</option><option value="rivers">Ríos</option><option value="tundra">Tundra</option></select></div>
       <div class="opt"><label for="s-size">Tamaño</label><select id="s-size"><option value="72">Pequeño</option><option value="96" selected>Mediano</option><option value="128">Grande</option></select></div>
       <div class="opt"><label for="s-res">Recursos iniciales</label><select id="s-res"><option value="low">Bajos</option><option value="normal" selected>Normales</option><option value="high">Altos</option></select></div>
-      <div class="opt checks"><label><input type="checkbox" id="s-weather" checked> Clima</label><label><input type="checkbox" id="s-dis" checked> Desastres</label><label><input type="checkbox" id="s-reveal"> Mapa revelado</label></div>
+      <div class="opt checks"><label><input type="checkbox" id="s-weather" checked> Clima</label><label><input type="checkbox" id="s-dis" checked> Desastres</label><label><input type="checkbox" id="s-reveal"> Mapa revelado</label><label><input type="checkbox" id="s-obs"> Solo observar (IA contra IA)</label></div>
     </div>
     <div class="sbtns"><button id="s-help">Cómo jugar</button><button id="s-gallery">Galería de diseños</button><button id="s-start" class="go">COMENZAR</button></div>
   </div>

@@ -43,7 +43,8 @@ function startFromSetup() {
     const names = PLAYER_NAMES[race]; players.push({ race, color: i + 1, human: false, team: +r.querySelector('.rt').value, diff: r.querySelector('.rd').value, name: names[Math.floor(Math.random() * names.length)] });
   });
   players[0].name = PLAYER_NAMES[SETUP.race][0];
-  startGame({ seed, size: +$('s-size').value, mapType: $('s-map').value, players, resources: $('s-res').value, weather: $('s-weather').checked, disasters: $('s-dis').checked, revealed: $('s-reveal').checked, diff: $('s-diff').value });
+  const obs = $('s-obs').checked; if (obs) { players[0].human = false; players[0].diff = $('s-diff').value; }
+  startGame({ seed, size: +$('s-size').value, mapType: $('s-map').value, players, resources: $('s-res').value, weather: $('s-weather').checked, disasters: $('s-dis').checked, revealed: $('s-reveal').checked || obs, observer: obs, diff: $('s-diff').value });
 }
 function startGame(cfg) {
   $('setup').hidden = true; $('hud').hidden = false; $('modal').hidden = true; UI.modal = false;

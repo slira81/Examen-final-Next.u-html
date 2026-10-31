@@ -187,7 +187,7 @@ function drawBld(b, cx, cy) {
   if (b.fire > 0) { const fi = PE.frame('fx', 'fx_fire', (Math.floor(VIEW.anim * 8) + b.id) % 4, { v: 2 }); c.drawImage(fi, sx + b.fp * 8 - fi.width / 2, (b.ty + b.fp / 2) * T - fi.height - cy); }
   const sel = G.sel.includes(b);
   if (sel) { c.strokeStyle = isAlly(b.team, G.human) ? '#8fff7a' : isEnemy(b.team, G.human) ? '#ff6a5a' : '#ffd23a'; c.lineWidth = 1; c.strokeRect(b.tx * T - cx + 0.5, b.ty * T - cy + 0.5, b.fp * T - 1, b.fp * T - 1); }
-  if ((sel || b.hp < b.maxhp) && !b.def.invuln && b.team !== GAIA) bar(sx + 4, sy - 5, b.fp * T - 8, b.done ? b.hp / b.maxhp : b.progress, b.done ? null : '#8ab4ff');
+  if ((sel || (b.hp < b.maxhp && !b.def.flat) || (!b.done && !b.def.flat)) && !b.def.invuln && b.team !== GAIA) bar(sx + 4, sy - 5, b.fp * T - 8, b.done ? b.hp / b.maxhp : b.progress, b.done ? null : '#8ab4ff');
   if (sel && b.rally && b.team === G.human) { const fl = Math.floor(VIEW.anim * 4) % 2; c.fillStyle = '#e8e0c8'; c.fillRect(b.rally.x - cx, b.rally.y - cy - 10, 1, 10); c.fillStyle = PE.TEAM_COLORS[teamColorIdx(b.team)].hex; c.fillRect(b.rally.x - cx + 1, b.rally.y - cy - 10 + fl, 5, 3); }
 }
 function drawUnit(u, cx, cy) {
