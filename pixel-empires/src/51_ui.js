@@ -38,7 +38,18 @@ function initHUD() {
   rb.insertAdjacentHTML('beforeend', `<span class="res" data-tip="Población / límite"><i class="ri ri-pop"></i><b id="r-pop">0</b></span>`);
   UI.mini = $('mini');
 }
+function updateTouchUI() {
+  const pb = $('placebar'), mh = $('modehint');
+  pb.hidden = !(INPUT.touch && UI.placing && !BLD[UI.placing].wall);
+  const hint = UI.placing ? (INPUT.touch ? (BLD[UI.placing].wall ? 'Arrastra para levantar el muro' : 'Toca para ubicar · Construir para confirmar') : 'Clic para construir · clic derecho cancela') : UI.roadMode ? 'Arrastra para trazar el camino' : UI.amove ? 'Elige el destino del ataque' : UI.rallyMode ? 'Elige el punto de reunión' : UI.garMode ? 'Elige un edificio para refugiarse' : '';
+  if (mh.textContent !== hint) mh.textContent = hint; mh.hidden = !hint;
+  $('t-desel').style.visibility = G.sel.length || hint ? 'visible' : 'hidden';
+  const pnl = $('bottom'), side = pnl.offsetWidth < innerWidth * 0.5, bh = side ? 0 : pnl.offsetHeight, bw = side ? pnl.offsetWidth + 6 : 0;
+  if (bh !== UI.panelH || bw !== UI.panelW) { UI.panelH = bh; UI.panelW = bw; document.documentElement.style.setProperty('--panelH', bh + 'px'); document.documentElement.style.setProperty('--panelW', bw + 'px'); clampCam(); }
+  const th = $('top').offsetHeight + $('top').offsetTop; if (th && th !== UI.topH) { UI.topH = th; document.documentElement.style.setProperty('--topH', th + 'px'); }
+}
 function updateTop() {
+  updateTouchUI();
   if (G.human < 0) { $('resbar').style.visibility = 'hidden'; } else {
     const p = G.players[G.human];
     for (const r of RES) $('r-' + r).textContent = Math.floor(p.res[r]);
@@ -73,15 +84,15 @@ function updateSelectionUI(force) {
 }
 function portrait(e) {
   if (e.k === 'u') return trimmed(PE.frame('units', e.key, 0, { team: teamColorIdx(e.team), anim: 'idle' }));
-  if (e.k === 'b') return trimmed(PE.frame('buildings', e.key, 0, { team: teamColorIdx(e.team), mask: 10 }));
-  if (e.k === 'r') { const key = e.kind === 'tree' ? e.art : e.kind === 'berry' ? 'bush_berry' : e.kind === 'fish' ? 'fish_spot' : e.kind === 'carcass' ? null : 'mine_' + e.kind; return key ? trimmed(PE.frame('nature', key, 0, { v: 0 })) : trimmed(PE.frame('units', e.art, 0, { dead: true })); }
+  if (e.k === 'b') return trimmed(PE.frame('buildings', e.key, 0, { team: teamColorIdx(e.team), mask: 10, k: 1 }));
+  if (e.k === 'r') { const key = e.kind === 'tree' ? e.art : e.kind === 'berry' ? 'bush_berry' : e.kind === 'fish' ? 'fish_spot' : e.kind === 'carcass' ? null : 'mine_' + e.kind; return key ? trimmed(PE.frame('nature', key, 0, { v: 0, k: 1 })) : trimmed(PE.frame('units', e.art, 0, { dead: true })); }
   return null;
 }
 const RES_KIND_N = { tree: 'Árbol', berry: 'Arbusto de bayas', fish: 'Banco de peces', carcass: 'Carne', gold: 'Mina de oro', gems: 'Veta de gemas', stone: 'Cantera de piedra', iron: 'Mina de hierro' };
 function buildInfoStatic() {
   const el = $('info'); el.innerHTML = '';
   if (!G.sel.length) {
-    if (G.human >= 0) { const p = G.players[G.human]; el.innerHTML = `<div class="hint"><b>${esc(p.name)}</b> · ${RACES[p.race].n}<br>Clic: seleccionar · arrastrar: selección múltiple · clic derecho: ordenar.<br>Las unidades militares ganan experiencia al <b>sobrevivir</b> a los combates y suben hasta nivel 5.</div>`; }
+    if (G.human >= 0) { const p = G.players[G.human]; el.innerHTML = `<div class="hint"><b>${esc(p.name)}</b> · ${RACES[p.race].n}<br>${INPUT.touch ? 'Toca para seleccionar y, con algo seleccionado, toca el destino u objetivo. Arrastra para mover la cámara, pellizca para el zoom y mantén pulsado y arrastra para seleccionar varias.' : 'Clic: seleccionar · arrastrar: selección múltiple · clic derecho: ordenar.'}<br>Las unidades militares ganan experiencia al <b>sobrevivir</b> a los combates y suben hasta nivel 5.</div>`; }
     return;
   }
   if (G.sel.length === 1) {
@@ -169,7 +180,7 @@ function cmdList() {
   if (workers.length && UI.page !== 'root') {
     const list = UI.page === 'eco' ? ['house', 'farm', 'mill', 'lumber', 'mine', 'market', 'tower', 'wall', 'gate', 'tc'] : ['barracks', 'range', 'stable', 'temple', 'forge', 'workshop', 'castle'];
     for (const t of list) { const d = BLD[t]; out.push({ icon: ['buildings', race + '_' + t], n: (RACES[race].names[t] || d.n), cost: costOf(G.human, d.cost), d: bldDesc(t), locked: d.age > p.age ? 'Requiere ' + AGES[d.age - 1] : null, fn: () => startPlacing(t) }); }
-    if (UI.page === 'eco') out.push({ icon: ['icons', 'cmd_road'], n: 'Camino', cost: { stone: 2 }, d: 'Arrastra para trazar un camino. Las unidades se mueven un 35% más rápido sobre él. 2 de piedra por casilla.', fn: () => { UI.roadMode = true; UI.placing = null; } });
+    if (UI.page === 'eco') out.push({ icon: ['icons', 'cmd_road'], n: 'Camino', cost: { stone: 2 }, d: 'Arrastra para trazar un camino. Las unidades se mueven un 35% más rápido sobre él. 2 de piedra por casilla.', fn: () => { cancelModes(); UI.roadMode = true; } });
     while (out.length < 14) out.push(null);
     out.push(back);
     return out;
@@ -182,8 +193,9 @@ function cmdList() {
     const gen = units.find(u => u.def.unique);
     if (gen) out.push({ icon: ['icons', 'cmd_ability'], n: gen.def.ability.n, d: gen.def.ability.d + '. Se lanza sola en combate. Recarga: ' + gen.def.ability.cd + ' s.', locked: gen.abCd > 0 ? 'Recargando (' + Math.ceil(gen.abCd) + ' s)' : null, fn: () => { if (gen.abCd > 0) return; if (castAbility(gen)) gen.abCd = gen.def.ability.cd; else G.msg('No hay objetivos para ' + gen.def.ability.n, '#ffb070'); } });
     while (out.length < 5) out.push(null);
-    out.push({ icon: ['icons', 'cmd_attackmove'], n: 'Atacar moviéndose', key: 'a', d: 'Haz clic en el destino: las unidades atacan a todo enemigo que encuentren por el camino.', fn: () => { UI.amove = true; } });
+    out.push({ icon: ['icons', 'cmd_attackmove'], n: 'Atacar moviéndose', key: 'a', d: 'Elige el destino: las unidades atacan a todo enemigo que encuentren por el camino.', fn: () => { cancelModes(); UI.amove = true; } });
     out.push({ icon: ['icons', 'cmd_stop'], n: 'Detener', key: 's', d: 'Cancela la orden actual.', fn: () => units.forEach(u => setOrder(u, { t: 'idle' })) });
+    if (units.some(u => isMil(u))) out.push({ icon: ['icons', 'cmd_upg_walls'], n: 'Entrar en edificio', key: 'd', d: 'Elige un centro urbano, torre o castillo propio: las unidades entran y el edificio dispara una flecha más por cada una.', fn: () => { cancelModes(); UI.garMode = true; } });
     if (workers.length) out.push({ icon: ['icons', 'cmd_repair'], n: 'Reparar / construir', d: 'Clic derecho sobre un edificio propio dañado o sin terminar.', fn: () => G.msg('Haz clic derecho sobre un edificio propio para repararlo', '#cfe8a0') });
     while (out.length < 14) out.push(null);
     out.push({ icon: ['icons', 'cmd_delete'], n: 'Eliminar', key: 'Delete', d: 'Elimina las unidades seleccionadas.', fn: () => { for (const u of units) kill(u, null); } });
@@ -212,7 +224,7 @@ function cmdList() {
       out.push({ icon: ['icons', 'cmd_back'], n: 'Expulsar guarnición (' + (bld.garrison || []).length + '/' + d.garrison + ')', d: 'Saca a todas las unidades del edificio. Con clic derecho sobre el edificio, tus soldados entran en él.', fn: () => { ejectAll(bld); updateSelectionUI(true); } });
     }
     while (out.length < 13) out.push(null);
-    if (d.train) out.push({ icon: ['icons', 'cmd_rally'], n: 'Punto de reunión', d: 'Haz clic derecho en el mapa con el edificio seleccionado para fijar dónde van las unidades nuevas (sobre un recurso, los aldeanos irán a recolectarlo).', fn: () => G.msg('Clic derecho en el mapa para fijar el punto de reunión', '#cfe8a0') });
+    if (d.train) out.push({ icon: ['icons', 'cmd_rally'], n: 'Punto de reunión', d: 'Toca o haz clic en el mapa para fijar dónde van las unidades nuevas (sobre un recurso, los aldeanos irán a recolectarlo). Con ratón también sirve el clic derecho.', fn: () => { cancelModes(); UI.rallyMode = true; } });
     else out.push(null);
     out.push({ icon: ['icons', 'cmd_delete'], n: 'Demoler', key: 'Delete', d: 'Destruye el edificio.', fn: () => kill(bld, null) });
     return out;
@@ -255,13 +267,17 @@ function buildCmds() {
     if (!c) { b.className = 'cmd empty'; b.disabled = true; el.appendChild(b); return; }
     const [kind, key] = c.icon; let img;
     if (kind === 'units') img = trimmed(PE.frame('units', key, 0, { team: teamColorIdx(G.human), anim: 'idle' }));
-    else if (kind === 'buildings') img = trimmed(PE.frame('buildings', key, 0, { team: teamColorIdx(G.human), mask: 10 }));
+    else if (kind === 'buildings') img = trimmed(PE.frame('buildings', key, 0, { team: teamColorIdx(G.human), mask: 10, k: 1 }));
     else img = PE.frame(kind, key, 0);
     b.appendChild(iconCanvas(img, 32, 'cico'));
     c.hk = c.key || HOTKEYS[i];
     b.insertAdjacentHTML('beforeend', `<em>${c.hk === 'Delete' ? 'Supr' : c.hk.toUpperCase()}</em>`);
-    b.onclick = () => runCmd(c);
-    b.onmouseenter = () => showTip(b, `<b>${esc(c.n)}</b> <span class="hk">[${c.hk === 'Delete' ? 'Supr' : c.hk.toUpperCase()}]</span>${c.cost ? '<div>' + costHTML(c.cost, G.human) + '</div>' : ''}${c.locked ? `<div class="warn">${esc(c.locked)}</div>` : ''}<div class="d">${esc(c.d || '')}</div>`);
+    const tipHTML = () => `<b>${esc(c.n)}</b>${INPUT.touch ? '' : ` <span class="hk">[${c.hk === 'Delete' ? 'Supr' : c.hk.toUpperCase()}]</span>`}${c.cost ? '<div>' + costHTML(c.cost, G.human) + '</div>' : ''}${c.locked ? `<div class="warn">${esc(c.locked)}</div>` : ''}<div class="d">${esc(c.d || '')}</div>`;
+    b.addEventListener('pointerdown', ev => { if (ev.pointerType === 'mouse') return; c._tip = false; clearTimeout(c._lp); c._lp = setTimeout(() => { c._tip = true; showTip(b, tipHTML()); }, 420); });
+    b.addEventListener('pointerup', ev => { if (ev.pointerType === 'mouse') return; clearTimeout(c._lp); if (c._tip) setTimeout(hideTip, 1600); });
+    b.addEventListener('pointerleave', () => clearTimeout(c._lp));
+    b.onclick = () => { if (c._tip) { c._tip = false; return; } runCmd(c); };
+    b.onmouseenter = () => !INPUT.touch && showTip(b, `<b>${esc(c.n)}</b> <span class="hk">[${c.hk === 'Delete' ? 'Supr' : c.hk.toUpperCase()}]</span>${c.cost ? '<div>' + costHTML(c.cost, G.human) + '</div>' : ''}${c.locked ? `<div class="warn">${esc(c.locked)}</div>` : ''}<div class="d">${esc(c.d || '')}</div>`);
     b.onmouseleave = hideTip;
     c.el = b; el.appendChild(b);
   });
@@ -279,7 +295,8 @@ function startPlacing(t) {
   const p = G.players[G.human], d = BLD[t];
   if (d.age > p.age) { G.msg('Requiere ' + AGES[d.age - 1], '#ffb070', { sound: 'error' }); return; }
   if (!canAfford(G.human, costOf(G.human, d.cost))) { G.msg('Faltan recursos: ' + missingText(G.human, costOf(G.human, d.cost)), '#ffb070', { sound: 'error' }); return; }
-  UI.placing = t; UI.roadMode = false;
+  cancelModes(); UI.placing = t;
+  if (INPUT.touch) { UI.mouseWorld = { x: G.cam.x, y: G.cam.y }; UI.ghost = true; }
 }
 function placementTiles() {
   const d = BLD[UI.placing], w = UI.mouseWorld;
@@ -333,7 +350,7 @@ function closeModal() { $('modal').hidden = true; UI.modal = false; if (UI.pause
 function openMenu() {
   UI.paused = true; UI.pausedByModal = true;
   openModal(`<h2>Pausa</h2><div class="menu">
-    <button data-act="resume">Continuar</button><button data-act="help">Cómo jugar</button><button data-act="gallery">Galería de diseños</button><button data-act="restart">Nueva partida</button></div>
+    <button data-act="resume">Continuar</button><button data-act="diplo">Diplomacia</button><button data-act="speed">Velocidad: ${G ? G.speed : 1}x</button><button data-act="music">Música: ${AUDIO.music ? 'sí' : 'no'}</button><button data-act="full">Pantalla completa</button><button data-act="help">Cómo jugar</button><button data-act="gallery">Galería de diseños</button><button data-act="restart">Nueva partida</button></div>
     <div class="vol"><label for="v-sfx">Efectos</label><input id="v-sfx" type="range" min="0" max="100" value="${AUDIO.sfxVol * 100}"><label for="v-mus">Música</label><input id="v-mus" type="range" min="0" max="100" value="${AUDIO.musVol * 100}"></div>`);
   $('v-sfx').oninput = e => { AUDIO.sfxVol = e.target.value / 100; };
   $('v-mus').oninput = e => { AUDIO.musVol = e.target.value / 100; };
@@ -346,6 +363,12 @@ function openHelp() {
   <li><b>Flechas, bordes o botón central</b>: mover la cámara. <b>Rueda</b>: zoom. <b>H</b>: centro urbano. <b>.</b>: aldeano inactivo.</li>
   <li><b>Ctrl + 1–9</b>: crear grupo; <b>1–9</b>: seleccionar grupo. <b>A</b>: atacar moviéndose. <b>S</b>: detener. <b>Supr</b>: eliminar. <b>P</b> o <b>Esc</b>: pausa.</li>
   <li>Los comandos del panel se activan con <b>Q W E R T / A S D F G / Z X C V B</b>.</li></ul>
+  <h3>En el móvil</h3><ul>
+  <li><b>Tocar</b>: seleccionar. Con unidades seleccionadas, tocar el suelo, un recurso, un enemigo o un edificio les da la orden adecuada.</li>
+  <li><b>Arrastrar</b>: mover la cámara. <b>Pellizcar</b> o los botones <b>+</b> y <b>−</b>: acercar y alejar.</li>
+  <li><b>Mantener pulsado y arrastrar</b>: selección múltiple. <b>Doble toque</b> sobre una unidad: todas las de su tipo en pantalla.</li>
+  <li>Para construir, elige el edificio, toca el lugar y pulsa <b>Construir</b>. Muros y caminos se trazan arrastrando.</li>
+  <li>Mantén pulsado un botón del panel para ver qué hace. Botones rápidos: <b>✕</b> deseleccionar, <b>Ejército</b> y <b>Inactivo</b>. Juega mejor con el teléfono en horizontal.</li></ul>
   <h3>Economía</h3><p>Recursos: comida, madera, oro, piedra y hierro. Los aldeanos los llevan al centro urbano o a un acopio (molino, aserradero, campamento minero). Construye casas para aumentar la población. Las granjas dan comida renovable y se resiembran solas con 60 de madera. Los caminos aceleran el movimiento.</p>
   <h3>Eras</h3><p>Avanza en el centro urbano. Necesitas dos edificios de la era actual. La Era del Reino desbloquea tiradores, caballería, templo, herrería, mercado, torres y muros; la Era del Imperio, el asedio, el castillo y tu general.</p>
   <h3>Experiencia y niveles</h3><p>Las unidades militares acumulan experiencia pendiente al dañar y derrotar enemigos. Solo la ganan si <b>sobreviven al enfrentamiento</b> (5 segundos sin combatir). Subir es progresivo: nivel 2 con 100 XP, 3 con 260, 4 con 480 y 5 con 800. Cada nivel da +10% de vida y +8% de ataque; desde el nivel 3, +1 de armadura, y desde el 4 regeneran vida. La insignia sobre la cabeza indica el nivel.</p>

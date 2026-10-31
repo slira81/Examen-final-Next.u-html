@@ -16,7 +16,9 @@ CSS = r"""
   --text:#f4e9c8;--mute:#cdb98e;--good:#8fff7a;--bad:#ff7a6a;--warn:#ffb070;--sel:#5a8ad8;
   --font:"Jersey 10","Courier New",monospace;--font-logo:"Silkscreen","Jersey 10",monospace;color-scheme:dark}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;overflow:hidden;background:#0a0812;color:var(--text);font:18px/1.25 var(--font);user-select:none;-webkit-user-select:none}
+html,body{margin:0;height:100%;overflow:hidden;background:#0a0812;color:var(--text);font:18px/1.25 var(--font);user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+canvas#game,#hud .panel,#touchbar,#zoom{touch-action:none}
+button{touch-action:manipulation}
 canvas#game{position:fixed;left:0;top:0;image-rendering:pixelated;cursor:crosshair}
 [hidden]{display:none!important}
 button{font:inherit;color:var(--text);background:var(--wood3);border:2px solid var(--gold);box-shadow:inset 0 -3px 0 rgba(0,0,0,.35),inset 0 2px 0 rgba(255,220,150,.15);padding:4px 10px;cursor:pointer}
@@ -24,7 +26,7 @@ button:hover{background:#5e4630}button:active{transform:translateY(1px)}
 button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--gold2);outline-offset:2px}
 select,input[type=range]{font:inherit;color:var(--text);background:var(--wood2);border:2px solid var(--gold);padding:2px 4px}
 .panel{position:fixed;background:linear-gradient(var(--wood2),var(--wood));border:3px solid var(--gold);box-shadow:0 0 0 3px var(--ink),0 6px 20px rgba(0,0,0,.5)}
-#top{left:8px;right:8px;top:8px;display:flex;align-items:center;gap:14px;padding:4px 10px;flex-wrap:wrap}
+#top{left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));top:max(8px,env(safe-area-inset-top,0px));display:flex;align-items:center;gap:14px;padding:4px 10px;flex-wrap:wrap}
 #resbar{display:flex;gap:14px;flex-wrap:wrap}
 .res{display:flex;align-items:center;gap:5px;font-weight:400;font-variant-numeric:tabular-nums}
 .res b{min-width:36px;color:#fff}.res b.lack{color:var(--bad)}
@@ -32,11 +34,11 @@ select,input[type=range]{font:inherit;color:var(--text);background:var(--wood2);
 .tinfo{display:flex;gap:14px;color:var(--mute);margin-left:auto}
 #clock{font-variant-numeric:tabular-nums}
 .tbtns{display:flex;gap:6px}.tbtns button{padding:2px 8px}.tbtns button.off{opacity:.5}.tbtns button.warn{color:var(--warn);border-color:var(--warn)}
-#log{position:fixed;left:14px;top:58px;max-width:min(620px,70vw);pointer-events:none;text-shadow:1px 1px 0 #000,0 0 4px #000;font-size:18px;display:grid;gap:2px}
+#log{position:fixed;left:max(14px,env(safe-area-inset-left,0px));top:calc(var(--topH,48px) + 12px);max-width:min(620px,70vw);pointer-events:none;text-shadow:1px 1px 0 #000,0 0 4px #000;font-size:18px;display:grid;gap:2px}
 #proposals{position:fixed;right:14px;top:60px;display:grid;gap:8px;width:300px}
 .toast{background:var(--wood2);border:2px solid var(--gold);padding:8px;box-shadow:0 0 0 2px var(--ink)}
 .toast div{display:flex;gap:6px;margin-top:6px}
-#bottom{left:8px;right:8px;bottom:8px;height:150px;display:flex;gap:10px;padding:8px}
+#bottom{left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));bottom:max(8px,env(safe-area-inset-bottom,0px));height:150px;display:flex;gap:10px;padding:8px}
 #mini{width:134px;height:134px;flex:none;image-rendering:pixelated;border:2px solid var(--ink);background:#000;cursor:pointer}
 #info{flex:1;min-width:0;overflow:hidden;font-size:17px;line-height:1.18}
 .hint{color:var(--mute);line-height:1.5}.hint b{color:var(--text)}
@@ -100,7 +102,44 @@ table.stats-t th{color:var(--gold2);font-weight:600}tr.dead{opacity:.45}
 .gtabs,.gmode{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0}.gtabs button.on,.gmode button.on{background:#6b4a26;border-color:var(--gold2)}
 .ggrid{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}.ggrid figure{margin:0;display:grid;justify-items:center;gap:2px;background:rgba(0,0,0,.25);padding:6px;border:1px solid var(--wood3)}
 .ggrid figcaption{font-size:12px;color:var(--mute);max-width:130px;text-align:center}.gc{image-rendering:pixelated}
-@media (max-width:760px){#cmds{grid-template-columns:repeat(5,36px);grid-auto-rows:34px}.cmd{width:36px;height:34px}#mini{width:96px;height:96px}#bottom{height:128px}.tinfo{display:none}}
+/* controles flotantes: zoom (siempre) y botones táctiles */
+#zoom{position:fixed;right:max(14px,env(safe-area-inset-right,0px));bottom:calc(var(--panelH,150px) + 26px);display:grid;gap:6px;z-index:5}
+#zoom button,#touchbar button{width:44px;height:44px;padding:0;font-size:26px;line-height:1;display:grid;place-items:center;background:rgba(58,42,28,.92)}
+#zoom button:disabled{opacity:.4}
+#touchbar{position:fixed;left:max(14px,env(safe-area-inset-left,0px));bottom:calc(var(--panelH,150px) + 26px);display:none;gap:6px;z-index:5}
+body.touch #touchbar{display:flex}
+#touchbar button{font-size:15px;width:auto;min-width:44px;padding:0 10px}
+#placebar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--panelH,150px) + 26px);display:flex;gap:8px;z-index:6}
+#placebar button{font-size:20px;padding:8px 18px}#placebar .ok{background:#2f6a2a;border-color:var(--good)}
+#modehint{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--topH,48px) + 14px);background:rgba(20,14,10,.85);border:2px solid var(--gold);padding:4px 12px;z-index:6;pointer-events:none;font-size:17px}
+/* móvil en horizontal: panel en columna a la derecha (la altura es lo que más escasea) */
+@media (max-height:520px) and (orientation:landscape){
+  #bottom{left:auto;right:max(6px,env(safe-area-inset-right,0px));top:calc(var(--topH,44px) + 6px);bottom:max(6px,env(safe-area-inset-bottom,0px));width:216px;height:auto;flex-direction:column;padding:6px;gap:5px}
+  #mini{width:auto;height:96px;align-self:center}
+  #info{flex:1;font-size:13px;line-height:1.1;min-height:0}.nm{font-size:16px}.portrait{max-height:44px}.hpb.big,.xpb{width:92px}
+  .one{gap:6px}.stats{gap:6px}.si{width:14px;height:14px}.queue{grid-template-columns:repeat(3,24px)}.qcell{width:24px;height:24px}
+  #cmds{grid-template-columns:repeat(5,38px);grid-auto-rows:36px;gap:3px;align-self:center}.cmd{width:38px;height:36px}.cico{max-width:30px;max-height:30px}
+  #top{padding:2px 8px;gap:8px}.res{gap:3px;font-size:16px}.ri{width:20px;height:20px}.res b{min-width:28px}
+  #log{font-size:15px;max-width:calc(100vw - 260px)}
+  #zoom{right:calc(var(--panelW,216px) + 18px);bottom:max(12px,env(safe-area-inset-bottom,0px))}#zoom button{width:40px;height:40px}
+  #touchbar{bottom:max(12px,env(safe-area-inset-bottom,0px))}#touchbar button{height:40px}
+  #placebar{bottom:max(12px,env(safe-area-inset-bottom,0px));left:calc(50% - var(--panelW,216px) / 2)}
+  #proposals{right:calc(var(--panelW,216px) + 20px);width:260px}
+  .tinfo{display:none}
+}
+/* móvil en vertical: minimapa + información arriba, comandos a lo ancho abajo */
+@media (max-width:640px){
+  :root{--panelH:226px}
+  #bottom{height:226px;display:grid;grid-template-columns:86px 1fr;grid-template-rows:88px 1fr;gap:6px;padding:6px}
+  #mini{width:86px;height:86px}#info{font-size:14px;line-height:1.1;overflow:hidden}.nm{font-size:17px}.portrait{max-height:58px}.hpb.big,.xpb{width:100px}
+  #cmds{grid-column:1/-1;grid-template-columns:repeat(5,1fr);grid-auto-rows:40px;gap:4px;width:100%}.cmd{width:100%;height:40px}
+  #top{gap:6px;padding:3px 6px}#resbar{gap:6px}.res{font-size:15px;gap:2px}.ri{width:18px;height:18px}.res b{min-width:24px}
+  .tinfo{display:none}#log{font-size:14px;max-width:calc(100vw - 30px)}
+  #proposals{width:calc(100vw - 24px);right:12px;top:auto;bottom:calc(var(--panelH) + 80px)}
+}
+@media (max-width:900px){.tbtns #b-diplo,.tbtns #b-music,.tbtns #b-speed{display:none}}
+body.touch .cmd em{display:none}
+body.touch #log div:nth-last-child(n+5){display:none}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 """
 
@@ -115,6 +154,10 @@ BODY = r"""
   <div id="log"></div>
   <div id="proposals"></div>
   <div id="bottom" class="panel"><canvas id="mini" width="96" height="96"></canvas><div id="info"></div><div id="cmds"></div></div>
+  <div id="zoom"><button id="z-in" aria-label="Acercar">+</button><button id="z-out" aria-label="Alejar">−</button></div>
+  <div id="touchbar"><button id="t-desel" aria-label="Deseleccionar">✕</button><button id="t-army">Ejército</button><button id="t-idle">Inactivo</button></div>
+  <div id="placebar" hidden><button id="pb-ok" class="ok">Construir</button><button id="pb-no">Cancelar</button></div>
+  <div id="modehint" hidden></div>
 </div>
 <div id="tip" hidden></div>
 <div id="setup" hidden>
@@ -149,7 +192,7 @@ def main():
             '<style>' + CSS + '</style>\n')
     script = '<script>\n' + js + '\n</script>\n'
     full = ('<!doctype html>\n<html lang="es">\n<head>\n<meta charset="utf-8">\n'
-            '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n'
+            '<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">\n<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">\n'
             + head + '</head>\n<body>\n' + BODY + script + '</body>\n</html>\n')
     open(os.path.join(ROOT, 'index.html'), 'w', encoding='utf8').write(full)
     os.makedirs(os.path.join(ROOT, 'dist'), exist_ok=True)

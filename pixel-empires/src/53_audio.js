@@ -44,7 +44,7 @@ function sfx(name, vol = 1, pan = 0) {
 }
 function sfxAt(name, x, y, vol = 1) {
   if (!G || !G.cam || !audioOk()) return;
-  const vw = (VIEW.w || 480), vh = (VIEW.h || 300), dx = x - (G.cam.x), dy = y - (G.cam.y);
+  const vw = (VIEW.ww || 240), vh = (VIEW.wh || 150), dx = x - (G.cam.x), dy = y - (G.cam.y);
   if (Math.abs(dx) > vw * 0.7 || Math.abs(dy) > vh * 0.7) return;
   if (G.human >= 0 && !visibleAt(x, y)) return;
   sfx(name, vol * (1 - Math.min(0.6, Math.hypot(dx / vw, dy / vh))), dx / (vw * 0.6));

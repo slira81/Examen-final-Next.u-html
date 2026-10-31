@@ -111,6 +111,7 @@ function uStats(u) {
   if (u.cryT > G.time) { atk *= 1 + u.cry; sp *= 1 + u.cry; }
   if (u.slowT > G.time) sp *= 1 - u.slow;
   if (G.weather && G.weather.cur === 'snow') sp *= 0.92;
+  sp *= 0.85;   // ritmo acorde con la nueva proporción entre personajes y entorno
   return { atk, arm, parm, rate, sp, range, hpMul, hpAdd };
 }
 function refreshHp(u) { const s = uStats(u), mh = Math.round(u.def.hp * s.hpMul + s.hpAdd), r = u.hp / (u.maxhp || 1); u.maxhp = mh; u.hp = Math.min(mh, Math.max(1, Math.round(mh * r))); }

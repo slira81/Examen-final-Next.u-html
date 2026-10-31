@@ -103,7 +103,7 @@ const TIPS = [
   [600, 'Consejo: si te atacan, usa el toque de campana del centro urbano para refugiar a los aldeanos.'],
 ];
 function worldStep(dt) {
-  if (G.human >= 0) { G.tipI = G.tipI || 0; if (G.tipI < TIPS.length && G.time >= TIPS[G.tipI][0]) { G.msg(TIPS[G.tipI][1], '#b8e0ff'); G.tipI++; } }
+  if (G.human >= 0) { G.tipI = G.tipI || 0; if (G.tipI < TIPS.length && G.time >= TIPS[G.tipI][0]) { let t = TIPS[G.tipI][1]; if (INPUT.touch) t = t.replace('haz clic derecho sobre', 'toca').replace(' (selecciónalo y pulsa Q)', ' (tócalo y usa su botón)').replace('haz clic derecho sobre él con un aldeano', 'selecciona un aldeano y tócalo'); G.msg(t, '#b8e0ff'); G.tipI++; } }
   if ((G.visT = (G.visT || 0) - dt) <= 0) { G.visT = 0.25; updVision(); }
   weatherStep(dt);
   fireStep(dt);

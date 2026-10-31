@@ -143,6 +143,72 @@ class SCanvas {
 }
 PE.SCanvas = SCanvas;
 
+/**
+ * Lienzo a resolución k veces mayor con la MISMA API en coordenadas lógicas.
+ * Las formas (elipses, polígonos, líneas) se evalúan a nivel de subpíxel, así el
+ * entorno se dibuja más grande con curvas suaves y contorno fino, con el mismo
+ * tamaño de píxel que los personajes, sin redibujar el arte.
+ */
+class SCanvasScaled extends SCanvas {
+  constructor(w, h, k) { super(w, h); this.k = k; this.pw = w * k; this.ph = h * k; this.g = new Array(this.pw * this.ph).fill(null); }
+  _set(m, X, Y) { if (X >= 0 && Y >= 0 && X < this.pw && Y < this.ph) this.g[Y * this.pw + X] = m; }
+  px(m, x, y) {
+    const k = this.k, X = Math.round(x + this.ox) * k, Y = Math.round(y + this.oy) * k;
+    for (let j = 0; j < k; j++) for (let i = 0; i < k; i++) this._set(m, X + i, Y + j);
+  }
+  get(x, y) { x = Math.round(x); y = Math.round(y); return x >= 0 && y >= 0 && x < this.w && y < this.h ? this.g[(y * this.k) * this.pw + x * this.k] : null; }
+  rect(m, x0, y0, x1, y1) {
+    if (x0 > x1) [x0, x1] = [x1, x0]; if (y0 > y1) [y0, y1] = [y1, y0];
+    const k = this.k, X0 = (Math.round(x0) + this.ox) * k, Y0 = (Math.round(y0) + this.oy) * k, X1 = (Math.round(x1) + this.ox + 1) * k - 1, Y1 = (Math.round(y1) + this.oy + 1) * k - 1;
+    for (let Y = Y0; Y <= Y1; Y++) for (let X = X0; X <= X1; X++) this._set(m, X, Y);
+  }
+  ring(m, cx, cy, rx, ry, inner, filter) {
+    const k = this.k, ox = this.ox, oy = this.oy;
+    for (let Y = Math.floor((cy - ry - 1) * k); Y <= Math.ceil((cy + ry + 1) * k); Y++)
+      for (let X = Math.floor((cx - rx - 1) * k); X <= Math.ceil((cx + rx + 1) * k); X++) {
+        const lx = (X + .5) / k, ly = (Y + .5) / k, d = ((lx - cx) / rx) ** 2 + ((ly - cy) / ry) ** 2;
+        if (d <= 1 && d > inner && (!filter || filter(Math.floor(lx), Math.floor(ly)))) this._set(m, X + ox * k, Y + oy * k);
+      }
+  }
+  poly(m, pts) {
+    const k = this.k; let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    for (const [x, y] of pts) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+    const n = pts.length;
+    for (let Y = Math.floor(y0 * k); Y <= Math.ceil(y1 * k); Y++) for (let X = Math.floor(x0 * k); X <= Math.ceil(x1 * k); X++) {
+      const px = (X + .5) / k, py = (Y + .5) / k; let inside = false;
+      for (let i = 0, j = n - 1; i < n; j = i++) {
+        const [xi, yi] = pts[i], [xj, yj] = pts[j];
+        if ((yi > py) !== (yj > py) && px < (xj - xi) * (py - yi) / (yj - yi) + xi) inside = !inside;
+      }
+      if (inside) this._set(m, X + this.ox * k, Y + this.oy * k);
+    }
+  }
+  line(m, x0, y0, x1, y1) {
+    // línea suave a alta resolución con pincel de k×k
+    const k = this.k, ax = (Math.round(x0) + this.ox) * k, ay = (Math.round(y0) + this.oy) * k, bx = (Math.round(x1) + this.ox) * k, by = (Math.round(y1) + this.oy) * k;
+    let x = ax, y = ay; const dx = Math.abs(bx - ax), dy = -Math.abs(by - ay), sx = ax < bx ? 1 : -1, sy = ay < by ? 1 : -1; let e = dx + dy;
+    for (;;) {
+      for (let j = 0; j < k; j++) for (let i = 0; i < k; i++) this._set(m, x + i, y + j);
+      if (x === bx && y === by) break;
+      const e2 = 2 * e; if (e2 >= dy) { e += dy; x += sx; } if (e2 <= dx) { e += dx; y += sy; }
+    }
+  }
+  rim(fn, m) {
+    const t = new SCanvasScaled(this.w, this.h, this.k); fn(t, 'x');
+    const W = this.pw, H = this.ph, ox = this.ox * this.k, oy = this.oy * this.k;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      if (t.g[y * W + x]) continue;
+      if ((x > 0 && t.g[y * W + x - 1]) || (x < W - 1 && t.g[y * W + x + 1]) || (y > 0 && t.g[(y - 1) * W + x]) || (y < H - 1 && t.g[(y + 1) * W + x])) this._set('ol', x + ox, y + oy);
+    }
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (t.g[y * W + x]) this._set(m, x + ox, y + oy);
+  }
+  glow(x, y, a, hex) { const k = this.k, X = Math.round(x + this.ox) * k, Y = Math.round(y + this.oy) * k; for (let j = 0; j < k; j++) for (let i = 0; i < k; i++) this.glows.push([X + i, Y + j, a, hex || '#6ef0f5']); }
+}
+PE.SCanvasScaled = SCanvasScaled;
+/** Escala del entorno (edificios y naturaleza) respecto a los personajes. */
+PE.ENV = { scale: 2 };
+PE.envScale = (kind, key) => (kind === 'buildings' || (kind === 'nature' && !key.startsWith('treasure_'))) ? PE.ENV.scale : 1;
+
 // ------------------------------------------------------------- render
 const baseOf = m => { const i = m.indexOf('.'); return i < 0 ? m : m.slice(0, i); };
 const forcedOf = m => { const i = m.indexOf('.'); return i < 0 ? -1 : +m.slice(i + 1); };
@@ -153,7 +219,7 @@ PE.makeCanvas = (w, h) => { const c = document.createElement('canvas'); c.width 
  * opts: team (hex), shadow (true | {cx,cy,rx,ry,a}), shade (true), outline (true)
  */
 PE.render = function (cv, opts = {}) {
-  const W = cv.w, H = cv.h, g = cv.g;
+  const W = cv.pw || cv.w, H = cv.ph || cv.h, g = cv.g;
   const team = opts.team || PE.TEAM_COLORS[0].hex;
   const shade = opts.shade !== false, outline = opts.outline !== false;
   const out = PE.makeCanvas(W, H), ctx = out.getContext('2d'), img = ctx.createImageData(W, H), d = img.data;
@@ -279,7 +345,8 @@ PE.frame = function (kind, key, f, opts = {}) {
     c = placeholder(16, 16);
   } else {
     const w = typeof def.w === 'function' ? def.w(opts) : def.w, h = typeof def.h === 'function' ? def.h(opts) : def.h;
-    const cv = new SCanvas(w, h);
+    const k = opts.k ?? PE.envScale(kind, key);
+    const cv = k > 1 ? new SCanvasScaled(w, h, k) : new SCanvas(w, h);
     try {
       if (kind === 'units') {
         const anim = PE.ANIMS[opts.anim || 'idle'];
@@ -287,7 +354,8 @@ PE.frame = function (kind, key, f, opts = {}) {
       } else def.draw(cv, f, opts);
       const ro = Object.assign({ team: teamHex }, def.render || {});
       if (kind === 'units' && ro.shadow === undefined) ro.shadow = true;
-      c = PE.render(cv, ro);
+      if (k > 1 && ro.shadow && ro.shadow !== true) { const sh = ro.shadow; ro.shadow = Object.assign({}, sh, { cx: sh.cx != null ? sh.cx * k : undefined, cy: sh.cy != null ? sh.cy * k : undefined, rx: sh.rx != null ? sh.rx * k : undefined, ry: sh.ry != null ? sh.ry * k : undefined }); }
+      c = PE.render(cv, ro); c.k = k;
     } catch (e) {
       console.error('PE: error dibujando', kind, key, e);
       c = placeholder(w, h);

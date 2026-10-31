@@ -4,11 +4,24 @@
    ===================================================================== */
 'use strict';
 const SETUP = { race: 'human' };
+/** Lienzo nítido: cada píxel interno ocupa exactamente S píxeles del dispositivo. */
+function zoomLimits(devW, devH) {
+  let min = 1; while ((devW / min) * (devH / min) > 1.25e6) min++;        // límite de rendimiento
+  const max = Math.max(min, Math.floor(Math.min(devH, devW * 1.4) / 150));
+  return { min, max };
+}
 function resize() {
   if (!VIEW.cv) return;
-  VIEW.w = Math.ceil(innerWidth / VIEW.S); VIEW.h = Math.ceil(innerHeight / VIEW.S);
-  VIEW.cv.width = VIEW.w; VIEW.cv.height = VIEW.h; VIEW.cv.style.width = VIEW.w * VIEW.S + 'px'; VIEW.cv.style.height = VIEW.h * VIEW.S + 'px';
+  VIEW.dpr = Math.min(3, window.devicePixelRatio || 1);
+  const devW = Math.round(innerWidth * VIEW.dpr), devH = Math.round(innerHeight * VIEW.dpr), lim = zoomLimits(devW, devH);
+  VIEW.zmin = lim.min; VIEW.zmax = lim.max;
+  if (!VIEW.zoomSet) { VIEW.S = Math.round(Math.min(devH / 420, devW / 420)); VIEW.zoomSet = true; }
+  VIEW.S = clamp(VIEW.S, lim.min, lim.max);
+  VIEW.w = Math.ceil(devW / VIEW.S); VIEW.h = Math.ceil(devH / VIEW.S); VIEW.ww = VIEW.w / VIEW.WS; VIEW.wh = VIEW.h / VIEW.WS;
+  VIEW.cv.width = VIEW.w; VIEW.cv.height = VIEW.h;
+  VIEW.cv.style.width = (VIEW.w * VIEW.S / VIEW.dpr) + 'px'; VIEW.cv.style.height = (VIEW.h * VIEW.S / VIEW.dpr) + 'px';
   VIEW.ctx.imageSmoothingEnabled = false; clampCam();
+  const zi = $('z-in'), zo = $('z-out'); if (zi) { zi.disabled = VIEW.S >= VIEW.zmax; zo.disabled = VIEW.S <= VIEW.zmin; }
 }
 function showSetup() {
   G = null; UI.paused = true;
@@ -53,6 +66,7 @@ function startGame(cfg) {
   UI.sig = ''; UI.page = 'root'; UI.placing = null; UI.paused = false; UI.logHTML = ''; UI.prSig = null;
   $('b-speed').textContent = '1x';
   resize();
+  if (G.human >= 0) { const st = G.map.starts[G.human]; requestAnimationFrame(() => { updateTouchUI(); centerOn(st.x * T + 8, st.y * T + 20); }); }
   // pre-render progresivo de sprites de las razas y colores presentes (evita tirones)
   PREWARM.length = 0;
   for (const pl of G.players) {
@@ -91,7 +105,7 @@ function galleryTick(dt) {
     let img;
     if (kind === 'units') img = PE.frame('units', key, f, { team: 0, anim: GALLERY.anim });
     else img = PE.frame(kind, key, Math.floor(f / 2) % ((def && def.frames) || 1), { team: 0, mask: 10, v: 0 });
-    const s = kind === 'buildings' ? 2 : 3;
+    const s = kind === 'units' ? 2 : Math.max(1, Math.floor(2 / (img.k || 1)));
     if (cv.width !== img.width * s) { cv.width = img.width * s; cv.height = img.height * s; }
     const x = cv.getContext('2d'); x.imageSmoothingEnabled = false; x.clearRect(0, 0, cv.width, cv.height); x.drawImage(img, 0, 0, cv.width, cv.height);
   });
@@ -124,8 +138,8 @@ function frame(ts) {
 }
 function boot() {
   VIEW.cv = $('game'); VIEW.ctx = VIEW.cv.getContext('2d');
-  VIEW.S = clamp(Math.round(innerHeight / 300), 2, 4);
   window.addEventListener('resize', resize);
+  if (matchMedia('(pointer: coarse)').matches) { INPUT.touch = true; document.body.classList.add('touch'); }
   $('s-rivals').onchange = buildRivals;
   $('s-start').onclick = () => { audioUnlock(); musicStart(); startFromSetup(); };
   $('s-gallery').onclick = () => openGallery(SETUP.race);

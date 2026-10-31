@@ -2,7 +2,7 @@
 
 Juego de estrategia en tiempo real al estilo Age of Empires, con gráficos pixel art generados por código. Todo cabe en un solo archivo HTML, sin dependencias externas salvo las fuentes.
 
-**Jugar:** abre `index.html` en el navegador (Chrome, Edge o Firefox de escritorio).
+**Jugar:** abre `index.html` en el navegador. Funciona en escritorio (ratón y teclado) y en móvil (pantalla táctil, en horizontal o vertical).
 
 ## Qué incluye
 
@@ -37,14 +37,22 @@ Juego de estrategia en tiempo real al estilo Age of Empires, con gráficos pixel
 
 ## Controles
 
+**Móvil:** tocar para seleccionar y, con algo seleccionado, tocar el destino u objetivo para ordenar. Arrastrar mueve la cámara, pellizcar o los botones + y − hacen zoom, y mantener pulsado y arrastrar selecciona varias unidades. Para construir se toca el lugar y se pulsa «Construir». En horizontal el panel pasa a una columna lateral para dejar toda la altura al mapa.
+
+**Escritorio:**
+
 | Acción | Control |
 |---|---|
 | Seleccionar | Clic o arrastrar; doble clic para todas las del mismo tipo en pantalla |
 | Ordenar | Clic derecho: mover, atacar, recolectar, construir, reparar, cazar, recoger tesoros, entrar en guarnición |
-| Cámara | Flechas, bordes de la pantalla, botón central; rueda para el zoom |
+| Cámara | Flechas, bordes de la pantalla, botón central; rueda o botones + y − para el zoom |
 | Grupos | Ctrl + 1–9 para crear, 1–9 para seleccionar (doble pulsación centra la cámara) |
 | Atajos | H centro urbano · . aldeano inactivo · M todo el ejército · A atacar moviéndose · S detener · Supr eliminar · P o Esc pausa |
 | Panel de comandos | Q W E R T / A S D F G / Z X C V B |
+
+## Proporciones
+
+El entorno (terreno, árboles, minas y edificios) se dibuja al doble de resolución que los personajes con el mismo código de arte: el núcleo evalúa las formas a nivel de subpíxel (`SCanvasScaled` en `src/01_sprite.js`), así que las curvas y los contornos quedan finos y del mismo tamaño de píxel que las unidades. Una casa mide unas tres veces la altura de un aldeano.
 
 ## Estructura
 

@@ -6,7 +6,7 @@ const { chromium } = require('playwright');
   await p.goto('file://' + require('path').resolve(__dirname, '../index.html'));
   await p.evaluate(() => PE_GAME.startGame({ seed: 777, size: 96, mapType: 'continental', players: ['human', 'orc'].map((r, i) => ({ race: r, color: i, human: i === 0, team: 0, diff: 'easy', name: 'P' + i })), resources: 'high', weather: false, disasters: false }));
   await p.waitForTimeout(400);
-  const scr = (wx, wy) => p.evaluate(([wx, wy]) => ({ x: (wx - VIEW.cx) * VIEW.S, y: (wy - VIEW.cy) * VIEW.S }), [wx, wy]);
+  const scr = (wx, wy) => p.evaluate(([wx, wy]) => ({ x: (Math.round(wx * VIEW.WS) - VIEW.ox) * VIEW.S / VIEW.dpr, y: (Math.round(wy * VIEW.WS) - VIEW.oy) * VIEW.S / VIEW.dpr }), [wx, wy]);
   const log = [];
   // 1) seleccionar aldeano con clic y mandar a un árbol cercano
   const info = await p.evaluate(() => { const G = PE_GAME.G, u = G.units.find(u => u.team === 0 && u.def.role === 'worker'); const r = findRes(u, 'tree', 30); G.cam.x = (u.x + r.tx * 16) / 2; G.cam.y = (u.y + r.ty * 16) / 2; return { ux: u.x, uy: u.y - 6, id: u.id, rx: r.tx * 16 + 8, ry: r.ty * 16 + 4 }; });
