@@ -6,7 +6,7 @@
 const INPUT = { keys: {}, mx: -1, my: -1, mid: null, last: { t: 0, id: null }, grpTap: { d: null, t: 0 }, inWin: false };
 const toWorld = (sx, sy) => ({ x: sx / VIEW.S + VIEW.cx, y: sy / VIEW.S + VIEW.cy });
 function mark(x, y, c) { UI.marks.push({ x, y, c, t: 0 }); }
-function ownSelUnits() { return G.sel.filter(e => e.k === 'u' && e.team === G.human && !e.dead); }
+function ownSelUnits() { return G.sel.filter(e => e.k === 'u' && e.team === G.human && !e.dead && !e.inside); }
 
 /** Entidad bajo el cursor (unidades primero, luego edificios, recursos y tesoros). */
 function pickAt(w) {
@@ -34,7 +34,7 @@ function clickSelect(w, shift, dbl) {
   if (!e) { if (!shift) G.sel = []; UI.page = 'root'; return; }
   if (e.k === 't') { G.sel = []; return; }
   if (dbl && e.k === 'u' && e.team === G.human) {
-    G.sel = G.units.filter(u => !u.dead && u.team === G.human && u.key === e.key && u.x > VIEW.cx && u.x < VIEW.cx + VIEW.w && u.y > VIEW.cy && u.y < VIEW.cy + VIEW.h); UI.page = 'root'; return;
+    G.sel = G.units.filter(u => !u.dead && !u.inside && u.team === G.human && u.key === e.key && u.x > VIEW.cx && u.x < VIEW.cx + VIEW.w && u.y > VIEW.cy && u.y < VIEW.cy + VIEW.h); UI.page = 'root'; return;
   }
   if (shift && e.k === 'u' && e.team === G.human) { G.sel = G.sel.includes(e) ? G.sel.filter(s => s !== e) : G.sel.filter(s => s.k === 'u' && s.team === G.human).concat(e); }
   else G.sel = [e];
@@ -43,14 +43,14 @@ function clickSelect(w, shift, dbl) {
 }
 function boxSelect(d, shift) {
   const a = toWorld(Math.min(d.x0, d.x1), Math.min(d.y0, d.y1)), b = toWorld(Math.max(d.x0, d.x1), Math.max(d.y0, d.y1));
-  const inBox = u => !u.dead && u.team === G.human && u.x >= a.x - 4 && u.x <= b.x + 4 && u.y >= a.y && u.y <= b.y + 12;
+  const inBox = u => !u.dead && !u.inside && u.team === G.human && u.x >= a.x - 4 && u.x <= b.x + 4 && u.y >= a.y && u.y <= b.y + 12;
   let s = G.units.filter(u => inBox(u) && !isAnimal(u));
   if (!s.length) s = G.units.filter(u => inBox(u));
   G.sel = shift ? [...new Set(G.sel.filter(e => e.k === 'u' && e.team === G.human).concat(s))] : s; UI.page = 'root';
 }
 function rightClick(w) {
   if (G.human < 0) return;
-  const mine = G.sel.filter(e => e.team === G.human && !e.dead); if (!mine.length) return;
+  const mine = G.sel.filter(e => e.team === G.human && !e.dead && !e.inside); if (!mine.length) return;
   const tgt = pickAt(w), bld = mine.length === 1 && mine[0].k === 'b' ? mine[0] : null;
   if (bld) {
     if (bld.def.train && bld.done) { bld.rally = { x: w.x, y: w.y, target: tgt && (tgt.k === 'r' || (tgt.k === 'b' && tgt.team === G.human)) ? tgt : null }; mark(w.x, w.y, '#ffd23a'); sfx('click'); }
@@ -154,7 +154,7 @@ function initInput() {
   mini.addEventListener('contextmenu', e => e.preventDefault());
   // panel inferior: retratos, cola, propuestas, modal
   $('info').addEventListener('click', e => {
-    const c = e.target.closest('.mcell'); if (c) { const u = G.byId.get(+c.dataset.id); if (u) { G.sel = e.shiftKey ? G.sel.filter(s => s !== u) : [u]; } return; }
+    const c = e.target.closest('.mcell'); if (c) { const u = G.byId.get(+c.dataset.id); if (u && isActive(u)) { G.sel = e.shiftKey ? G.sel.filter(s => s !== u) : [u]; } return; }
     const q = e.target.closest('.qcell'); if (q && G.sel[0] && G.sel[0].team === G.human) { cancelQueue(G.sel[0], +q.dataset.q); sfx('click'); }
   });
   $('proposals').addEventListener('click', e => { const b = e.target.closest('button'); if (b && b.dataset.pr !== undefined) { respondProposal(+b.dataset.pr, b.dataset.ok === '1'); UI.prSig = null; } });
@@ -186,20 +186,20 @@ function onKey(e) {
   if (!G) return;
   INPUT.keys[k] = true;
   if (k.startsWith('arrow')) { e.preventDefault(); return; }
-  if (e.ctrlKey && /^[1-9]$/.test(k)) { G.groups[k] = ownSelUnits().map(u => u.id); G.msg('Grupo ' + k + ' asignado', '#cfe8a0'); e.preventDefault(); return; }
+  if (e.ctrlKey && /^[1-9]$/.test(k)) { e.preventDefault(); if (!ownSelUnits().length) return; G.groups[k] = ownSelUnits().map(u => u.id); G.msg('Grupo ' + k + ' asignado', '#cfe8a0'); e.preventDefault(); return; }
   if (/^[1-9]$/.test(k)) {
-    const ids = G.groups[k] || [], s = ids.map(id => G.byId.get(id)).filter(u => u && !u.dead);
+    const ids = G.groups[k] || [], s = ids.map(id => G.byId.get(id)).filter(u => u && !u.dead && !u.inside);
     if (s.length) { const now = performance.now(); if (INPUT.grpTap.d === k && now - INPUT.grpTap.t < 350) { G.cam.x = s[0].x; G.cam.y = s[0].y; clampCam(); } INPUT.grpTap = { d: k, t: now }; G.sel = s; UI.page = 'root'; }
     return;
   }
   if (k === 'escape') { if (UI.placing || UI.amove || UI.roadMode) { UI.placing = null; UI.amove = false; UI.roadMode = false; } else if (UI.page !== 'root') { UI.page = 'root'; } else if (G.sel.length) G.sel = []; else openMenu(); return; }
   if (k === 'p' || k === 'pause') { openMenu(); return; }
   if (k === 'h') { const tc = G.blds.find(b => !b.dead && b.team === G.human && b.type === 'tc'); if (tc) { G.sel = [tc]; const c = centerOf(tc); G.cam.x = c.x; G.cam.y = c.y; clampCam(); } return; }
-  if (k === '.') { const idle = G.units.filter(u => !u.dead && u.team === G.human && u.def.role === 'worker' && u.order.t === 'idle'); if (idle.length) { INPUT.idleI = ((INPUT.idleI || 0) + 1) % idle.length; const u = idle[INPUT.idleI]; G.sel = [u]; G.cam.x = u.x; G.cam.y = u.y; clampCam(); } else G.msg('No hay aldeanos inactivos', '#cfe8a0'); return; }
+  if (k === '.') { const idle = G.units.filter(u => isActive(u) && u.team === G.human && u.def.role === 'worker' && u.order.t === 'idle'); if (idle.length) { INPUT.idleI = ((INPUT.idleI || 0) + 1) % idle.length; const u = idle[INPUT.idleI]; G.sel = [u]; G.cam.x = u.x; G.cam.y = u.y; clampCam(); } else G.msg('No hay aldeanos inactivos', '#cfe8a0'); return; }
   if (k === 'm' && !e.ctrlKey) { G.sel = G.units.filter(u => !u.dead && !u.inside && u.team === G.human && isMil(u)); UI.page = 'root'; return; }
   if (k === ' ') { e.preventDefault(); const t = G.sel[0] ? centerOf(G.sel[0]) : G.pings[G.pings.length - 1]; if (t) { G.cam.x = t.x; G.cam.y = t.y; clampCam(); } return; }
   const c = (UI.cmds || []).find(c => c && c.hk && c.hk.toLowerCase() === k);
-  if (c) { e.preventDefault(); sfx('click'); c.fn(); }
+  if (c) { e.preventDefault(); runCmd(c); }
 }
 function setZoom(s) { VIEW.S = clamp(s, 2, 5); resize(); }
 function clampCam() {

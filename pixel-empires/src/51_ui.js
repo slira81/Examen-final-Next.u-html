@@ -161,7 +161,7 @@ function orderText(u) {
 // --------------------------------------------------------------- comandos
 function cmdList() {
   const out = [], s = G.sel; if (!s.length || G.human < 0) return out;
-  const mine = s.filter(e => e.team === G.human); if (!mine.length) return out;
+  const mine = s.filter(e => e.team === G.human && !e.dead && !e.inside); if (!mine.length) return out;
   const p = G.players[G.human], race = p.race;
   const units = mine.filter(e => e.k === 'u' && !isAnimal(e)), workers = units.filter(u => u.def.role === 'worker');
   const bld = mine.length === 1 && mine[0].k === 'b' ? mine[0] : null;
@@ -180,7 +180,7 @@ function cmdList() {
   }
   if (units.length) {
     const gen = units.find(u => u.def.unique);
-    if (gen) out.push({ icon: ['icons', 'cmd_ability'], n: gen.def.ability.n, d: gen.def.ability.d + '. Se lanza sola en combate. Recarga: ' + gen.def.ability.cd + ' s.', locked: gen.abCd > 0 ? 'Recargando (' + Math.ceil(gen.abCd) + ' s)' : null, fn: () => { if (castAbility(gen)) gen.abCd = gen.def.ability.cd; else G.msg('No hay objetivos para ' + gen.def.ability.n, '#ffb070'); } });
+    if (gen) out.push({ icon: ['icons', 'cmd_ability'], n: gen.def.ability.n, d: gen.def.ability.d + '. Se lanza sola en combate. Recarga: ' + gen.def.ability.cd + ' s.', locked: gen.abCd > 0 ? 'Recargando (' + Math.ceil(gen.abCd) + ' s)' : null, fn: () => { if (gen.abCd > 0) return; if (castAbility(gen)) gen.abCd = gen.def.ability.cd; else G.msg('No hay objetivos para ' + gen.def.ability.n, '#ffb070'); } });
     while (out.length < 5) out.push(null);
     out.push({ icon: ['icons', 'cmd_attackmove'], n: 'Atacar moviéndose', key: 'a', d: 'Haz clic en el destino: las unidades atacan a todo enemigo que encuentren por el camino.', fn: () => { UI.amove = true; } });
     out.push({ icon: ['icons', 'cmd_stop'], n: 'Detener', key: 's', d: 'Cancela la orden actual.', fn: () => units.forEach(u => setOrder(u, { t: 'idle' })) });
@@ -242,6 +242,11 @@ function unitDesc(ud) {
   if (ud.pop > 1) parts.push('Ocupa ' + ud.pop + ' de población');
   return parts.join('. ') + '.';
 }
+/** Ejecuta un comando del panel; los bloqueados (era, recarga, en investigación) solo informan. */
+function runCmd(c) {
+  if (c.locked && !c.allowLocked) { G.msg(c.locked, '#ffb070', { sound: 'error' }); return; }
+  sfx('click'); c.fn();
+}
 function doEnqueue(b, kind, key) { const e = enqueue(b, kind, key); if (e) G.msg(e, '#ffb070', { sound: 'error' }); else sfx('click'); refreshCmdStates(); }
 function buildCmds() {
   const el = $('cmds'); el.innerHTML = ''; UI.cmds = cmdList();
@@ -255,7 +260,7 @@ function buildCmds() {
     b.appendChild(iconCanvas(img, 32, 'cico'));
     c.hk = c.key || HOTKEYS[i];
     b.insertAdjacentHTML('beforeend', `<em>${c.hk === 'Delete' ? 'Supr' : c.hk.toUpperCase()}</em>`);
-    b.onclick = () => { sfx('click'); c.fn(); };
+    b.onclick = () => runCmd(c);
     b.onmouseenter = () => showTip(b, `<b>${esc(c.n)}</b> <span class="hk">[${c.hk === 'Delete' ? 'Supr' : c.hk.toUpperCase()}]</span>${c.cost ? '<div>' + costHTML(c.cost, G.human) + '</div>' : ''}${c.locked ? `<div class="warn">${esc(c.locked)}</div>` : ''}<div class="d">${esc(c.d || '')}</div>`);
     b.onmouseleave = hideTip;
     c.el = b; el.appendChild(b);

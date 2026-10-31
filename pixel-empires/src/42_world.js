@@ -176,7 +176,7 @@ function weatherStep(dt) {
     w.flash = 1; w.bolt = { x, y, t: 0 }; addFx('fx_lightning', x, y - 20); sfx('thunder');
     sgEach(x, y, 20, u => { u.hp -= 25; if (u.hp <= 0) kill(u, null); });
     const r = G.map.res[tileOf(y) * m.W + tileOf(x)]; if (r && r.kind === 'tree' && Math.random() < 0.6) ignite(r);
-    for (const b of G.blds) if (!b.dead && distRect(x, y, rectOf(b)) < 8 && !b.def.invuln) { b.hp -= 60; if (Math.random() < 0.3) b.fire = 10; }
+    for (const b of G.blds) if (!b.dead && distRect(x, y, rectOf(b)) < 8 && !b.def.invuln) { b.hp -= 60; if (b.hp <= 0) kill(b, null); else if (Math.random() < 0.3) b.fire = 10; }
   }
 }
 

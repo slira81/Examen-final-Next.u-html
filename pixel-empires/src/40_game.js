@@ -10,6 +10,7 @@ const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const tileOf = v => Math.floor(v / T);
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const isAnimal = u => u.def.role === 'animal';
+const isActive = u => !u.dead && !u.inside;   // viva y fuera de cualquier edificio
 const isMil = u => u.def.role !== 'worker' && u.def.role !== 'animal' && u.team < 8;
 const isPlayer = t => t >= 0 && t < 8 && G.players[t];
 function isAlly(a, b) { return a === b || (a < 8 && b < 8 && G.players[a] && G.players[b] && G.stance[a][b] === 'ally'); }
@@ -342,7 +343,7 @@ function splashAt(att, x, y, r, dmg, skip, team) {
 }
 /** Aplica daño, registra experiencia pendiente y reacciones. */
 function applyHit(att, tgt, dmg, primary, team) {
-  if (tgt.dead) return;
+  if (tgt.dead || tgt.inside) return;
   team = team ?? att.team;
   dmg = Math.max(1, dmg);
   tgt.hp -= dmg; tgt.flash = 0.09;
@@ -399,6 +400,7 @@ function chainLightning(att, first, n, dmg, team) {
 function kill(e, killer) {
   if (e.dead) return; e.dead = true; e.hp = 0; G.byId.delete(e.id);
   if (e.k === 'u') {
+    if (e.inside) { e.inside.garrison = (e.inside.garrison || []).filter(g => g !== e); e.inside = null; }
     const p = isPlayer(e.team) && !isAnimal(e) ? G.players[e.team] : null;
     // experiencia por bajas: se reparte según el daño y queda pendiente hasta sobrevivir al combate
     if (e.dmgBy && !isAnimal(e)) {
@@ -488,7 +490,7 @@ function updUnit(u, dt) {
       const b = o.b; if (b.dead || !b.done || b.team !== u.team && !isAlly(b.team, u.team)) { setOrder(u, { t: 'idle' }); break; }
       const a = approach(u, b, 12, dt);
       if (a === null) setOrder(u, { t: 'idle' });
-      else if (a) { if ((b.garrison = b.garrison || []).length >= b.def.garrison) { setOrder(u, { t: 'idle' }); if (u.team === G.human) G.msg(b.def.n + ' está lleno', '#ffb070'); } else { b.garrison.push(u); u.inside = b; u.path = []; G.sel = G.sel.filter(e => e !== u); } }
+      else if (a) { if ((b.garrison = (b.garrison || []).filter(g => !g.dead)).length >= b.def.garrison) { setOrder(u, { t: 'idle' }); if (u.team === G.human) G.msg(b.def.n + ' está lleno', '#ffb070'); } else { b.garrison.push(u); u.inside = b; u.path = []; G.sel = G.sel.filter(e => e !== u); } }
       break;
     }
     case 'treasure': {
@@ -547,7 +549,7 @@ function healTarget(u, t) {
 function doAttackOrder(u, o, dt) {
   const t = o.target, d = u.def;
   const done = () => { if (o.resume && o.resume.t === 'move') setMove(u, o.resume.x, o.resume.y, o.resume.amove); else setOrder(u, { t: 'idle', home: o.home }); };
-  if (!t || t.dead || (!o.forced && !d.heal && t.team !== u.team && !isEnemy(u.team, t.team))) return done();
+  if (!t || t.dead || t.inside || (!o.forced && !d.heal && t.team !== u.team && !isEnemy(u.team, t.team))) return done();
   if (d.heal && !canHarm(u.team, t.team) && t.hp >= t.maxhp) return done();
   if (t.k === 'u' && t.team !== u.team && G.human === u.team && !G.cfg.revealed && !o.forced) { /* sigue */ }
   if (o.auto && o.home && dist(u, o.home) > d.los * T * 2.2) { setMove(u, o.home.x, o.home.y); return; }
@@ -702,7 +704,7 @@ function updBld(b, dt) {
       if (best) {
         b.cd = bs.rate; spawnProj(b, best, bs, 'proj_arrow'); sfxAt('bow', c.x, c.y, 0.5);
         // cada unidad en la guarnición añade una flecha (máx. 10)
-        const extra = Math.min(10, (b.garrison || []).length);
+        b.garrison = (b.garrison || []).filter(g => !g.dead); const extra = Math.min(10, b.garrison.length);
         if (extra) { const tg = []; sgEach(c.x, c.y, R, u => { if (isEnemy(b.team, u.team) && !(isAnimal(u) && u.team === GAIA)) tg.push(u); }); for (let k = 0; k < extra; k++) spawnProj(b, tg[k % tg.length] || best, bs, 'proj_arrow'); }
       } else b.cd = 0.4;
     }
@@ -845,7 +847,7 @@ function simStep(dt) {
   if ((G.cleanT = (G.cleanT || 0) - dt) <= 0) {
     G.cleanT = 1;
     G.units = G.units.filter(u => !u.dead); G.blds = G.blds.filter(b => !b.dead);
-    G.sel = G.sel.filter(e => !e.dead);
+    G.sel = G.sel.filter(e => !e.dead && !e.inside);
     updatePop(); checkElimination();
     if (G.decals.length > 400) G.decals.splice(0, G.decals.length - 400);
   }

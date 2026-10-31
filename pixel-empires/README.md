@@ -33,6 +33,7 @@ Juego de estrategia en tiempo real al estilo Age of Empires, con gráficos pixel
 - **IA:** reparte aldeanos, construye, avanza de era, investiga, entrena ejércitos mixtos, se defiende, ataca en oleadas, usa el mercado y la campana, y apoya a sus aliados.
 - **Audio:** efectos con ZzFX y música medieval procedural en modo dórico, con dos temas: paz y batalla.
 - **Galería de diseños:** desde el menú puedes ver todas las unidades animadas (quieto, caminar, atacar) y todos los edificios de cada raza.
+- **Modo observador:** en la configuración puedes marcar «Solo observar» para ver a las IAs jugar entre sí con el mapa revelado.
 
 ## Controles
 

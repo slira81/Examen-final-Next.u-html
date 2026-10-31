@@ -6906,6 +6906,7 @@ const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const tileOf = v => Math.floor(v / T);
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const isAnimal = u => u.def.role === 'animal';
+const isActive = u => !u.dead && !u.inside;   // viva y fuera de cualquier edificio
 const isMil = u => u.def.role !== 'worker' && u.def.role !== 'animal' && u.team < 8;
 const isPlayer = t => t >= 0 && t < 8 && G.players[t];
 function isAlly(a, b) { return a === b || (a < 8 && b < 8 && G.players[a] && G.players[b] && G.stance[a][b] === 'ally'); }
@@ -7238,7 +7239,7 @@ function splashAt(att, x, y, r, dmg, skip, team) {
 }
 /** Aplica daño, registra experiencia pendiente y reacciones. */
 function applyHit(att, tgt, dmg, primary, team) {
-  if (tgt.dead) return;
+  if (tgt.dead || tgt.inside) return;
   team = team ?? att.team;
   dmg = Math.max(1, dmg);
   tgt.hp -= dmg; tgt.flash = 0.09;
@@ -7295,6 +7296,7 @@ function chainLightning(att, first, n, dmg, team) {
 function kill(e, killer) {
   if (e.dead) return; e.dead = true; e.hp = 0; G.byId.delete(e.id);
   if (e.k === 'u') {
+    if (e.inside) { e.inside.garrison = (e.inside.garrison || []).filter(g => g !== e); e.inside = null; }
     const p = isPlayer(e.team) && !isAnimal(e) ? G.players[e.team] : null;
     // experiencia por bajas: se reparte según el daño y queda pendiente hasta sobrevivir al combate
     if (e.dmgBy && !isAnimal(e)) {
@@ -7384,7 +7386,7 @@ function updUnit(u, dt) {
       const b = o.b; if (b.dead || !b.done || b.team !== u.team && !isAlly(b.team, u.team)) { setOrder(u, { t: 'idle' }); break; }
       const a = approach(u, b, 12, dt);
       if (a === null) setOrder(u, { t: 'idle' });
-      else if (a) { if ((b.garrison = b.garrison || []).length >= b.def.garrison) { setOrder(u, { t: 'idle' }); if (u.team === G.human) G.msg(b.def.n + ' está lleno', '#ffb070'); } else { b.garrison.push(u); u.inside = b; u.path = []; G.sel = G.sel.filter(e => e !== u); } }
+      else if (a) { if ((b.garrison = (b.garrison || []).filter(g => !g.dead)).length >= b.def.garrison) { setOrder(u, { t: 'idle' }); if (u.team === G.human) G.msg(b.def.n + ' está lleno', '#ffb070'); } else { b.garrison.push(u); u.inside = b; u.path = []; G.sel = G.sel.filter(e => e !== u); } }
       break;
     }
     case 'treasure': {
@@ -7443,7 +7445,7 @@ function healTarget(u, t) {
 function doAttackOrder(u, o, dt) {
   const t = o.target, d = u.def;
   const done = () => { if (o.resume && o.resume.t === 'move') setMove(u, o.resume.x, o.resume.y, o.resume.amove); else setOrder(u, { t: 'idle', home: o.home }); };
-  if (!t || t.dead || (!o.forced && !d.heal && t.team !== u.team && !isEnemy(u.team, t.team))) return done();
+  if (!t || t.dead || t.inside || (!o.forced && !d.heal && t.team !== u.team && !isEnemy(u.team, t.team))) return done();
   if (d.heal && !canHarm(u.team, t.team) && t.hp >= t.maxhp) return done();
   if (t.k === 'u' && t.team !== u.team && G.human === u.team && !G.cfg.revealed && !o.forced) { /* sigue */ }
   if (o.auto && o.home && dist(u, o.home) > d.los * T * 2.2) { setMove(u, o.home.x, o.home.y); return; }
@@ -7598,7 +7600,7 @@ function updBld(b, dt) {
       if (best) {
         b.cd = bs.rate; spawnProj(b, best, bs, 'proj_arrow'); sfxAt('bow', c.x, c.y, 0.5);
         // cada unidad en la guarnición añade una flecha (máx. 10)
-        const extra = Math.min(10, (b.garrison || []).length);
+        b.garrison = (b.garrison || []).filter(g => !g.dead); const extra = Math.min(10, b.garrison.length);
         if (extra) { const tg = []; sgEach(c.x, c.y, R, u => { if (isEnemy(b.team, u.team) && !(isAnimal(u) && u.team === GAIA)) tg.push(u); }); for (let k = 0; k < extra; k++) spawnProj(b, tg[k % tg.length] || best, bs, 'proj_arrow'); }
       } else b.cd = 0.4;
     }
@@ -7741,7 +7743,7 @@ function simStep(dt) {
   if ((G.cleanT = (G.cleanT || 0) - dt) <= 0) {
     G.cleanT = 1;
     G.units = G.units.filter(u => !u.dead); G.blds = G.blds.filter(b => !b.dead);
-    G.sel = G.sel.filter(e => !e.dead);
+    G.sel = G.sel.filter(e => !e.dead && !e.inside);
     updatePop(); checkElimination();
     if (G.decals.length > 400) G.decals.splice(0, G.decals.length - 400);
   }
@@ -7858,7 +7860,7 @@ function aiSpot(team, type, near, minR = 3, maxR = 18, margin = 1) {
 }
 function aiThink(p) {
   const team = p.id, race = p.race, ai = p.ai;
-  const mine = G.units.filter(u => !u.dead && u.team === team && !isAnimal(u));
+  const all = G.units.filter(u => !u.dead && u.team === team && !isAnimal(u)), mine = all.filter(isActive);
   const workers = mine.filter(u => u.def.role === 'worker'), army = mine.filter(u => isMil(u));
   const blds = G.blds.filter(b => !b.dead && b.team === team);
   const ofType = t => blds.filter(b => b.type === t), doneOf = t => blds.filter(b => b.type === t && b.done);
@@ -7883,7 +7885,8 @@ function aiThink(p) {
   // --- aldeanos
   const target = Math.round([0, 24, 40, 56][p.age] * (race === 'giant' ? 0.7 : 1));
   const queuedW = tc.queue.filter(q => q.key === race + '_worker').length;
-  if (workers.length + queuedW < target && tc.queue.length < 2 && p.pop < p.popCap && spare(costOf(team, UNITS[race + '_worker'].cost))) enqueue(tc, 'unit', race + '_worker');
+  const allW = all.filter(u => u.def.role === 'worker').length;
+  if (allW + queuedW < target && tc.queue.length < 2 && p.pop < p.popCap && spare(costOf(team, UNITS[race + '_worker'].cost))) enqueue(tc, 'unit', race + '_worker');
 
   // --- reparto de recursos
   const kindOf = u => { const o = u.order; if (o.t === 'gather') return RES_TYPE[o.kind]; if (o.t === 'farm') return 'food'; if (o.t === 'return') return u.ckind; if (o.t === 'build') return 'build'; return null; };
@@ -8203,7 +8206,7 @@ function weatherStep(dt) {
     w.flash = 1; w.bolt = { x, y, t: 0 }; addFx('fx_lightning', x, y - 20); sfx('thunder');
     sgEach(x, y, 20, u => { u.hp -= 25; if (u.hp <= 0) kill(u, null); });
     const r = G.map.res[tileOf(y) * m.W + tileOf(x)]; if (r && r.kind === 'tree' && Math.random() < 0.6) ignite(r);
-    for (const b of G.blds) if (!b.dead && distRect(x, y, rectOf(b)) < 8 && !b.def.invuln) { b.hp -= 60; if (Math.random() < 0.3) b.fire = 10; }
+    for (const b of G.blds) if (!b.dead && distRect(x, y, rectOf(b)) < 8 && !b.def.invuln) { b.hp -= 60; if (b.hp <= 0) kill(b, null); else if (Math.random() < 0.3) b.fire = 10; }
   }
 }
 
@@ -8334,6 +8337,8 @@ function respondProposal(i, accept) {
     else { changeRel(a, me, -25); G.msg(G.players[a].name + ' toma nota de tu negativa', '#ffb070'); if (G.rel[a][me] < -30 && strength(a) > strength(me)) declareWar(a, me); }
     return;
   }
+  const cur = G.stance[a][me];
+  if (accept && ((pr.type === 'alliance' && cur === 'enemy') || (pr.type === 'peace' && cur !== 'enemy'))) { G.msg('La propuesta de ' + G.players[a].name + ' ya no es válida', '#ffb070'); return; }
   if (accept) { setStance(a, me, pr.type === 'alliance' ? 'ally' : 'neutral'); changeRel(a, me, 15); G.msg('Aceptas ' + (pr.type === 'alliance' ? 'la alianza' : 'la paz') + ' con ' + G.players[a].name, '#9fe8a0'); }
   else { changeRel(a, me, -10); }
 }
@@ -8806,7 +8811,7 @@ function orderText(u) {
 // --------------------------------------------------------------- comandos
 function cmdList() {
   const out = [], s = G.sel; if (!s.length || G.human < 0) return out;
-  const mine = s.filter(e => e.team === G.human); if (!mine.length) return out;
+  const mine = s.filter(e => e.team === G.human && !e.dead && !e.inside); if (!mine.length) return out;
   const p = G.players[G.human], race = p.race;
   const units = mine.filter(e => e.k === 'u' && !isAnimal(e)), workers = units.filter(u => u.def.role === 'worker');
   const bld = mine.length === 1 && mine[0].k === 'b' ? mine[0] : null;
@@ -8825,7 +8830,7 @@ function cmdList() {
   }
   if (units.length) {
     const gen = units.find(u => u.def.unique);
-    if (gen) out.push({ icon: ['icons', 'cmd_ability'], n: gen.def.ability.n, d: gen.def.ability.d + '. Se lanza sola en combate. Recarga: ' + gen.def.ability.cd + ' s.', locked: gen.abCd > 0 ? 'Recargando (' + Math.ceil(gen.abCd) + ' s)' : null, fn: () => { if (castAbility(gen)) gen.abCd = gen.def.ability.cd; else G.msg('No hay objetivos para ' + gen.def.ability.n, '#ffb070'); } });
+    if (gen) out.push({ icon: ['icons', 'cmd_ability'], n: gen.def.ability.n, d: gen.def.ability.d + '. Se lanza sola en combate. Recarga: ' + gen.def.ability.cd + ' s.', locked: gen.abCd > 0 ? 'Recargando (' + Math.ceil(gen.abCd) + ' s)' : null, fn: () => { if (gen.abCd > 0) return; if (castAbility(gen)) gen.abCd = gen.def.ability.cd; else G.msg('No hay objetivos para ' + gen.def.ability.n, '#ffb070'); } });
     while (out.length < 5) out.push(null);
     out.push({ icon: ['icons', 'cmd_attackmove'], n: 'Atacar moviéndose', key: 'a', d: 'Haz clic en el destino: las unidades atacan a todo enemigo que encuentren por el camino.', fn: () => { UI.amove = true; } });
     out.push({ icon: ['icons', 'cmd_stop'], n: 'Detener', key: 's', d: 'Cancela la orden actual.', fn: () => units.forEach(u => setOrder(u, { t: 'idle' })) });
@@ -8887,6 +8892,11 @@ function unitDesc(ud) {
   if (ud.pop > 1) parts.push('Ocupa ' + ud.pop + ' de población');
   return parts.join('. ') + '.';
 }
+/** Ejecuta un comando del panel; los bloqueados (era, recarga, en investigación) solo informan. */
+function runCmd(c) {
+  if (c.locked && !c.allowLocked) { G.msg(c.locked, '#ffb070', { sound: 'error' }); return; }
+  sfx('click'); c.fn();
+}
 function doEnqueue(b, kind, key) { const e = enqueue(b, kind, key); if (e) G.msg(e, '#ffb070', { sound: 'error' }); else sfx('click'); refreshCmdStates(); }
 function buildCmds() {
   const el = $('cmds'); el.innerHTML = ''; UI.cmds = cmdList();
@@ -8900,7 +8910,7 @@ function buildCmds() {
     b.appendChild(iconCanvas(img, 32, 'cico'));
     c.hk = c.key || HOTKEYS[i];
     b.insertAdjacentHTML('beforeend', `<em>${c.hk === 'Delete' ? 'Supr' : c.hk.toUpperCase()}</em>`);
-    b.onclick = () => { sfx('click'); c.fn(); };
+    b.onclick = () => runCmd(c);
     b.onmouseenter = () => showTip(b, `<b>${esc(c.n)}</b> <span class="hk">[${c.hk === 'Delete' ? 'Supr' : c.hk.toUpperCase()}]</span>${c.cost ? '<div>' + costHTML(c.cost, G.human) + '</div>' : ''}${c.locked ? `<div class="warn">${esc(c.locked)}</div>` : ''}<div class="d">${esc(c.d || '')}</div>`);
     b.onmouseleave = hideTip;
     c.el = b; el.appendChild(b);
@@ -9013,7 +9023,7 @@ function endGame(won) {
 const INPUT = { keys: {}, mx: -1, my: -1, mid: null, last: { t: 0, id: null }, grpTap: { d: null, t: 0 }, inWin: false };
 const toWorld = (sx, sy) => ({ x: sx / VIEW.S + VIEW.cx, y: sy / VIEW.S + VIEW.cy });
 function mark(x, y, c) { UI.marks.push({ x, y, c, t: 0 }); }
-function ownSelUnits() { return G.sel.filter(e => e.k === 'u' && e.team === G.human && !e.dead); }
+function ownSelUnits() { return G.sel.filter(e => e.k === 'u' && e.team === G.human && !e.dead && !e.inside); }
 
 /** Entidad bajo el cursor (unidades primero, luego edificios, recursos y tesoros). */
 function pickAt(w) {
@@ -9041,7 +9051,7 @@ function clickSelect(w, shift, dbl) {
   if (!e) { if (!shift) G.sel = []; UI.page = 'root'; return; }
   if (e.k === 't') { G.sel = []; return; }
   if (dbl && e.k === 'u' && e.team === G.human) {
-    G.sel = G.units.filter(u => !u.dead && u.team === G.human && u.key === e.key && u.x > VIEW.cx && u.x < VIEW.cx + VIEW.w && u.y > VIEW.cy && u.y < VIEW.cy + VIEW.h); UI.page = 'root'; return;
+    G.sel = G.units.filter(u => !u.dead && !u.inside && u.team === G.human && u.key === e.key && u.x > VIEW.cx && u.x < VIEW.cx + VIEW.w && u.y > VIEW.cy && u.y < VIEW.cy + VIEW.h); UI.page = 'root'; return;
   }
   if (shift && e.k === 'u' && e.team === G.human) { G.sel = G.sel.includes(e) ? G.sel.filter(s => s !== e) : G.sel.filter(s => s.k === 'u' && s.team === G.human).concat(e); }
   else G.sel = [e];
@@ -9050,14 +9060,14 @@ function clickSelect(w, shift, dbl) {
 }
 function boxSelect(d, shift) {
   const a = toWorld(Math.min(d.x0, d.x1), Math.min(d.y0, d.y1)), b = toWorld(Math.max(d.x0, d.x1), Math.max(d.y0, d.y1));
-  const inBox = u => !u.dead && u.team === G.human && u.x >= a.x - 4 && u.x <= b.x + 4 && u.y >= a.y && u.y <= b.y + 12;
+  const inBox = u => !u.dead && !u.inside && u.team === G.human && u.x >= a.x - 4 && u.x <= b.x + 4 && u.y >= a.y && u.y <= b.y + 12;
   let s = G.units.filter(u => inBox(u) && !isAnimal(u));
   if (!s.length) s = G.units.filter(u => inBox(u));
   G.sel = shift ? [...new Set(G.sel.filter(e => e.k === 'u' && e.team === G.human).concat(s))] : s; UI.page = 'root';
 }
 function rightClick(w) {
   if (G.human < 0) return;
-  const mine = G.sel.filter(e => e.team === G.human && !e.dead); if (!mine.length) return;
+  const mine = G.sel.filter(e => e.team === G.human && !e.dead && !e.inside); if (!mine.length) return;
   const tgt = pickAt(w), bld = mine.length === 1 && mine[0].k === 'b' ? mine[0] : null;
   if (bld) {
     if (bld.def.train && bld.done) { bld.rally = { x: w.x, y: w.y, target: tgt && (tgt.k === 'r' || (tgt.k === 'b' && tgt.team === G.human)) ? tgt : null }; mark(w.x, w.y, '#ffd23a'); sfx('click'); }
@@ -9161,7 +9171,7 @@ function initInput() {
   mini.addEventListener('contextmenu', e => e.preventDefault());
   // panel inferior: retratos, cola, propuestas, modal
   $('info').addEventListener('click', e => {
-    const c = e.target.closest('.mcell'); if (c) { const u = G.byId.get(+c.dataset.id); if (u) { G.sel = e.shiftKey ? G.sel.filter(s => s !== u) : [u]; } return; }
+    const c = e.target.closest('.mcell'); if (c) { const u = G.byId.get(+c.dataset.id); if (u && isActive(u)) { G.sel = e.shiftKey ? G.sel.filter(s => s !== u) : [u]; } return; }
     const q = e.target.closest('.qcell'); if (q && G.sel[0] && G.sel[0].team === G.human) { cancelQueue(G.sel[0], +q.dataset.q); sfx('click'); }
   });
   $('proposals').addEventListener('click', e => { const b = e.target.closest('button'); if (b && b.dataset.pr !== undefined) { respondProposal(+b.dataset.pr, b.dataset.ok === '1'); UI.prSig = null; } });
@@ -9193,20 +9203,20 @@ function onKey(e) {
   if (!G) return;
   INPUT.keys[k] = true;
   if (k.startsWith('arrow')) { e.preventDefault(); return; }
-  if (e.ctrlKey && /^[1-9]$/.test(k)) { G.groups[k] = ownSelUnits().map(u => u.id); G.msg('Grupo ' + k + ' asignado', '#cfe8a0'); e.preventDefault(); return; }
+  if (e.ctrlKey && /^[1-9]$/.test(k)) { e.preventDefault(); if (!ownSelUnits().length) return; G.groups[k] = ownSelUnits().map(u => u.id); G.msg('Grupo ' + k + ' asignado', '#cfe8a0'); e.preventDefault(); return; }
   if (/^[1-9]$/.test(k)) {
-    const ids = G.groups[k] || [], s = ids.map(id => G.byId.get(id)).filter(u => u && !u.dead);
+    const ids = G.groups[k] || [], s = ids.map(id => G.byId.get(id)).filter(u => u && !u.dead && !u.inside);
     if (s.length) { const now = performance.now(); if (INPUT.grpTap.d === k && now - INPUT.grpTap.t < 350) { G.cam.x = s[0].x; G.cam.y = s[0].y; clampCam(); } INPUT.grpTap = { d: k, t: now }; G.sel = s; UI.page = 'root'; }
     return;
   }
   if (k === 'escape') { if (UI.placing || UI.amove || UI.roadMode) { UI.placing = null; UI.amove = false; UI.roadMode = false; } else if (UI.page !== 'root') { UI.page = 'root'; } else if (G.sel.length) G.sel = []; else openMenu(); return; }
   if (k === 'p' || k === 'pause') { openMenu(); return; }
   if (k === 'h') { const tc = G.blds.find(b => !b.dead && b.team === G.human && b.type === 'tc'); if (tc) { G.sel = [tc]; const c = centerOf(tc); G.cam.x = c.x; G.cam.y = c.y; clampCam(); } return; }
-  if (k === '.') { const idle = G.units.filter(u => !u.dead && u.team === G.human && u.def.role === 'worker' && u.order.t === 'idle'); if (idle.length) { INPUT.idleI = ((INPUT.idleI || 0) + 1) % idle.length; const u = idle[INPUT.idleI]; G.sel = [u]; G.cam.x = u.x; G.cam.y = u.y; clampCam(); } else G.msg('No hay aldeanos inactivos', '#cfe8a0'); return; }
+  if (k === '.') { const idle = G.units.filter(u => isActive(u) && u.team === G.human && u.def.role === 'worker' && u.order.t === 'idle'); if (idle.length) { INPUT.idleI = ((INPUT.idleI || 0) + 1) % idle.length; const u = idle[INPUT.idleI]; G.sel = [u]; G.cam.x = u.x; G.cam.y = u.y; clampCam(); } else G.msg('No hay aldeanos inactivos', '#cfe8a0'); return; }
   if (k === 'm' && !e.ctrlKey) { G.sel = G.units.filter(u => !u.dead && !u.inside && u.team === G.human && isMil(u)); UI.page = 'root'; return; }
   if (k === ' ') { e.preventDefault(); const t = G.sel[0] ? centerOf(G.sel[0]) : G.pings[G.pings.length - 1]; if (t) { G.cam.x = t.x; G.cam.y = t.y; clampCam(); } return; }
   const c = (UI.cmds || []).find(c => c && c.hk && c.hk.toLowerCase() === k);
-  if (c) { e.preventDefault(); sfx('click'); c.fn(); }
+  if (c) { e.preventDefault(); runCmd(c); }
 }
 function setZoom(s) { VIEW.S = clamp(s, 2, 5); resize(); }
 function clampCam() {

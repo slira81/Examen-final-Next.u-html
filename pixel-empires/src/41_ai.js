@@ -38,7 +38,7 @@ function aiSpot(team, type, near, minR = 3, maxR = 18, margin = 1) {
 }
 function aiThink(p) {
   const team = p.id, race = p.race, ai = p.ai;
-  const mine = G.units.filter(u => !u.dead && u.team === team && !isAnimal(u));
+  const all = G.units.filter(u => !u.dead && u.team === team && !isAnimal(u)), mine = all.filter(isActive);
   const workers = mine.filter(u => u.def.role === 'worker'), army = mine.filter(u => isMil(u));
   const blds = G.blds.filter(b => !b.dead && b.team === team);
   const ofType = t => blds.filter(b => b.type === t), doneOf = t => blds.filter(b => b.type === t && b.done);
@@ -63,7 +63,8 @@ function aiThink(p) {
   // --- aldeanos
   const target = Math.round([0, 24, 40, 56][p.age] * (race === 'giant' ? 0.7 : 1));
   const queuedW = tc.queue.filter(q => q.key === race + '_worker').length;
-  if (workers.length + queuedW < target && tc.queue.length < 2 && p.pop < p.popCap && spare(costOf(team, UNITS[race + '_worker'].cost))) enqueue(tc, 'unit', race + '_worker');
+  const allW = all.filter(u => u.def.role === 'worker').length;
+  if (allW + queuedW < target && tc.queue.length < 2 && p.pop < p.popCap && spare(costOf(team, UNITS[race + '_worker'].cost))) enqueue(tc, 'unit', race + '_worker');
 
   // --- reparto de recursos
   const kindOf = u => { const o = u.order; if (o.t === 'gather') return RES_TYPE[o.kind]; if (o.t === 'farm') return 'food'; if (o.t === 'return') return u.ckind; if (o.t === 'build') return 'build'; return null; };

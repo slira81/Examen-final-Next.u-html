@@ -65,6 +65,8 @@ function respondProposal(i, accept) {
     else { changeRel(a, me, -25); G.msg(G.players[a].name + ' toma nota de tu negativa', '#ffb070'); if (G.rel[a][me] < -30 && strength(a) > strength(me)) declareWar(a, me); }
     return;
   }
+  const cur = G.stance[a][me];
+  if (accept && ((pr.type === 'alliance' && cur === 'enemy') || (pr.type === 'peace' && cur !== 'enemy'))) { G.msg('La propuesta de ' + G.players[a].name + ' ya no es válida', '#ffb070'); return; }
   if (accept) { setStance(a, me, pr.type === 'alliance' ? 'ally' : 'neutral'); changeRel(a, me, 15); G.msg('Aceptas ' + (pr.type === 'alliance' ? 'la alianza' : 'la paz') + ' con ' + G.players[a].name, '#9fe8a0'); }
   else { changeRel(a, me, -10); }
 }
