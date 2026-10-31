@@ -414,6 +414,7 @@ function kill(e, killer) {
     sfxAt(isAnimal(e) ? 'animal' : 'die', e.x, e.y);
   } else if (e.k === 'b') {
     setBlock(e, false);
+    ejectAll(e, true);
     if (e.dmgBy) { const value = 30 + costSum(e.def.cost) / 8; let total = 0; for (const v of e.dmgBy.values()) total += v; for (const [id, d] of e.dmgBy) { const a = G.byId.get(id); if (a && a.k === 'u' && isMil(a)) a.pxp += value * d / total; } }
     if (killer && isPlayer(killer.team)) G.players[killer.team].stats.razed++;
     const c = centerOf(e);
@@ -452,6 +453,7 @@ function updUnit(u, dt) {
   if (regen > 0 && u.hp < u.maxhp && G.time - u.lastCombat > 2) u.hp = Math.min(u.maxhp, u.hp + regen * dt);
   // experiencia pendiente: se gana al sobrevivir al enfrentamiento (5 s sin combatir)
   if (u.pxp > 0 && G.time - u.lastCombat > 5) { gainXP(u, u.pxp); u.pxp = 0; }
+  if (u.inside) { if (u.inside.dead) ejectOne(u, u.inside); else { u.hp = Math.min(u.maxhp, u.hp + dt * 0.8); return; } }
   if (u.stun > 0) { u.stun -= dt; u.anim = 'idle'; return; }
   // golpe en curso
   if (u.swing >= 0) {
@@ -478,6 +480,13 @@ function updUnit(u, dt) {
     case 'farm': doFarm(u, o, dt); break;
     case 'return': doReturn(u, o, dt); break;
     case 'build': doBuild(u, o, dt); break;
+    case 'garrison': {
+      const b = o.b; if (b.dead || !b.done || b.team !== u.team && !isAlly(b.team, u.team)) { setOrder(u, { t: 'idle' }); break; }
+      const a = approach(u, b, 12, dt);
+      if (a === null) setOrder(u, { t: 'idle' });
+      else if (a) { if ((b.garrison = b.garrison || []).length >= b.def.garrison) { setOrder(u, { t: 'idle' }); if (u.team === G.human) G.msg(b.def.n + ' está lleno', '#ffb070'); } else { b.garrison.push(u); u.inside = b; u.path = []; G.sel = G.sel.filter(e => e !== u); } }
+      break;
+    }
     case 'treasure': {
       const tr = o.tr; if (tr.taken) { setOrder(u, { t: 'idle' }); break; }
       const a = approach(u, tr, 6, dt); if (a === null) setOrder(u, { t: 'idle' }); else if (a) takeTreasure(tr, u);
@@ -686,7 +695,12 @@ function updBld(b, dt) {
       const bs = bStats(b), c = centerOf(b), R = bs.range * T + b.fp * 8;
       let best = null, bd = R;
       sgEach(c.x, c.y, R, u => { if (isEnemy(b.team, u.team) && !(isAnimal(u) && u.team === GAIA)) { const d = dist(u, c); if (d < bd) { bd = d; best = u; } } });
-      if (best) { b.cd = bs.rate; spawnProj(b, best, bs, 'proj_arrow'); sfxAt('bow', c.x, c.y, 0.5); } else b.cd = 0.4;
+      if (best) {
+        b.cd = bs.rate; spawnProj(b, best, bs, 'proj_arrow'); sfxAt('bow', c.x, c.y, 0.5);
+        // cada unidad en la guarnición añade una flecha (máx. 10)
+        const extra = Math.min(10, (b.garrison || []).length);
+        if (extra) { const tg = []; sgEach(c.x, c.y, R, u => { if (isEnemy(b.team, u.team) && !(isAnimal(u) && u.team === GAIA)) tg.push(u); }); for (let k = 0; k < extra; k++) spawnProj(b, tg[k % tg.length] || best, bs, 'proj_arrow'); }
+      } else b.cd = 0.4;
     }
   }
   // templo con Sanación cura a los cercanos
@@ -851,6 +865,42 @@ function checkElimination() {
   } else if (alive.length <= 1 || alive.every(p => isAlly(p.id, alive[0].id))) endGame(true);
 }
 function addFx(key, x, y, opts) { G.fx.push(Object.assign({ key, x, y, t: 0, life: (PE.ART.fx[key] && PE.ART.fx[key].frames || 6) / 12 }, opts || {})); }
+
+// --------------------------------------------------------------- guarnición y campana de alarma
+function restoreOrder(u) {
+  const o = u.prevOrder; u.prevOrder = null;
+  if (o && o.t === 'gather' && o.res && !o.res.dead) startGather(u, o.res);
+  else if (o && o.t === 'farm' && o.b && !o.b.dead) { if (!startFarm(u, o.b)) setOrder(u, { t: 'idle' }); }
+  else if (o && o.t === 'build' && o.b && !o.b.dead) setOrder(u, { t: 'build', b: o.b });
+  else if (o && o.t === 'return') setOrder(u, { t: 'return', res: o.res, kind: o.kind, farm: o.farm });
+  else setOrder(u, { t: 'idle' });
+}
+function ejectOne(u, b, hurt) {
+  u.inside = null; const p = freeSpotNear(b); u.x = p.x; u.y = p.y; u.path = [];
+  if (hurt) { u.hp -= u.maxhp * 0.3; if (u.hp <= 0) { kill(u, null); return; } }
+  restoreOrder(u);
+}
+function ejectAll(b, hurt) { const g = b.garrison || []; b.garrison = []; for (const u of g) if (!u.dead) ejectOne(u, b, hurt); }
+function garrisonSpots(team) { return G.blds.filter(b => !b.dead && b.done && b.team === team && b.def.garrison); }
+/** Campana: los aldeanos cercanos se refugian en el centro urbano, torres o castillo más cercanos. */
+function ringBell(team) {
+  const spots = garrisonSpots(team); if (!spots.length) return 0;
+  const used = new Map(spots.map(b => [b, (b.garrison || []).length])); let n = 0;
+  for (const u of G.units) {
+    if (u.dead || u.inside || u.team !== team || u.def.role !== 'worker' || u.order.t === 'garrison') continue;
+    const best = spots.filter(b => used.get(b) < b.def.garrison).sort((a, c) => dist(centerOf(a), u) - dist(centerOf(c), u))[0];
+    if (!best || dist(centerOf(best), u) > 24 * T) continue;
+    used.set(best, used.get(best) + 1); u.prevOrder = u.order; setOrder(u, { t: 'garrison', b: best }); n++;
+  }
+  if (team === G.human) G.msg('¡Toque de campana! ' + n + ' aldeanos se refugian', '#ffd27a', { sound: 'horn' });
+  G.players[team].bell = true; return n;
+}
+function releaseBell(team) {
+  for (const b of garrisonSpots(team)) { const keep = []; for (const u of b.garrison || []) { if (u.dead) continue; if (u.def.role === 'worker') ejectOne(u, b); else keep.push(u); } b.garrison = keep; }
+  for (const u of G.units) if (!u.dead && u.team === team && u.order.t === 'garrison' && u.def.role === 'worker') restoreOrder(u);
+  G.players[team].bell = false;
+  if (team === G.human) G.msg('Los aldeanos vuelven al trabajo', '#cfe8a0');
+}
 
 // --------------------------------------------------------------- comercio y tributo
 function marketTrade(team, res, buy) {

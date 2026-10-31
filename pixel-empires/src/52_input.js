@@ -12,7 +12,7 @@ function ownSelUnits() { return G.sel.filter(e => e.k === 'u' && e.team === G.hu
 function pickAt(w) {
   let best = null, bd = 1e9;
   for (const u of G.units) {
-    if (u.dead || (!isAlly(u.team, G.human) && !visibleAt(u.x, u.y))) continue;
+    if (u.dead || u.inside || (!isAlly(u.team, G.human) && !visibleAt(u.x, u.y))) continue;
     const def = PE.ART.units[u.key], hh = def ? Math.min(def.ay, 30) : 14;
     const dx = Math.abs(w.x - u.x), dy = w.y - (u.y - hh / 2);
     if (dx < u.def.size + 4 && Math.abs(dy) < hh / 2 + 3) { const d = dx + Math.abs(dy) * 0.5 - (u.team === G.human ? 3 : 0); if (d < bd) { bd = d; best = u; } }
@@ -69,6 +69,11 @@ function rightClick(w) {
     }
     if (tgt.k === 'u' && tgt.team === G.human && isAnimal(tgt) && workers.length) { for (const u of workers) setOrder(u, { t: 'attack', target: tgt, forced: true }); if (others.length) cmdMove(others, w.x, w.y); mark(w.x, w.y, '#ffd23a'); return; }
     if (tgt.k === 'u' && isAlly(tgt.team, G.human) && tgt.hp < tgt.maxhp) { const healers = units.filter(u => u.def.heal); if (healers.length) { cmdAttack(healers, tgt); mark(w.x, w.y, '#9fe8a0'); } }
+    if (tgt.k === 'b' && tgt.team === G.human && tgt.done && tgt.def.garrison && others.length && tgt.hp >= tgt.maxhp * 0.99) {
+      for (const u of others) { u.prevOrder = null; setOrder(u, { t: 'garrison', b: tgt }); }
+      if (workers.length) cmdMove(workers, w.x, w.y);
+      mark(w.x, w.y, '#8fff7a'); sfx('click'); return;
+    }
     if (tgt.k === 'b' && isAlly(tgt.team, G.human) && workers.length) {
       if (tgt.type === 'farm' && tgt.done) { let first = true; for (const u of workers) { if (first && startFarm(u, tgt)) { first = false; continue; } const f2 = G.blds.find(b => !b.dead && b.done && b.team === G.human && b.type === 'farm' && !b.farmer); if (f2 && startFarm(u, f2)) continue; setOrder(u, { t: 'build', b: tgt }); } }
       else if (!tgt.done || tgt.hp < tgt.maxhp) for (const u of workers) setOrder(u, { t: 'build', b: tgt });
@@ -166,6 +171,7 @@ function initInput() {
   });
   document.addEventListener('mousemove', e => { const t = e.target.closest && e.target.closest('[data-tip]'); if (t && !t.closest('.cmd')) showTip(t, esc(t.dataset.tip)); else if (!e.target.closest || !e.target.closest('.cmd')) hideTip(); });
   $('b-menu').onclick = () => openMenu();
+  $('b-idle').onclick = () => onKey({ key: '.', preventDefault() {} });
   $('b-diplo').onclick = () => { openDiplomacy(); };
   $('b-music').onclick = () => { AUDIO.music = !AUDIO.music; $('b-music').classList.toggle('off', !AUDIO.music); };
   $('b-speed').onclick = () => { G.speed = G.speed >= 2 ? 1 : G.speed + 0.5; $('b-speed').textContent = G.speed + 'x'; };
@@ -190,6 +196,7 @@ function onKey(e) {
   if (k === 'p' || k === 'pause') { openMenu(); return; }
   if (k === 'h') { const tc = G.blds.find(b => !b.dead && b.team === G.human && b.type === 'tc'); if (tc) { G.sel = [tc]; const c = centerOf(tc); G.cam.x = c.x; G.cam.y = c.y; clampCam(); } return; }
   if (k === '.') { const idle = G.units.filter(u => !u.dead && u.team === G.human && u.def.role === 'worker' && u.order.t === 'idle'); if (idle.length) { INPUT.idleI = ((INPUT.idleI || 0) + 1) % idle.length; const u = idle[INPUT.idleI]; G.sel = [u]; G.cam.x = u.x; G.cam.y = u.y; clampCam(); } else G.msg('No hay aldeanos inactivos', '#cfe8a0'); return; }
+  if (k === 'm' && !e.ctrlKey) { G.sel = G.units.filter(u => !u.dead && !u.inside && u.team === G.human && isMil(u)); UI.page = 'root'; return; }
   if (k === ' ') { e.preventDefault(); const t = G.sel[0] ? centerOf(G.sel[0]) : G.pings[G.pings.length - 1]; if (t) { G.cam.x = t.x; G.cam.y = t.y; clampCam(); } return; }
   const c = (UI.cmds || []).find(c => c && c.hk && c.hk.toLowerCase() === k);
   if (c) { e.preventDefault(); sfx('click'); c.fn(); }

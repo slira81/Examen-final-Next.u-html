@@ -18,7 +18,7 @@
     fa_horse: '#8f5634', fa_mane: '#3b2b27',
     fa_wolf: '#80869a', fa_wolfl: '#cfcbc4',
     fa_bear: '#6e4a31', fa_bearl: '#a87b52',
-    fa_boar: '#5f4b3f', fa_bristle: '#3c2f29', fa_tusk: '#efe5cb',
+    fa_boar: '#5f4b3f', fa_bristle: '#3c2f29', fa_tusk: '#efe5cb', fa_boarsn: '#a8706a',
     fa_tongue: '#e06f7c', fa_claw: '#e9e1cc',
   });
   PE.addFixed({
@@ -39,7 +39,6 @@
     for (let i = 0; i < w; i++) { c.line(m, x + i, y0, x + i + mx, ym); c.line(m, x + i + mx, ym, x + i + dx, yb); }
     if (hm) for (let i = 0; i < w; i++) c.px(hm, x + i + dx, yb);
   }
-  const ATKX = [0, -1, 2, 1];               // desplazamiento de embestida por fase atk
   // Pata tiesa de cadáver: segmento desde (x,y) con dirección (dx,dy); grosor w perpendicular
   function stiff(c, m, x, y, dx, dy, w = 1, hm) {
     const hz = Math.abs(dx) > Math.abs(dy);
@@ -352,7 +351,7 @@
         return;
       }
       const b = P.body, t = P.t, k = P.atk, A = P.anim;
-      const lunge = [0, -2, 3, 2][k], crouch = k === 1 ? 1 : 0;
+      const lunge = [-1, -1, 1, 0][k], crouch = k === 1 ? 1 : 0;   // agazapa y se lanza
       const jaw = k === 2 ? 2 : (A === 'idle' && (t === 1 || t === 2) ? 1 : 0);   // jadeo / mordisco
       const tw = A === 'idle' ? [0, 1, 1, 0][t] : A === 'walk' ? P.sw : (k === 1 ? -1 : 0);
       c.at(lunge, 0, () => {
@@ -361,8 +360,8 @@
         if (k === 2) { c.line('fa_wolf.0', 19, 14, 23, 17); c.line('fa_wolf.0', 19, 15, 23, 18); }
         else leg(c, 'fa_wolf.0', 18, lb + 1, 21, gait(P, .75, 2), 1, 'fa_wolf.0');
         c.at(0, b + crouch, () => {  // cola tupida, recta hacia atrás (agresivo)
-          c.poly('fa_wolf', [[9, 9], [5, 9.5 + tw * .5], [2, 11 + tw], [1, 13 + tw], [3, 13.6 + tw], [6, 12], [9, 12.5]]);
-          c.px('fa_wolfl', 1, 13 + tw); c.px('fa_wolfl', 2, 13 + tw); c.px('fa_wolf.0', 5, 12);
+          c.poly('fa_wolf', [[9, 9], [5.5, 9.5 + tw * .5], [3, 11 + tw], [2, 13 + tw], [4, 13.6 + tw], [6.5, 12], [9, 12.5]]);
+          c.px('fa_wolfl', 2, 13 + tw); c.px('fa_wolfl', 3, 13 + tw); c.px('fa_wolf.0', 5, 12);
         });
         c.at(0, b + crouch, () => {
           c.ell('fa_wolf', 10, 11.5, 3.2, 3);                                                        // anca
@@ -379,7 +378,7 @@
         c.at(0, b + crouch * 2 - (k === 2 ? 1 : 0), () => {
           c.ell('fa_wolf', 24, 10.5, 3.2, 2.8);
           c.poly('fa_wolf', [[25, 9], [30, 10.2], [30, 11.8], [25, 12.6]]);                        // hocico
-          c.px('fa_hoof', 30, 10); c.px('fa_wolf.0', 27, 10);
+          c.px('fa_hoof', 29, 10); c.px('fa_wolf.0', 27, 10);
           c.at(0, jaw, () => { c.poly('fa_wolf', [[24, 12], [29.6, 12], [28.6, 13.6], [24, 13.8]]); c.px('fa_wolfl', 25, 13); });
           if (jaw) { c.rect('mouth', 25, 12, 29, 11 + jaw); c.px('fa_teeth', 29, 12); c.px('fa_teeth', 27, 11 + jaw); if (jaw > 1) c.px('fa_teeth', 29, 13); c.px('fa_tongue', 26, 12 + jaw - (jaw > 1 ? 1 : 0)); }
           else { c.line('mouth', 25, 12, 29, 12); c.px('fa_teeth', 28, 12); }
@@ -412,7 +411,7 @@
       const rr = k === 1 ? 4 : k === 2 ? 1 : 0;                                         // se alza
       const roar = k === 1 || k === 2;
       const claws = (x, y) => { c.px('fa_claw', x, y); c.px('fa_claw', x - 2, y); };
-      c.at(k === 2 ? 2 : k === 3 ? 1 : 0, 0, () => {
+      c.at([-1, -1, 0, -1][k], 0, () => {
         leg(c, 'fa_bear.0', 10, 18 + b, 25, gait(P, .5, 1.5), 3, 'fa_bear.0', -1);
         leg(c, 'fa_bear.0', 17, 18 + b - rr, 25 - (k === 1 ? 2 : 0), gait(P, .75, 1.5), 3, 'fa_bear.0');
         c.at(0, b, () => {
@@ -456,19 +455,19 @@
         c.line('fa_boar', 4, 15, 2, 16); c.px('fa_bristle', 1, 16);
         c.ell('fa_boar', 12.5, 16, 8.5, 3.2); c.line('fa_bristle', 7, 13, 18, 13); c.px('fa_bristle', 10, 12); c.px('fa_bristle', 14, 12);
         sprawl(c, 'fa_boar', 'fa_hoof', 7, 17, 18, 4, 2);
-        c.poly('fa_boar', [[19, 13], [22, 13], [26, 15], [26, 18], [21, 18]]); c.rect('fa_snout', 26, 15, 26, 17);
+        c.poly('fa_boar', [[19, 13], [22, 13], [26, 15], [26, 18], [21, 18]]); c.rect('fa_boarsn', 26, 15, 26, 17);
         c.line('fa_tusk', 24, 18, 25, 16); c.poly('fa_boar', [[19, 13], [20, 11], [21.5, 13]]); deadEye(c, 22, 14);
         return;
       }
       const b = P.body, t = P.t, k = P.atk, A = P.anim;
       const sn = A === 'idle' ? [0, 1, 0, 0][t] : 0;                         // resopla
       const hy = k === 1 ? 2 : k === 2 ? -1 : k === 3 ? 0 : sn;
-      c.at([0, -1, 3, 2][k], 0, () => {
+      c.at([-1, -1, 0, -1][k], 0, () => {
         leg(c, 'fa_boar.0', 9, 14 + b, 19, gait(P, .5, 1.5), 2, 'fa_hoof');
         leg(c, 'fa_boar.0', 16, 14 + b, 19, gait(P, .75, 1.5), 2, 'fa_hoof');
         c.at(0, b, () => {
           const tw = A === 'idle' ? [0, 1, 0, -1][t] : P.sw;
-          c.line('fa_boar', 4, 9, 3, 12); c.px('fa_bristle', 3 + tw, 13); c.px('fa_bristle', 2 + tw, 13);  // rabo
+          c.line('fa_boar', 5, 9, 4, 12); c.px('fa_bristle', 4 + tw, 13); c.px('fa_bristle', 3 + tw, 13);  // rabo
           c.poly('fa_boar', [[4, 10], [8, 7], [14, 5], [19, 4], [22, 8], [22, 14], [18, 16], [7, 16], [4, 13]]);
           c.ell('fa_boar', 8, 12, 3.6, 3.8);
           // crin de cerdas
@@ -480,9 +479,9 @@
         leg(c, 'fa_boar', 18, 14 + b, 19, gait(P, .25, 1.5), 2, 'fa_hoof');
         c.at(0, b + hy, () => {
           c.poly('fa_boar', [[19, 6], [22, 7], [25.5, 11], [25.5, 14], [21, 14], [18, 11]]);       // cabeza en cuña
-          c.rect('fa_snout', 25, 11, 26, 13); c.px('fa_snout.0', 26, 12);                        // jeta
+          c.rect('fa_boarsn', 25, 11, 26, 13); c.px('fa_hoof', 26, 12); c.px('fa_boarsn.3', 25, 11);   // jeta
           c.poly('fa_boar', [[19, 7], [20, 4], [21.5, 7]]); c.px('fa_bristle', 20, 5);           // oreja
-          c.line('fa_tusk', 23, 13, 24, 11); c.px('fa_tusk', 24, 10);                            // colmillo
+          c.px('fa_tusk', 23, 14); c.px('fa_tusk', 24, 13); c.px('fa_tusk', 24, 12); c.px('fa_tusk.3', 24, 11); c.px('fa_tusk', 25, 10);   // colmillo curvo
           c.px('fa_eyeR', 22, 8); c.px('fa_bristle', 21, 8);
         });
       });
@@ -696,8 +695,9 @@
       const cx = 12, a = f < 6 ? 1 : f === 6 ? .6 : .3, ry = 3.2, rx = 9;
       const cy = 27 - f * 2.4;                                                                     // el anillo sube
       halo(c, cx, cy, 11, 50 * a, '#ffe98a');
-      for (let i = 0; i < 4; i++) { const x = 4 + i * 5 + (i % 2), y0 = 29 - f * 3 - i * 2; c.line(C('#fff3b0', .45 * a), x, y0, x, y0 + 4); }   // estelas
-      c.ring(C('#e2b237', .6 * a), cx, cy, rx, ry, .72, (x, y) => y > cy - 1);                    // mitad delantera
+      for (let i = 0; i < 4; i++) { const x = 5 + i * 5 - (i > 1 ? 1 : 0), y0 = cy - 6 - ((f + i * 3) % 5) * 2; c.line(C('#fff3b0', .35 * a), x, y0, x, y0 + 2); c.px(C('#fffbe6', .8 * a), x, y0); }   // motas que suben
+      c.ring(C('#a8762a', .45 * a), cx, cy, rx, ry, .7, (x, y) => y < cy - .5);                   // mitad trasera
+      c.ring(C('#ffd84a', .7 * a), cx, cy, rx, ry, .7, (x, y) => y >= cy - .5);                   // mitad delantera
       for (let i = 0; i < 8; i++) {
         const an = i * TAU / 8 + f * .45, x = Math.round(cx + Math.cos(an) * rx), y = Math.round(cy + Math.sin(an) * ry);
         const front = Math.sin(an) > 0, big = (i + f) % 3 === 0;
@@ -735,10 +735,11 @@
     w: 12, h: 12, frames: 4, render: NOOL,
     draw(c, f) {
       const B1 = C('#d8323a'), B2 = C('#8c1a26', .95), a = f === 3 ? .55 : 1;
-      if (f === 0) { c.ell(B2, 6, 6, 2, 2); c.px(B1, 5, 5); c.px(B1, 6, 5); }
-      for (let i = 0; i < 6; i++) {
-        const an = i * TAU / 6 - .6 + rnd(i) * .5, d = f * 1.8 + 1, x = 6 + Math.cos(an) * d, y = 6 + Math.sin(an) * d + f * f * .35;
-        if (f > 0) { c.px(C('#8c1a26', a), x, y); if (i % 2 === 0 && f < 3) c.px(C('#d8323a', a), x - Math.cos(an), y - Math.sin(an)); }
+      if (f === 0) { c.ell(B2, 6, 6, 2.6, 2.4); c.ell(B1, 5.6, 5.6, 1.4, 1.2); }
+      if (f === 1) { c.ell(B2, 6, 6.5, 1.6, 1.4); c.px(B1, 6, 6); }
+      for (let i = 0; i < 7; i++) {
+        const an = i * TAU / 7 - .6 + rnd(i) * .5, d = f * 1.7 + 1, x = Math.round(6 + Math.cos(an) * d), y = Math.round(6 + Math.sin(an) * d + f * f * .35);
+        if (f > 0) { c.px(C('#8c1a26', a), x, y); if (f < 3) { c.px(C('#d8323a', a), x - Math.round(Math.cos(an)), y - Math.round(Math.sin(an))); if (i % 2) c.px(C('#8c1a26', a), x, y + 1); } }
       }
     },
   };
@@ -829,8 +830,8 @@
     draw(c, f) {
       spin(c, f, t => {
         t.line('wood', 2, 9, 7, 4); t.line('wood.0', 3, 9, 7, 5);
-        t.poly('blade', [[5.5, 3], [8.6, .6], [11.4, 3.4], [9, 6.4]]);
-        t.line('blade.3', 9, 1, 11, 3); t.px('blade.3', 10, 4); t.px('steel.0', 7, 3); t.px('steel.0', 8, 4); t.px('iron', 6, 4); t.px('iron', 7, 5);
+        t.poly('blade', [[5.5, 3], [8.4, 1], [10.8, 3.4], [8.8, 6.4]]);
+        t.line('blade.3', 9, 1, 10, 2); t.px('blade.3', 10, 3); t.px('steel.0', 7, 3); t.px('steel.0', 8, 4); t.px('iron', 6, 4); t.px('iron', 7, 5);
       });
     },
   };
@@ -923,15 +924,15 @@
   }
   function bow(c, ox, oy) {                      // arco tenso (madera de 2 px) con flecha horizontal (12×12)
     const P = (m, pts) => pts.forEach(([x, y]) => c.px(m, ox + x, oy + y));
-    c.line('string', ox + 3, oy + 1, ox + 1, oy + 5); c.line('string', ox + 1, oy + 6, ox + 3, oy + 10);
-    P('wood', [[3, 1], [4, 1], [4, 2], [5, 2], [5, 3], [6, 3], [6, 4], [7, 4], [6, 5], [7, 5], [6, 6], [7, 6], [6, 7], [7, 7], [5, 8], [6, 8], [4, 9], [5, 9], [3, 10], [4, 10]]);
-    P('wood.3', [[3, 1], [4, 2], [5, 3], [6, 4]]); P('leather', [[6, 6], [7, 6], [6, 7], [7, 7]]);
-    c.line('fa_ui', ox + 1, oy + 5, ox + 8, oy + 5);
-    c.poly('steel', [[ox + 8.5, oy + 3.5], [ox + 11, oy + 5.5], [ox + 8.5, oy + 7.5]]);
-    P('red', [[0, 4], [1, 4], [0, 6], [1, 6]]);
+    c.line('string', ox + 4, oy + 1, ox + 2, oy + 5); c.line('string', ox + 2, oy + 6, ox + 4, oy + 10);
+    P('wood', [[4, 1], [5, 1], [5, 2], [6, 2], [6, 3], [7, 3], [7, 4], [8, 4], [7, 5], [8, 5], [7, 6], [8, 6], [7, 7], [8, 7], [6, 8], [7, 8], [5, 9], [6, 9], [4, 10], [5, 10]]);
+    P('wood.3', [[4, 1], [5, 2], [6, 3], [7, 4]]); P('leather', [[7, 6], [8, 6], [7, 7], [8, 7]]);
+    c.line('fa_ui', ox + 2, oy + 5, ox + 8, oy + 5);
+    c.poly('steel', [[ox + 8.5, oy + 3.5], [ox + 10.8, oy + 5.5], [ox + 8.5, oy + 7.5]]);
+    P('red', [[1, 4], [2, 4], [1, 6], [2, 6]]);
   }
   function boot(c, ox, oy) {                     // bota alada
-    c.poly('fa_ui', [[ox + .5, oy + 1.5], [ox + 4.5, oy + 2.6], [ox + 4.5, oy + 6.5], [ox + 2, oy + 6], [ox + .5, oy + 4]]);
+    c.poly('fa_ui', [[ox + 1, oy + 1.5], [ox + 4.5, oy + 2.6], [ox + 4.5, oy + 6.5], [ox + 2.4, oy + 6], [ox + 1, oy + 4]]);
     c.line('fa_ui.0', ox + 1, oy + 3, ox + 4, oy + 4); c.line('fa_ui.0', ox + 2, oy + 5, ox + 4, oy + 5);
     c.rect('leather', ox + 5, oy + 1, ox + 8, oy + 7); c.poly('leather', [[ox + 5, oy + 6.5], [ox + 9, oy + 6.5], [ox + 11, oy + 8], [ox + 11, oy + 10], [ox + 5, oy + 10]]);
     c.rect('leather.0', ox + 5, oy + 10, ox + 10, oy + 10); c.rect('gold', ox + 5, oy + 1, ox + 8, oy + 1); c.line('leather.3', ox + 6, oy + 2, ox + 6, oy + 6);
@@ -981,14 +982,14 @@
     c.ell('skin.0', 8.5, 3, 1.8, 1.8); c.ell('team.0', 8.5, 8.6, 2.6, 2.8);
     c.rect('team', 1, 7, 7, 10); c.ell('team', 4, 7.4, 3.2, 2); c.ell('skin', 4, 3.6, 2.2, 2.3); c.px('hair', 3, 1); c.rect('hair', 2, 2, 5, 2);
   });
-  IC.icon_attack = icon(12, c => sword(c, 3, 8, 7));
+  IC.icon_attack = icon(12, c => sword(c, 4, 7, 6));
   IC.icon_armor = icon(12, c => {              // escudo de acero
     c.poly('steel', [[1.5, 1.5], [10.5, 1.5], [10.5, 5.5], [6, 10.5], [1.5, 5.5]]);
     c.poly('silver', [[3, 3], [9, 3], [9, 5.4], [6, 8.6], [3, 5.4]]); c.line('steel', 6, 2, 6, 9); c.line('steel', 2, 4, 10, 4);
   });
   IC.icon_parmor = icon(12, c => {             // rodela de cuero con flecha clavada
     c.ell('leather', 5.5, 6.5, 4.6, 4.6); c.ring('iron', 5.5, 6.5, 4.6, 4.6, .7); c.ell('iron', 5.5, 6.5, 1.3, 1.3); c.px('iron.3', 5, 6);
-    c.line('fa_ui', 7, 5, 10, 2); c.px('red', 10, 1); c.px('red', 11, 2); c.px('red', 11, 1);
+    c.line('fa_ui', 6, 5, 9, 2); c.px('red', 9, 1); c.px('red', 10, 2); c.px('red', 10, 1);
   });
   IC.icon_range = icon(12, c => bow(c, 0, 0));
   IC.icon_speed = icon(12, c => boot(c, 0, 0));
@@ -1020,8 +1021,8 @@
     draw(c) {                                  // estrella rubí con laureles dorados
       for (const s of [-1, 1]) {
         const X = x => Math.round(5 + s * x);
-        [[5, 2], [5, 3], [5, 4], [4, 5], [3, 6]].forEach(([x, y]) => c.px('gold', X(x), y));
-        c.px('gold.3', X(4), 2); c.px('gold.3', X(4), 4);
+        [[4, 3], [4, 4], [4, 5], [3, 6], [2, 6]].forEach(([x, y]) => c.px('gold', X(x), y));
+        c.px('gold.3', X(4), 2); c.px('gold.3', X(3), 5);
       }
       const P5 = []; for (let i = 0; i < 10; i++) { const an = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 1.5 : 3.4; P5.push([5.5 + Math.cos(an) * r, 4.2 + Math.sin(an) * r]); }
       c.poly('fa_ruby', P5); c.px('fa_ruby.3', 5, 3); c.px('white', 5, 2);
@@ -1035,7 +1036,7 @@
   });
   IC.cmd_attackmove = icon(16, c => {          // espada + flechas de avance
     sword(c, 6, 9, 8);
-    for (const x of [1, 5]) { c.poly('fa_stop', [[x - .5, 9.5], [x + 1.5, 9.5], [x + 4.5, 12.5], [x + 1.5, 15.5], [x - .5, 15.5], [x + 2.5, 12.5]]); }
+    for (const x of [2, 6]) { c.poly('fa_stop', [[x - .5, 9.5], [x + 1.5, 9.5], [x + 4.5, 12.5], [x + 1.5, 15.5], [x - .5, 15.5], [x + 2.5, 12.5]]); }
   });
   IC.cmd_build = icon(16, c => {               // ladrillos y martillo
     c.rect('brick', 1, 10, 9, 14); c.line('plaster', 1, 12, 9, 12); c.px('plaster', 4, 10); c.px('plaster', 4, 11); c.px('plaster', 7, 13); c.px('plaster', 7, 14); c.px('plaster', 2, 13); c.px('plaster', 2, 14);
@@ -1053,7 +1054,7 @@
   IC.cmd_rally = icon(16, c => {               // bandera de reunión del color de equipo
     c.line('wood', 4, 2, 4, 14); c.px('gold', 4, 1);
     c.poly('team', [[5, 2], [12, 3], [10.5, 5.5], [13, 8], [5, 8]]); c.px('team.3', 6, 3); c.line('team.0', 6, 7, 11, 7);
-    c.ell('dirt', 4.5, 14.5, 3, 1.2);
+    c.ell('dirt', 4.5, 13.8, 3, 1);
   });
   IC.cmd_idle = icon(16, c => {                // aldeano ocioso (Zz)
     c.ell('skin', 6.5, 10, 3.6, 3.4); c.rect('tunic', 3, 13, 10, 14);
@@ -1065,27 +1066,27 @@
   IC.cmd_ageup = icon(16, c => {               // torre con estandarte y flecha dorada
     c.rect('stone', 2, 6, 8, 14); for (const x of [2, 5, 8]) c.rect('stone', x, 4, x, 5); c.rect('stone', 2, 5, 8, 5);
     c.rect('darkwood', 4, 11, 6, 14); c.px('window', 5, 8);
-    c.line('wood', 5, 0, 5, 3); c.rect('team', 6, 0, 8, 1);
+    c.line('wood', 5, 1, 5, 3); c.rect('team', 6, 1, 8, 2);
     c.poly('gold', [[8.5, 6.5], [12, 2.6], [15.5, 6.5]]); c.rect('gold', 10.5, 6, 13.5, 14); c.px('gold.3', 12, 4); c.line('gold.3', 11, 7, 11, 13);
   });
   IC.cmd_trade = icon(16, c => {               // balanza dorada
     c.line('gold', 7, 2, 7, 13); c.rect('gold', 4, 14, 10, 14); c.rect('gold', 5, 13, 9, 13);
-    c.line('gold', 1, 4, 13, 4); c.px('gold.3', 7, 1);
-    c.line('string', 1, 5, 0, 8); c.line('string', 1, 5, 3, 8); c.line('string', 13, 5, 11, 8); c.line('string', 13, 5, 15, 8);
-    c.poly('copper', [[-0.5, 8.5], [3.5, 8.5], [2.5, 10.5], [.5, 10.5]]); c.poly('copper', [[10.5, 8.5], [14.5, 8.5], [13.5, 10.5], [11.5, 10.5]]);
+    c.line('gold', 3, 4, 11, 4); c.px('gold.3', 7, 1);
+    c.line('string', 3, 5, 1, 8); c.line('string', 3, 5, 5, 8); c.line('string', 11, 5, 9, 8); c.line('string', 11, 5, 13, 8);
+    c.poly('copper', [[1, 8.5], [5.5, 8.5], [4.5, 10.5], [1.5, 10.5]]); c.poly('copper', [[8.5, 8.5], [13.5, 8.5], [12.5, 10.5], [9.5, 10.5]]);
   });
   IC.cmd_diplomacy = icon(16, c => {           // pergamino con sello de cera
     c.rect('fa_paper', 3, 3, 12, 12); c.ell('fa_paper', 3, 7.5, 1.6, 5); c.rect('fa_paper.0', 2, 2, 13, 2); c.rect('fa_paper.0', 2, 13, 13, 13);
     c.ell('fa_paper', 13, 2.5, 1.4, 1.4); c.ell('fa_paper', 13, 13, 1.4, 1.4);
     for (let y = 5; y <= 9; y += 2) c.line('fa_paper.0', 5, y, 11, y);
-    c.ell('red', 10.5, 11, 2.2, 2.2); c.px('red.3', 10, 10); c.line('team', 9, 13, 8, 15); c.line('team', 11, 13, 12, 15);
+    c.ell('red', 10.5, 11, 2.2, 2.2); c.px('red.3', 10, 10); c.line('team', 9, 13, 8, 14); c.line('team', 11, 13, 12, 14);
   });
   IC.cmd_back = icon(16, c => {                // flecha de volver (↰)
     c.poly('fa_ui', [[1, 5.5], [6, 0.5], [6, 3.5], [10, 3.5], [13.5, 7], [13.5, 13.5], [10.5, 13.5], [10.5, 8], [9.5, 7], [6, 7], [6, 10.5]]);
     c.line('fa_ui.0', 7, 6, 10, 6); c.line('fa_ui.0', 11, 9, 11, 13);
   });
   IC.cmd_ability = icon(16, c => {             // destello mágico
-    c.poly('fa_magic', [[7.5, 0.5], [9.2, 5.8], [14.5, 7.5], [9.2, 9.2], [7.5, 14.5], [5.8, 9.2], [0.5, 7.5], [5.8, 5.8]]);
+    c.poly('fa_magic', [[7.5, 1], [9.2, 5.8], [14, 7.5], [9.2, 9.2], [7.5, 14], [5.8, 9.2], [1, 7.5], [5.8, 5.8]]);
     c.poly('fa_magic.3', [[7.5, 4], [8.4, 6.6], [11, 7.5], [8.4, 8.4], [7.5, 11], [6.6, 8.4], [4, 7.5], [6.6, 6.6]]); c.px('white', 7, 7);
     c.px('fa_magic', 12, 2); c.px('fa_magic', 2, 12); c.px('fa_magic.3', 13, 13);
   });
@@ -1104,7 +1105,7 @@
     c.poly('iron', [[2.5, 3], [6, 1.6], [9.5, 2.5], [13, 5], [13.5, 8.5], [11, 5.6], [8, 4.4], [5, 4.4]]); c.line('iron.3', 5, 2, 9, 3); upArrow(c);
   });
   IC.cmd_upg_farm = icon(16, c => {            // tres espigas de trigo atadas
-    for (const [x, y] of [[3, 3], [7, 1], [11, 3]]) {
+    for (const [x, y] of [[3, 3], [7, 2], [11, 3]]) {
       c.line('straw.0', x, y + 2, x, y + 7);
       for (let k = 0; k < 3; k++) { c.px('straw', x - 1, y + 2 + k * 2); c.px('straw', x + 1, y + 2 + k * 2); c.px('straw.3', x - 1, y + 1 + k * 2); c.px('straw.0', x + 1, y + 3 + k * 2); }
       c.px('straw.3', x, y + 1); c.px('straw', x, y); c.px('straw.2', x, y - 1);
@@ -1139,7 +1140,7 @@
     c.rect('grass', 1, 1, 14, 14); c.px('grass.3', 2, 3); c.px('grass.3', 13, 9); c.px('grass.0', 2, 11); c.px('grass.0', 13, 4);
     c.rect('fa_istone', 4, 1, 11, 14);
     for (let r = 0; r < 5; r++) {
-      const y = 1 + r * 3; c.line('fa_istone.0', 4, y + 2, 11, y + 2);
+      const y = 1 + r * 3; if (y + 2 < 15) c.line('fa_istone.0', 4, y + 2, 11, y + 2);
       for (let x = 4 + (r % 2 ? 1 : 3); x <= 11; x += 4) { c.px('fa_istone.0', x, y); c.px('fa_istone.0', x, y + 1); }
       c.px('fa_istone.3', 5 + (r % 2) * 2, y); c.px('fa_istone.3', 9 + (r % 2), y);
     }

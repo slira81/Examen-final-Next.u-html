@@ -115,7 +115,7 @@ function render(dtReal) {
   for (const r of G.resBy.carcass || []) if (!r.dead && r.tx >= x0 && r.tx <= x1 && r.ty >= y0 && r.ty <= y1 && exploredAt(r.tx, r.ty)) L.push([r.y - 2, 0, r]);
   for (const d of m.decor) if (d.anim && d.tx >= x0 && d.tx <= x1 && d.ty >= y0 && d.ty <= y1) L.push([d.ty * T + 12, 3, d]);
   for (const b of G.blds) if (!b.dead && !b.def.flat && inView(b) && exploredAt(b.tx + (b.fp >> 1), b.ty + (b.fp >> 1))) L.push([(b.ty + b.fp) * T, 1, b]);
-  for (const u of G.units) if (!u.dead && u.x > cx - 40 && u.x < cx + VIEW.w + 40 && u.y > cy - 20 && u.y < cy + VIEW.h + 50 && (isAlly(u.team, G.human) || visibleAt(u.x, u.y))) L.push([u.y, 2, u]);
+  for (const u of G.units) if (!u.dead && !u.inside && u.x > cx - 40 && u.x < cx + VIEW.w + 40 && u.y > cy - 20 && u.y < cy + VIEW.h + 50 && (isAlly(u.team, G.human) || visibleAt(u.x, u.y))) L.push([u.y, 2, u]);
   for (const t of G.treasures) if (!t.taken && t.tx >= x0 && t.tx <= x1 && t.ty >= y0 && t.ty <= y1 && exploredAt(t.tx, t.ty)) L.push([t.ty * T + 14, 4, t]);
   for (const k of G.corpses) if (k.x > cx - 30 && k.x < cx + VIEW.w + 30 && k.y > cy - 20 && k.y < cy + VIEW.h + 30 && visibleAt(k.x, k.y)) L.push([k.y - 6, 5, k]);
   L.sort((a, b) => a[0] - b[0]);
@@ -261,7 +261,7 @@ function drawMinimap() {
   const RC = { tree: [38, 92, 44], gold: [255, 210, 58], gems: [190, 110, 255], stone: [200, 200, 200], iron: [160, 110, 90], berry: [220, 80, 120], fish: [140, 200, 255] };
   for (const r of G.map.resList) if (!r.dead && RC[r.kind]) put(r.ty * W + r.tx, RC[r.kind]);
   for (const b of G.blds) { if (b.dead) continue; const col = PE.hx(PE.TEAM_COLORS[teamColorIdx(b.team)].hex); for (let y = b.ty; y < b.ty + b.fp; y++) for (let xx = b.tx; xx < b.tx + b.fp; xx++) if (exploredAt(xx, y)) put(y * W + xx, col); }
-  for (const u of G.units) { if (u.dead || (isAnimal(u) && u.team >= 7)) continue; if (!isAlly(u.team, G.human) && !visibleAt(u.x, u.y)) continue; const col = PE.hx(PE.TEAM_COLORS[teamColorIdx(u.team)].hex); put(tileOf(u.y) * W + tileOf(u.x), col.map(v => Math.min(255, v + 40))); }
+  for (const u of G.units) { if (u.dead || u.inside || (isAnimal(u) && u.team >= 7)) continue; if (!isAlly(u.team, G.human) && !visibleAt(u.x, u.y)) continue; const col = PE.hx(PE.TEAM_COLORS[teamColorIdx(u.team)].hex); put(tileOf(u.y) * W + tileOf(u.x), col.map(v => Math.min(255, v + 40))); }
   if (G.human >= 0 && !G.cfg.revealed) for (let i = 0; i < W * H; i++) { const v = G.vis[i]; if (v === 0) { d[i * 4] = 10; d[i * 4 + 1] = 8; d[i * 4 + 2] = 16; } else if (v === 1) { d[i * 4] *= 0.55; d[i * 4 + 1] *= 0.55; d[i * 4 + 2] *= 0.6; } }
   x.putImageData(img, 0, 0);
   x.strokeStyle = '#fff'; x.lineWidth = 1; x.strokeRect((G.cam.x - VIEW.w / 2) / T + 0.5, (G.cam.y - VIEW.h / 2) / T + 0.5, VIEW.w / T, VIEW.h / T);

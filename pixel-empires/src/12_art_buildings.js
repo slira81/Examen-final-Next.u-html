@@ -227,11 +227,38 @@ function logSide(c, x0, x1, yb, m = 'wood', d = 3) {
   c.rect('bld_logend', x1, yb - d + 1, x1, yb); c.px(T('bld_logend', 0), x1, yb - (d >> 1));
 }
 // Diana de tiro con arco sobre caballete
-function target(c, cx, cy, f, m = 'straw') {
-  c.line('darkwood', cx - 3, cy + 6, cx - 1, cy); c.line('darkwood', cx + 3, cy + 6, cx + 1, cy); c.line('darkwood', cx + 1, cy + 7, cx + 1, cy + 2);
-  c.ell(m, cx + .5, cy + .5, 4.7, 4.7); c.ell(T('cloth', 2), cx + .5, cy + .5, 3.7, 3.7); c.ell(T('red', 1), cx + .5, cy + .5, 2.6, 2.6); c.ell(T('cloth', 3), cx + .5, cy + .5, 1.5, 1.5); c.px(T('red', 2), cx, cy);
-  c.line('darkwood', cx + 2, cy - 1, cx + 5, cy - 3); c.px('feather', cx + 5, cy - 3); c.px('feather', cx + 6, cy - 3);
-  c.line('darkwood', cx - 1, cy + 2, cx - 4, cy + 3); c.px('feather', cx - 4, cy + 3); c.px('feather', cx - 5, cy + 3);
+function target(c, cx, cy, f, id = 'human') {
+  const st = { human: ['straw', 'darkwood', 'red', 'cloth'], elf: ['bld_elfwood', 'silver', 'bld_elfleaf', 'gold'], dwarf: ['iron', 'iron', 'red', 'gold'], orc: ['darkwood', 'darkwood', 'red', 'bone'], giant: ['rock', null, 'red', 'cloth'] }[id] || ['straw', 'darkwood', 'red', 'cloth'];
+  if (st[1]) { c.line(st[1], cx - 3, cy + 6, cx - 1, cy); c.line(st[1], cx + 4, cy + 6, cx + 2, cy); c.line(T(st[1], 0), cx + 1, cy + 7, cx + 1, cy + 2); }
+  else { c.ell('rock', cx + .5, cy + 3, 6, 5); tex(c, 'rock', cx - 6, cy - 3, cx + 7, cy + 8, (x, y) => (hs(x, y) % 7 === 0 ? 0 : null)); }
+  c.ell(st[0], cx + .5, cy + .5, 4.7, 4.7); c.ell(T(st[3], 2), cx + .5, cy + .5, 3.7, 3.7); c.ell(T(st[2], 1), cx + .5, cy + .5, 2.6, 2.6); c.ell(T(st[3], 3), cx + .5, cy + .5, 1.5, 1.5); c.px(T(st[2], 2), cx, cy);
+  if (id === 'orc') { c.px('ol', cx - 1, cy); c.px('ol', cx + 1, cy); }
+  c.line('darkwood', cx + 2, cy - 1, cx + 4, cy - 3); c.px('feather', cx + 4, cy - 4); c.px('feather', cx + 5, cy - 3);
+  c.line('darkwood', cx - 1, cy + 2, cx - 3, cy + 4); c.px('feather', cx - 4, cy + 4); c.px('feather', cx - 3, cy + 5);
+}
+// Cabeza de montura asomada (caballo, ciervo blanco, carnero, lobo, mamut según la raza)
+function beast(c, id, hx, yt, f) {
+  c.at(0, f === 2 ? 1 : 0, () => {
+    if (id === 'dwarf') {
+      c.rect('sack', hx - 2, yt + 1, hx + 2, yt + 4); c.rect('sack', hx - 1, yt + 5, hx + 1, yt + 6); c.rect(T('sack', 0), hx - 1, yt + 6, hx + 1, yt + 6); c.rect(T('sack', 3), hx - 1, yt + 1, hx + 1, yt + 1);
+      for (const d of [-1, 1]) { c.ring('bone', hx + d * 3.5 + .5, yt + 2.5, 2.3, 2.3, 0.2); c.px(T('bone', 0), hx + d * 3.5 + .5, yt + 2.5); } c.px('eye', hx - 1, yt + 3); c.px('eye', hx + 1, yt + 3);
+    } else if (id === 'orc') {
+      for (const d of [-1, 1]) { c.px('rock', hx + 2 * d, yt - 1); c.px('rock', hx + 2 * d, yt); c.px(T('rock', 3), hx + 2 * d, yt - 1); }
+      c.rect('rock', hx - 2, yt + 1, hx + 2, yt + 3); c.rect('rock', hx - 1, yt + 4, hx + 1, yt + 5); c.px('ol', hx, yt + 5); c.rect(T('rock', 3), hx - 1, yt + 1, hx + 1, yt + 1);
+      c.px('glowY', hx - 1, yt + 2); c.px('glowY', hx + 1, yt + 2); c.px('bone', hx - 1, yt + 6); c.px('bone', hx + 1, yt + 6);
+    } else if (id === 'giant') {
+      c.ell('fur', hx + .5, yt + 2.5, 3.6, 3); c.px(T('fur', 0), hx - 4, yt + 2); c.px(T('fur', 0), hx + 4, yt + 2); c.rect(T('fur', 3), hx - 1, yt, hx + 1, yt);
+      c.rect('fur', hx, yt + 5, hx, yt + 8); c.px('fur', hx + 1, yt + 9); c.px('eye', hx - 2, yt + 2); c.px('eye', hx + 2, yt + 2);
+      for (const d of [-1, 1]) { c.px('bone', hx + d, yt + 5); c.px('bone', hx + 2 * d, yt + 6); c.px(T('bone', 3), hx + 2 * d, yt + 7); c.px('bone', hx + 3 * d, yt + 7); }
+    } else {
+      const m = id === 'elf' ? 'cloth' : 'bld_horse';
+      if (id === 'elf') for (const d of [-1, 1]) { c.line('bld_elfwood', hx + d * 2, yt, hx + d * 4, yt - 3); c.px('bld_elfwood', hx + d * 3, yt - 3); c.px('bld_elfwood', hx + d * 5, yt - 2); c.px(T('bld_elfwood', 3), hx + d * 4, yt - 4); }
+      c.px(T(m, 0), hx - 2, yt); c.px(T(m, 0), hx + 2, yt);
+      c.rect(m, hx - 2, yt + 1, hx + 2, yt + 3); c.rect(m, hx - 1, yt + 4, hx + 1, yt + 7); c.rect(T(m, 0), hx - 1, yt + 7, hx + 1, yt + 8); c.rect(T(m, 3), hx - 1, yt + 1, hx + 1, yt + 1);
+      if (id !== 'elf') { c.line(T('cloth', 3), hx, yt + 2, hx, yt + 5); c.px('hair', hx - 1, yt + 1); c.px('hair', hx, yt); }
+      c.px('eye', hx - 2, yt + 2); c.px('eye', hx + 2, yt + 2);
+    }
+  });
 }
 // Maniquí de entrenamiento: poste, brazos de palo, cuerpo de paja con peto del equipo, cabeza de saco
 function dummy(c, x, yb, f, m = 'straw') {
@@ -256,10 +283,21 @@ function cart(c, x, yb, ore = 'gold') {
 function rails(c, x0, x1, y) { c.line('iron', x0, y, x1, y); for (let x = x0 + 1; x < x1; x += 3) c.px('darkwood', x, y + 1); }
 // Escudo con espadas cruzadas (emblema de cuartel)
 function crossed(c, cx, cy, o = {}) {
-  c.line(o.blade || 'blade', cx - 4, cy - 4, cx + 4, cy + 4); c.line(o.blade || 'blade', cx + 4, cy - 4, cx - 4, cy + 4);
-  c.px('gold', cx - 4, cy + 4); c.px('gold', cx + 4, cy + 4);
-  c.rect(o.shield || 'team', cx - 2, cy - 2, cx + 2, cy + 1); c.rect(o.shield || 'team', cx - 1, cy + 2, cx + 1, cy + 2); c.px(o.shield || 'team', cx, cy + 3);
-  c.px('gold', cx, cy - 1); c.px('gold', cx, cy);
+  const bl = o.blade || 'blade';
+  for (const d of [-1, 1]) { c.line(T(bl, 3), cx - 5 * d, cy - 5, cx + 4 * d, cy + 4); c.line(T(bl, 1), cx - 5 * d + d, cy - 5, cx + 4 * d + d, cy + 4); c.line('gold', cx + 3 * d, cy + 5, cx + 5 * d, cy + 3); c.px(T('leather', 0), cx + 5 * d, cy + 5); }
+  c.rect('gold', cx - 3, cy - 3, cx + 3, cy + 2); c.rect('gold', cx - 2, cy + 3, cx + 2, cy + 3); c.px('gold', cx, cy + 4);
+  c.rect('team', cx - 2, cy - 2, cx + 2, cy + 2); c.px('team', cx - 1, cy + 3); c.px('team', cx, cy + 3); c.px('team', cx + 1, cy + 3);
+  c.rect(T('team', 3), cx - 2, cy - 2, cx - 2, cy); c.rect(T('team', 0), cx + 2, cy, cx + 2, cy + 2); c.px(T('gold', 3), cx, cy);
+}
+// Armero con armas según la raza
+function rack(c, K, x0, yb) {
+  c.line(K.beam, x0, yb, x0, yb - 9); c.line(K.beam, x0 + 9, yb, x0 + 9, yb - 9); c.line(T(K.beam, 2), x0, yb - 8, x0 + 9, yb - 8); c.line(T(K.beam, 0), x0, yb - 2, x0 + 9, yb - 2);
+  for (let i = 0; i < 3; i++) {
+    const x = x0 + 2 + i * 3;
+    if (K.id === 'giant') { c.rect('wood', x, yb - 9, x + 1, yb - 1); c.rect('bld_logend', x - 1, yb - 12, x + 2, yb - 9); c.px('iron', x - 1, yb - 11); c.px('iron', x + 2, yb - 10); }
+    else if (K.id === 'dwarf' || K.id === 'orc') { c.line('darkwood', x, yb - 1, x, yb - 11); c.rect(K.blade, x + 1, yb - 12, x + 2, yb - 9); c.px(T(K.blade, 3), x + 1, yb - 12); if (K.id === 'orc') c.px('bone', x - 1, yb - 12); }
+    else { c.line(K.wood, x, yb - 1, x, yb - 11); c.px(T(K.blade, 2), x, yb - 12); c.px(T(K.blade, 3), x, yb - 13); c.px(T(K.blade, 2), x, yb - 14); if (K.id === 'elf') c.px(T(K.blade, 3), x + 1, yb - 13); }
+  }
 }
 // Herradura
 function shoe(c, cx, cy, m = 'iron') { c.ring(T(m, 2), cx, cy, 3, 3, 0.2, (x, y) => y < cy + 1); c.rect(T(m, 1), cx - 3, cy + 1, cx - 2, cy + 2); c.rect(T(m, 0), cx + 1, cy + 1, cx + 2, cy + 2); c.px(T(m, 3), cx - 2, cy - 2); }
@@ -291,21 +329,13 @@ function fenceH(c, x0, x1, y, m = 'wood') { c.line(m, x0, y - 2, x1, y - 2); c.l
 function fenceV(c, x, y0, y1, m = 'wood') { c.line(m, x, y0, x, y1); for (let y = y0; y <= y1; y += 4) c.rect(T(m, 2), x, y - 2, x, y); }
 
 // Puerta de establo partida (abajo tablones con aspa, arriba abierta con caballo o cerrada)
-function sdoor(c, K, cx, yb, w, h, horse, f) {
+function sdoor(c, K, cx, yb, w, h, beastId, f) {
   const x0 = Math.round(cx - w / 2), x1 = x0 + w - 1, yt = yb - h + 1, ym = yt + (h >> 1) - 1;
-  c.rect(K.beam, x0 - 1, yt - 1, x1 + 1, yb);
+  c.rect(K.beam, x0 - 1, yt - 1, x1 + 1, yb); c.rect(T(K.beam, 2), x0 - 1, yt - 1, x1 + 1, yt - 1);
   R(c, K.wood, x0, ym + 1, x1, yb, P.plankV(x0, 2)); c.line(K.beam, x0, ym + 1, x1, yb); c.line(K.beam, x1, ym + 1, x0, yb);
-  c.rect(T(K.beam, 2), x0 - 1, ym + 1, x1 + 1, ym + 1);
-  if (horse) {
-    c.rect('bld_hole', x0, yt, x1, ym);
-    const hx = x0 + (w >> 1), b = f === 2 ? 1 : 0;
-    c.at(0, b, () => {   // cabeza de caballo asomada de frente
-      c.px(T(horse, 0), hx - 2, yt); c.px(T(horse, 0), hx + 1, yt);
-      c.rect(horse, hx - 2, yt + 1, hx + 1, yt + 3); c.rect(horse, hx - 1, yt + 4, hx + 1, ym + 2); c.px(horse, hx - 2, yt + 4);
-      c.rect(T(horse, 0), hx - 1, ym + 2, hx + 1, ym + 3); c.px(T('cloth', 3), hx, yt + 2); c.px(T('cloth', 2), hx, yt + 3);
-      c.px('eye', hx - 2, yt + 2); c.px('eye', hx + 1, yt + 2); c.rect('hair', hx - 1, yt, hx, yt);
-    });
-  } else { R(c, K.wood, x0, yt, x1, ym, P.plankV(x0, 2)); c.line(K.beam, x0, yt, x1, ym); }
+  if (beastId) { c.rect('bld_hole', x0, yt, x1, ym); beast(c, beastId, x0 + (w >> 1), yt + 1, f); }
+  else { R(c, K.wood, x0, yt, x1, ym, P.plankV(x0, 2)); c.line(K.beam, x0, yt, x1, ym); c.line(K.beam, x1, yt, x0, ym); }
+  c.rect(T(K.beam, 2), x0 - 1, ym + 1, x1 + 1, ym + 1); c.px(K.metal, x1 - 1, ym + 3);
 }
 // Mostrador de puesto con mercancías
 function counter(c, K, x0, x1, y) { R(c, K.wood, x0, y, x1, y + 4, P.plankH(y, 2)); c.rect(T(K.wood, 2), x0, y, x1, y); goods(c, x0 + 1, x1 - 1, y - 1); }
@@ -325,6 +355,7 @@ const HUM = {
   stonewall(c, x0, y0, x1, y1) { R(c, 'stone', x0, y0, x1, y1, P.brick(x0, y0, 5, 3)); },
   roof(c, xl, xr, yb, yt, o = {}) {
     const m = o.m || 'team', ins = o.ins ?? Math.round((yb - yt) * 0.45);
+    xl = Math.max(xl, 1); xr = Math.min(xr, c.w - 2);
     trap(c, m, xl, xr, yb, yt, ins);
     tex(c, m, xl, yt, xr, yb, m === 'thatch' ? P.thatch(yb + 1) : P.tile(xl, yb + 1));
     if (xr - xl - 2 * ins > 0) c.rect(T(o.ridge || 'darkwood', 1), xl + ins, yt, xr - ins, yt);
@@ -398,25 +429,26 @@ const G = {
     const g = K.hall(c, 4, 43, 58, 17, 20, { f, sh: 6, door: 24, dw: 8, dh: 10, wins: [9, 36], gable: { x: 23, hw: 10, h: 12 }, shut: true });
     crossed(c, 23, g.wy - 6, { blade: K.blade });
     K.flag(c, 6, g.rt - 9, f, { ph: 13 });
-    dummy(c, 7, 62, f);
-    c.line(K.beam, 36, 62, 36, 53); c.line(K.beam, 45, 62, 45, 53); c.line(K.beam, 36, 54, 45, 54);
-    for (let x = 38; x <= 43; x += 2) { c.line(K.wood, x, 61, x, 51); c.px(K.blade, x, 50); c.px(K.blade, x, 49); c.px(T(K.blade, 3), x, 48); }
+    dummy(c, 7, 62, f, K.id === 'orc' || K.id === 'giant' ? 'sack' : 'straw');
+    rack(c, K, 35, 62);
   },
   range(c, f, K) {
-    const g = K.hall(c, 3, 26, 46, 12, 14, { f, door: 15, dw: 9, dh: 8, open: true, wins: [5], sh: 3 });
-    c.line('wood', 12, 41, 12, 45); c.line('wood', 13, 40, 13, 40); c.line('wood', 13, 46, 13, 46); c.line('string', 11, 41, 11, 45);
-    c.rect('leather', 17, 42, 18, 46); c.px('feather', 17, 41); c.px('feather', 18, 40);
-    K.flag(c, 24, g.rt - 8, f, { ph: 9, len: 6 });
-    hay(c, 31, 41, 9, 5); target(c, 35, 30, f); hay(c, 37, 53, 9, 5); target(c, 41, 42, f);
-    for (const [x, y] of [[29, 51], [33, 54], [45, 50]]) { c.line('darkwood', x, y, x + 1, y - 3); c.px('feather', x + 1, y - 4); }
+    const g = K.hall(c, 3, 24, 47, 12, 13, { f, door: 13.5, dw: 9, dh: 8, open: true, wins: [], sh: 3 });
+    c.line(K.wood, 11, 42, 11, 46); c.px(K.wood, 12, 41); c.px(K.wood, 12, 47); c.line('string', 10, 42, 10, 46);
+    c.rect('leather', 15, 43, 16, 47); c.px('feather', 15, 42); c.px('feather', 16, 41);
+    K.flag(c, 23, g.rt - 8, f, { ph: 9, len: 6 });
+    target(c, 36, 25, f, K.id); if (K.id !== 'giant') hay(c, 33, 54, 8, 4); target(c, 39, 41, f, K.id);
+    c.line(T(K.wood, 0), 26, 53, 46, 53); c.line(T(K.wood, 2), 26, 52, 46, 52); for (let x = 27; x <= 45; x += 6) c.rect(K.beam, x, 51, x, 54);
+    for (const [x, y] of [[29, 49], [44, 49], [32, 35]]) { c.line('darkwood', x, y, x + 1, y - 2); c.px('feather', x + 1, y - 3); }
   },
   stable(c, f, K) {
-    const g = K.hall(c, 2, 45, 52, 14, 16, { f, door: false, sh: 3, wins: [] });
-    sdoor(c, K, 11, 52, 8, 10, K.horse, f); sdoor(c, K, 36, 52, 8, 10, null, f);
-    c.rect(K.beam, 19, g.wy + 1, 28, g.wy + 8); R(c, K.wood, 20, g.wy + 2, 27, g.wy + 7, P.plankH(g.wy + 2, 3)); shoe(c, 23.5, g.wy + 4.2, K.metal);
-    K.flag(c, 43, g.rt - 8, f, { ph: 10, len: 6 });
-    hay(c, 18, 55, 7, 5); hay(c, 21, 51, 6, 4);
-    R(c, K.wood, 27, 51, 34, 54, P.plankH(51, 2)); c.rect('water', 28, 51, 33, 51); c.px(T('water', 3), 29 + f, 51);
+    const g = K.hall(c, 4, 43, 50, 17, 16, { f, door: false, sh: 3, wins: [] });
+    sdoor(c, K, 12, 48, 9, 12, K.id, f); sdoor(c, K, 35, 48, 9, 12, null, f);
+    c.rect(T(K.beam, 0), 19, g.wy + 3, 28, g.wy + 10); R(c, K.wood, 20, g.wy + 4, 27, g.wy + 9, P.plankH(g.wy + 4, 3)); shoe(c, 23.5, g.wy + 6.2, 'gold');
+    K.flag(c, 41, g.rt - 8, f, { ph: 10, len: 4 });
+    hay(c, 18, 55, 8, 5); hay(c, 26, 55, 6, 4); hay(c, 21, 51, 6, 3);
+    R(c, K.wood, 38, 51, 45, 54, P.plankH(51, 2)); c.rect('water', 39, 51, 44, 51); c.px(T('water', 3), 40 + f, 51);
+    c.line(T(K.wood, 1), 2, 54, 9, 54); c.line(T(K.wood, 0), 2, 52, 9, 52); c.rect(K.beam, 2, 51, 2, 55); c.rect(K.beam, 9, 51, 9, 55);
   },
   workshop(c, f, K) {
     const g = K.hall(c, 2, 30, 60, 15, 16, { f, door: 18, dw: 11, dh: 10, open: true, wins: [5], sh: 3 });
@@ -429,7 +461,8 @@ const G = {
     const sw = [0, 1, 0, -1][f];
     c.line('string', 25, 10, 25 + sw, 20); c.at(sw, 0, () => { c.px(K.metal, 25, 21); c.rect(K.stone, 23, 22, 27, 25); c.rect(T(K.stone, 2), 23, 22, 27, 22); c.px(T(K.stone, 0), 27, 25); });
     gear(c, 41, 52, 3.5, f, K.metal, 6);
-    logSide(c, 31, 46, 62, K.wood, 3); logSide(c, 33, 44, 59, K.wood, 3);
+    logSide(c, 31, 45, 62, K.wood, 3); logSide(c, 33, 44, 59, K.wood, 3);
+    pennant(c, 38, 2, f, { ph: 6, pole: K.beam });
   },
   forge(c, f, K) {
     const g = K.hall(c, 3, 22, 49, 12, 13, { f, door: 9.5, dw: 7, dh: 7, open: true, wins: [], sh: 3 });
@@ -438,7 +471,7 @@ const G = {
     flame(c, 9, 48, f, 2); c.rect('fire', 7, 48, 12, 49); c.glow(9, 50, 0, '#000');
     c.rect('bld_hole', 16, g.wy + 3, 19, g.wy + 5); c.rect('fire', 16, g.wy + 5, 19, g.wy + 5); c.px('glowY', 17 + (f & 1), g.wy + 5);
     anvil(c, 23, 50); c.line('leather', 27, 43, 29, 45); c.rect(K.metal, 26, 42, 28, 43);
-    barrel(c, 0, 50);
+    barrel(c, 1, 50); K.flag(c, 5, g.rt - 6, f, { ph: 8, len: 5, hgt: 3 });
   },
   market(c, f, K) {
     const st = (x0, x1, ya, yc) => { c.rect(K.beam, x0 + 1, ya + 4, x0 + 1, yc + 4); c.rect(K.beam, x1 - 1, ya + 4, x1 - 1, yc + 4); K.awn(c, x0, x1, ya, ya + 5, f); counter(c, K, x0 + 1, x1 - 1, yc); };
@@ -664,7 +697,7 @@ const ELF = {
   id: 'elf', wood: 'bld_elfwood', beam: 'bld_bark', stone: 'bld_moon', metal: 'silver', blade: 'silver', horse: 'cloth',
   // Cúpula de hojas apuntada (ogiva) con punta rizada; o.val = cenefa del equipo en el alero
   roof(c, xl, xr, yb, yt, o = {}) {
-    const m = o.m || 'bld_elfleaf', cx = (xl + xr + 1) / 2, hw = (xr - xl + 1) / 2, H = yb - yt + 1, L = [], Rr = [];
+    const m = o.m || 'bld_elfleaf', cx = (xl + xr + 1) / 2, hw = Math.min((xr - xl + 1) / 2, (cx - 1) / 1.1, (c.w - 1 - cx) / 1.1), H = yb - yt + 1, L = [], Rr = [];
     for (let i = 0; i <= 20; i++) { const t = i / 20, w = hw * Math.pow(1 - Math.pow(t, 1.8), 0.62) * (1 + 0.1 * Math.sin(t * PI)); L.push([cx - w, yb + 1 - t * H]); Rr.unshift([cx + w, yb + 1 - t * H]); }
     c.poly(m, L.concat(Rr));
     tex(c, m, xl - 3, yt, xr + 3, yb, P.scale(Math.round(cx) + 2, yb + 1, 4, 3));
@@ -884,6 +917,7 @@ const DWA = {
   wall(c, x0, y0, x1, y1) { R(c, 'bld_granite', x0, y0, x1, y1, P.brick(x0, y0, 7, 4)); },
   roof(c, xl, xr, yb, yt, o = {}) {   // pizarra baja y pesada con cumbrera dorada
     const ins = o.ins ?? Math.round((yb - yt) * 0.35);
+    xl = Math.max(xl, 1); xr = Math.min(xr, c.w - 2);
     trap(c, 'bld_slate', xl, xr, yb, yt, ins); tex(c, 'bld_slate', xl, yt, xr, yb, P.slate(xl, yb + 1, 6, 3));
     c.rect(T('stone', 2), xl + ins, yt, xr - ins, yt); c.rect(T('stone', 0), xl + ins, yt + 1, xr - ins, yt + 1);
     c.px('gold', xl + ins, yt - 1); c.px('gold', xr - ins, yt - 1);
@@ -1086,6 +1120,7 @@ const ORC = {
   id: 'orc', wood: 'darkwood', beam: 'darkwood', stone: 'rock', metal: 'iron', blade: 'iron', horse: 'rock',
   // Tejado-tienda de pieles: casi triangular, costuras, postes cruzados en la cima, franja pintada del equipo
   roof(c, xl, xr, yb, yt, o = {}) {
+    xl = Math.max(xl, 1); xr = Math.min(xr, c.w - 2);
     const cx = Math.round((xl + xr) / 2), hw = (xr - xl + 1) / 2, ins = o.ins ?? Math.max(2, Math.round(hw - 3)), H = yb - yt;
     trap(c, 'bld_hide', xl, xr, yb, yt, ins);
     tex(c, 'bld_hide', xl, yt, xr, yb, (x, y) => { const r = yb - y; if (md(r, 5) === 4) return md(x, 2) ? 0 : 2; return hs(x >> 2, (r / 5) | 0) % 7 === 0 ? 0 : null; });
@@ -1107,7 +1142,7 @@ const ORC = {
   win(c, x, y) { c.rect('bld_hole', x, y, x + 1, y + 1); c.px('fire', x, y + 1); c.px(T('fire', 3), x + 1, y + 1); c.line('bone', x - 1, y + 2, x + 2, y + 2); },
   chim(c, x, yt, yb, f, o = {}) {   // fogón: pila de piedras con humo negro
     const w = o.w || 5;
-    R(c, 'rock', x, yt, x + w - 1, yb, P.stones(x, yt, 3, 2, 4)); spikes(c, x, x + w - 1, yt - 1, 'bone');
+    R(c, 'rock', x, yt, x + w - 1, yb, (xx, y) => (md(y - yt, 3) === 2 || md(xx - x + (md((y - yt) / 3 | 0, 2) ? 1 : 0), 3) === 2 ? 0 : xx === x ? 2 : null)); spikes(c, x, x + w - 1, yt - 1, 'bone');
     if (o.forge) embers(c, x + w / 2, yt - 2, f, 3);
     smoke(c, x + w / 2 - .5, yt - 2, f, Object.assign({ col: '#6e6878', a: 200 }, o));
   },
@@ -1292,9 +1327,10 @@ function menhir(c, x, yb, w, h, f, o = {}) {   // piedra en pie con runa y tira 
 const GIA = {
   id: 'giant', wood: 'wood', beam: 'darkwood', stone: 'rock', metal: 'iron', blade: 'rock', horse: 'fur',
   wall(c, x0, y0, x1, y1) { R(c, 'rock', x0, y0, x1, y1, P.stones(x0, y0, 5, 5, 9)); },
-  log(c, x, y0, y1, w = 4) { R(c, 'wood', x, y0, x + w - 1, y1, (xx, y) => (xx === x ? 2 : xx === x + w - 1 ? 0 : hs(xx, y >> 1) % 6 === 0 ? 0 : null)); c.rect('bld_logend', x, y0, x + w - 1, y0); c.px(T('bld_logend', 0), x + 1, y0); },
-  logH(c, x0, x1, y, h = 3) { R(c, 'wood', x0, y, x1, y + h - 1, P.logH(y, h)); for (const x of [x0, x1]) { c.rect('bld_logend', x, y, x, y + h - 1); c.px(T('bld_logend', 0), x, y + (h >> 1)); } },
+  log(c, x, y0, y1, w = 4) { x = Math.max(1, Math.min(x, c.w - 1 - w)); R(c, 'wood', x, y0, x + w - 1, y1, (xx, y) => (xx === x ? 2 : xx === x + w - 1 ? 0 : hs(xx, y >> 1) % 6 === 0 ? 0 : null)); c.rect('bld_logend', x, y0, x + w - 1, y0); c.px(T('bld_logend', 0), x + 1, y0); },
+  logH(c, x0, x1, y, h = 3) { x0 = Math.max(x0, 1); x1 = Math.min(x1, c.w - 2); R(c, 'wood', x0, y, x1, y + h - 1, P.logH(y, h)); for (const x of [x0, x1]) { c.rect('bld_logend', x, y, x, y + h - 1); c.px(T('bld_logend', 0), x, y + (h >> 1)); } },
   roof(c, xl, xr, yb, yt, o = {}) {   // cúpula de tepe con flecos de hierba, flores y piedras
+    xl = Math.max(xl, 1); xr = Math.min(xr, c.w - 2);
     const cx = (xl + xr + 1) / 2, hw = (xr - xl + 1) / 2, H = yb - yt + 1;
     c.ring('bld_turf', cx, yb + 1, hw, H, -1, (x, y) => y <= yb);
     tex(c, 'bld_turf', xl, yt, xr, yb, P.turf(Math.round(xl), yt));
@@ -1312,7 +1348,7 @@ const GIA = {
   win(c, x, y) { c.ell('stone', x + 1, y + 1, 2.4, 2.2); c.ell('bld_hole', x + 1, y + 1, 1.4, 1.3); c.px('window', x, y + 1); c.px('window', x + 1, y + 1); },
   chim(c, x, yt, yb, f, o = {}) {
     const w = o.w || 6;
-    R(c, 'rock', x, yt, x + w - 1, yb, P.stones(x, yt, 3, 3, 5)); c.rect(T('rock', 2), x, yt, x + w - 1, yt);
+    R(c, 'rock', x, yt, x + w - 1, yb, (xx, y) => (md(y - yt, 4) === 3 || md(xx - x + (md((y - yt) / 4 | 0, 2) ? 2 : 0), 4) === 3 ? 0 : xx === x ? 2 : null)); c.rect(T('rock', 3), x, yt, x + w - 1, yt);
     if (o.forge) embers(c, x + w / 2, yt - 1, f, 3);
     smoke(c, x + w / 2 - .5, yt - 1, f, Object.assign({ col: '#a49eae', a: 180 }, o));
   },
@@ -1390,7 +1426,7 @@ GIA.W = {
 
 // ------------------------------------------------------------- gigantes: tipos especiales
 const GIAS = {
-  house(c, f) { GIA.hall(c, 6, 25, 46, 13, 15, { f, door: 13, dw: 6, dh: 7, wins: [20], chim: 11 }); },
+  house(c, f) { GIA.hall(c, 6, 25, 46, 15, 19, { f, door: 13, dw: 6, dh: 8, wins: [20], chim: 11 }); },
   tc(c, f) {
     const g = GIA.hall(c, 6, 57, 90, 22, 28, { f, door: false, wins: [12, 47], chim: 18, ban: [19, 42] });
     smoke(c, 46, g.rt + 2, f, { col: '#a49eae', a: 170 });

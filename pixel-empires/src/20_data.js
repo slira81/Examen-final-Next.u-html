@@ -151,7 +151,7 @@ for (const k in ANIMALS) {
 
 // --------------------------------------------------------------- edificios
 const BLD = {
-  tc: { n: 'Centro Urbano', fp: 4, hp: 2400, cost: { wood: 275, stone: 100 }, time: 90, pop: 5, drop: RES, train: ['worker'], techs: ['loom', 'age2', 'age3'], los: 8, atk: 5, range: 6, rate: 2, arm: 3, parm: 8, age: 1 },
+  tc: { n: 'Centro Urbano', fp: 4, hp: 2400, cost: { wood: 275, stone: 100 }, time: 90, pop: 5, drop: RES, train: ['worker'], techs: ['loom', 'age2', 'age3'], los: 8, atk: 5, range: 6, rate: 2, arm: 3, parm: 8, age: 1, garrison: 15 },
   house: { n: 'Casa', fp: 2, hp: 550, cost: { wood: 30 }, time: 15, pop: 5, los: 3, age: 1 },
   barracks: { n: 'Cuartel', fp: 3, hp: 1200, cost: { wood: 175 }, time: 40, train: ['inf', 'pike'], techs: ['march'], los: 5, age: 1 },
   mill: { n: 'Molino', fp: 2, hp: 600, cost: { wood: 100 }, time: 25, drop: ['food'], techs: ['plow'], los: 4, age: 1 },
@@ -163,11 +163,11 @@ const BLD = {
   temple: { n: 'Templo', fp: 3, hp: 1200, cost: { wood: 100, stone: 100, gold: 50 }, time: 50, train: ['special'], techs: ['heal'], los: 6, age: 2 },
   forge: { n: 'Herrería', fp: 2, hp: 900, cost: { wood: 150 }, time: 40, techs: ['melee1', 'ranged1', 'armor1', 'melee2', 'ranged2', 'armor2'], los: 4, age: 2 },
   market: { n: 'Mercado', fp: 3, hp: 1200, cost: { wood: 175 }, time: 50, los: 5, age: 2, market: true },
-  tower: { n: 'Torre de arqueros', fp: 2, hp: 1000, cost: { wood: 50, stone: 125 }, time: 45, los: 9, atk: 7, range: 7, rate: 2, arm: 2, parm: 8, age: 2 },
+  tower: { n: 'Torre de arqueros', fp: 2, hp: 1000, cost: { wood: 50, stone: 125 }, time: 45, los: 9, atk: 7, range: 7, rate: 2, arm: 2, parm: 8, age: 2, garrison: 5 },
   wall: { n: 'Muro', fp: 1, hp: 1500, cost: { stone: 6 }, time: 5, los: 2, age: 2, arm: 6, parm: 12, wall: true },
   gate: { n: 'Puerta', fp: 1, hp: 2000, cost: { stone: 25 }, time: 12, los: 3, age: 2, arm: 6, parm: 12, gate: true },
   workshop: { n: 'Taller de asedio', fp: 3, hp: 1200, cost: { wood: 200 }, time: 45, train: ['siege'], los: 5, age: 3 },
-  castle: { n: 'Castillo', fp: 4, hp: 4200, cost: { stone: 600, wood: 200 }, time: 120, train: ['general'], techs: ['unique', 'masonry'], los: 10, atk: 11, range: 8, rate: 1.5, arm: 6, parm: 12, age: 3 },
+  castle: { n: 'Castillo', fp: 4, hp: 4200, cost: { stone: 600, wood: 200 }, time: 120, train: ['general'], techs: ['unique', 'masonry'], los: 10, atk: 11, range: 8, rate: 1.5, arm: 6, parm: 12, age: 3, garrison: 20 },
 };
 for (const k in BLD) { BLD[k].key = k; BLD[k].arm ??= 2; BLD[k].parm ??= 7; }
 const BUILD_MENU = ['house', 'farm', 'mill', 'lumber', 'mine', 'barracks', 'range', 'stable', 'temple', 'forge', 'market', 'tower', 'wall', 'gate', 'workshop', 'castle', 'tc'];

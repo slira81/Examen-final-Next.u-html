@@ -31,14 +31,14 @@ select,input[type=range]{font:inherit;color:var(--text);background:var(--wood2);
 .ri{display:inline-block;width:24px;height:24px;background-size:contain;background-repeat:no-repeat;image-rendering:pixelated;vertical-align:middle}
 .tinfo{display:flex;gap:14px;color:var(--mute);margin-left:auto}
 #clock{font-variant-numeric:tabular-nums}
-.tbtns{display:flex;gap:6px}.tbtns button{padding:2px 8px}.tbtns button.off{opacity:.5}
+.tbtns{display:flex;gap:6px}.tbtns button{padding:2px 8px}.tbtns button.off{opacity:.5}.tbtns button.warn{color:var(--warn);border-color:var(--warn)}
 #log{position:fixed;left:14px;top:58px;max-width:min(620px,70vw);pointer-events:none;text-shadow:1px 1px 0 #000,0 0 4px #000;font-size:18px;display:grid;gap:2px}
 #proposals{position:fixed;right:14px;top:60px;display:grid;gap:8px;width:300px}
 .toast{background:var(--wood2);border:2px solid var(--gold);padding:8px;box-shadow:0 0 0 2px var(--ink)}
 .toast div{display:flex;gap:6px;margin-top:6px}
 #bottom{left:8px;right:8px;bottom:8px;height:150px;display:flex;gap:10px;padding:8px}
 #mini{width:134px;height:134px;flex:none;image-rendering:pixelated;border:2px solid var(--ink);background:#000;cursor:pointer}
-#info{flex:1;min-width:0;overflow:hidden;font-size:17px}
+#info{flex:1;min-width:0;overflow:hidden;font-size:17px;line-height:1.18}
 .hint{color:var(--mute);line-height:1.5}.hint b{color:var(--text)}
 .one{display:flex;gap:10px;align-items:flex-start}
 .portrait{image-rendering:pixelated;background:rgba(0,0,0,.25);border:2px solid var(--wood3);padding:2px;flex:none;max-height:96px}
@@ -56,7 +56,7 @@ select,input[type=range]{font:inherit;color:var(--text);background:var(--wood2);
 .mcell{position:relative;width:34px;height:34px;background:rgba(0,0,0,.3);border:1px solid var(--wood3);display:grid;place-items:center;cursor:pointer}
 .mcell .hpb{position:absolute;left:3px;right:3px;bottom:2px;width:auto;height:3px}.mcell .lv{position:absolute;right:1px;top:0;font-size:11px;color:var(--gold2);font-style:normal}
 .mico,.qi,.cico,.ico{image-rendering:pixelated}
-.queue{display:flex;gap:4px;margin-top:6px}.qcell{position:relative;width:30px;height:30px;background:rgba(0,0,0,.3);border:1px solid var(--wood3);display:grid;place-items:center;cursor:pointer}
+.queue{display:grid;grid-template-columns:repeat(3,30px);gap:4px 4px;flex:none;align-content:start;margin-left:auto}.qcell{position:relative;width:30px;height:30px;background:rgba(0,0,0,.3);border:1px solid var(--wood3);display:grid;place-items:center;cursor:pointer}
 .qp{position:absolute;left:0;right:0;bottom:-6px;height:4px;background:#111}.qp i{position:absolute;inset:0 auto 0 0;background:#8ab4ff}
 #cmds{flex:none;display:grid;grid-template-columns:repeat(5,44px);grid-auto-rows:42px;gap:4px;align-content:start}
 .cmd{position:relative;width:44px;height:42px;padding:0;display:grid;place-items:center;background:var(--wood3)}
@@ -110,7 +110,7 @@ BODY = r"""
   <div id="top" class="panel">
     <div id="resbar"></div>
     <div class="tinfo"><span id="age"></span><span id="clock">00:00</span><span id="weather"></span></div>
-    <div class="tbtns"><button id="b-diplo">Diplomacia</button><button id="b-music">Música</button><button id="b-speed">1x</button><button id="b-menu">Menú</button></div>
+    <div class="tbtns"><button id="b-idle" data-tip="Aldeanos inactivos (tecla .)">Inactivos: 0</button><button id="b-diplo">Diplomacia</button><button id="b-music">Música</button><button id="b-speed">1x</button><button id="b-menu">Menú</button></div>
   </div>
   <div id="log"></div>
   <div id="proposals"></div>

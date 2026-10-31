@@ -44,6 +44,8 @@ function updateTop() {
     for (const r of RES) $('r-' + r).textContent = Math.floor(p.res[r]);
     const pe = $('r-pop'); pe.textContent = p.pop + '/' + p.popCap; pe.classList.toggle('lack', p.pop >= p.popCap);
     $('age').textContent = AGES[p.age - 1] + (p.relics ? ' · Reliquias ' + p.relics : '');
+    const idle = G.units.filter(u => !u.dead && !u.inside && u.team === G.human && u.def.role === 'worker' && u.order.t === 'idle').length;
+    const ib = $('b-idle'); ib.textContent = 'Inactivos: ' + idle; ib.classList.toggle('warn', idle > 0);
   }
   const t = Math.floor(G.time), mm = String(Math.floor(t / 60)).padStart(2, '0'), ss = String(t % 60).padStart(2, '0');
   $('clock').textContent = mm + ':' + ss; $('weather').textContent = WEATHER[G.weather.cur].n;
@@ -88,7 +90,7 @@ function buildInfoStatic() {
     if (img) { const pc = iconCanvas(img, 64, 'portrait'); wrap.appendChild(pc); }
     const txt = document.createElement('div'); txt.className = 'otxt'; txt.id = 'otxt'; wrap.appendChild(txt);
     el.appendChild(wrap);
-    if (e.k === 'b') { const q = document.createElement('div'); q.id = 'queue'; q.className = 'queue'; el.appendChild(q); }
+    if (e.k === 'b') { const q = document.createElement('div'); q.id = 'queue'; q.className = 'queue'; wrap.appendChild(q); }
   } else {
     const grid = document.createElement('div'); grid.className = 'multi';
     for (const e of G.sel.slice(0, 40)) {
@@ -131,10 +133,13 @@ function updateInfoDynamic() {
     if (!d.invuln) h += `<div class="hpline"><i class="hpb big"><i style="width:${e.hp / e.maxhp * 100}%"></i></i> ${Math.ceil(e.hp)}/${e.maxhp}</div>`;
     if (!e.done) h += `<div class="sub">Construcción: ${Math.floor(e.progress * 100)}%${e.nb ? ' · ' + e.nb + ' constructor(es)' : ' · sin constructores'}</div>`;
     else {
-      if (e.type === 'farm') h += `<div class="sub">Comida restante: ${Math.floor(e.food)}${e.farmer ? '' : ' · sin granjero'}</div>`;
-      if (d.pop) h += `<div class="sub">+${d.pop} de población</div>`;
-      if (d.drop) h += `<div class="sub">Acopio: ${d.drop.map(r => RES_N[r].toLowerCase()).join(', ')}</div>`;
-      if (d.atk) { const bs = bStats(e); h += '<div class="stats">' + statLine('icon_attack', bs.atk, 'Ataque') + statLine('icon_range', bs.range, 'Alcance') + statLine('icon_parmor', bs.parm, 'Armadura a distancia') + '</div>'; }
+      const chips = [];
+      if (e.type === 'farm') chips.push('Comida restante: ' + Math.floor(e.food) + (e.farmer ? '' : ' (sin granjero)'));
+      if (d.pop) chips.push('+' + d.pop + ' de población');
+      if (d.drop) chips.push('Acopio: ' + (d.drop.length === 5 ? 'todos los recursos' : d.drop.map(r => RES_N[r].toLowerCase()).join(', ')));
+      if (d.garrison) chips.push('Guarnición ' + (e.garrison || []).length + '/' + d.garrison + ((e.garrison || []).length ? ' (+' + Math.min(10, e.garrison.length) + ' flechas)' : ''));
+      if (chips.length) h += `<div class="sub">${chips.join(' · ')}</div>`;
+      if (d.atk) { const bs = bStats(e); h += '<div class="stats">' + statLine('icon_attack', bs.atk, 'Ataque') + statLine('icon_range', bs.range, 'Alcance') + statLine('icon_armor', bs.arm, 'Armadura cuerpo a cuerpo') + statLine('icon_parmor', bs.parm, 'Armadura a distancia') + '</div>'; }
       if (e.housed) h += `<div class="sub warn">Producción detenida: falta población</div>`;
       if (d.market && e.team === G.human) h += `<div class="sub">Compra y vende recursos con los botones. Precios: ${['food', 'wood', 'stone', 'iron'].map(r => RES_N[r] + ' ' + Math.round(owner.market[r])).join(' · ')}</div>`;
     }
@@ -201,6 +206,11 @@ function cmdList() {
       out.push({ icon: ['icons', td.icon], n: nm, cost: costOf(G.human, td.cost), d: ds, locked: p.researching.has(t) ? 'Investigando…' : td.age && p.age < td.age ? 'Requiere ' + AGES[td.age - 1] : td.req && !p.techs.has(td.req) ? 'Requiere ' + TECHS[td.req].n : null, fn: () => doEnqueue(bld, 'tech', t) });
     }
     if (d.market) { while (out.length % 5) out.push(null); for (const r of ['food', 'wood', 'stone', 'iron']) out.push({ icon: ['icons', 'icon_' + r], n: 'Vender 100 de ' + RES_N[r].toLowerCase(), d: 'Recibes ' + Math.round(p.market[r] * 0.7) + ' de oro. El precio baja con cada venta.', fn: () => { const e = marketTrade(G.human, r, false); if (e) G.msg(e, '#ffb070', { sound: 'error' }); else sfx('click'); } }); out.push({ icon: ['icons', 'cmd_diplomacy'], n: 'Diplomacia y tributos', d: 'Sin mercado, los tributos pierden un 20%.', fn: () => openDiplomacy() }); }
+    if (d.garrison) {
+      while (out.length < 10) out.push(null);
+      if (bld.type === 'tc') out.push(p.bell ? { icon: ['icons', 'cmd_back'], n: 'Regresar al trabajo', d: 'Los aldeanos refugiados vuelven a sus tareas.', fn: () => releaseBell(G.human) } : { icon: ['icons', 'cmd_idle'], n: 'Toque de campana', d: 'Los aldeanos cercanos se refugian en el centro urbano, torres y castillo, que disparan una flecha más por cada unidad dentro.', fn: () => ringBell(G.human) });
+      out.push({ icon: ['icons', 'cmd_back'], n: 'Expulsar guarnición (' + (bld.garrison || []).length + '/' + d.garrison + ')', d: 'Saca a todas las unidades del edificio. Con clic derecho sobre el edificio, tus soldados entran en él.', fn: () => { ejectAll(bld); updateSelectionUI(true); } });
+    }
     while (out.length < 13) out.push(null);
     if (d.train) out.push({ icon: ['icons', 'cmd_rally'], n: 'Punto de reunión', d: 'Haz clic derecho en el mapa con el edificio seleccionado para fijar dónde van las unidades nuevas (sobre un recurso, los aldeanos irán a recolectarlo).', fn: () => G.msg('Clic derecho en el mapa para fijar el punto de reunión', '#cfe8a0') });
     else out.push(null);

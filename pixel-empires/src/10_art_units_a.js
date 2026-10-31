@@ -14,8 +14,8 @@ const U = PE.ART.units, PI = Math.PI;
 
 PE.addMats({
   ua_horse: '#8a5432', ua_mane: '#3b2a24', ua_hoof: '#4a3c3a', ua_meat: '#c8564a', ua_grain: '#e3c48c',
-  ua_deer: '#e8e0d0', ua_antler: '#cdb68a', ua_wool: '#d8cba8', ua_ramface: '#6a5444', ua_horn: '#a98c62',
-  ua_elfgreen: '#97c46a', ua_lightwood: '#d8b47c', ua_bronze: '#c9923f', ua_rbeard: '#c4602e',
+  ua_deer: '#e8e0d0', ua_antler: '#cdb68a', ua_wool: '#d8cba8', ua_ramface: '#5e4a3e', ua_horn: '#c9a26e',
+  ua_elfgreen: '#97c46a', ua_lightwood: '#d8b47c', ua_bronze: '#a8733f', ua_rbeard: '#c4602e',
   ua_bbeard: '#86502c', ua_gbeard: '#a8a4ae', ua_flower: '#f08cc4', ua_smoke: '#b8b2c6', ua_wax: '#efe2c0',
   ua_gem: '#72e88a', ua_blond: '#c4a25e',
 });
@@ -310,7 +310,7 @@ U.human_special = {
       c.ell('orb', 26.5, 3.4, 2.7, 2.7); c.px('white', 25, 2);
       const gl = a ? [0, 2.2, 3.6, 2][a] : P.glow * .9;
       if (gl) halo(c, 26.5, 3.4, 2.7 + gl, a === 2 ? 150 : 110, '#6ef0f5');
-      if (a === 2) { star(c, 'glowC', 30, 1); c.px('white', 26, 3); }
+      if (a === 2) { star(c, 'glowC', 28, 1); c.px('white', 26, 3); }
     });
     c.at(0, b, () => {
       c.ell('skin', 15.5, 12.5, 3.9, 3.3);
@@ -393,7 +393,7 @@ U.human_cav = {
       c.poly('team', [[13, 8], [17, 8], [17, 12], [15, 14.5], [13, 12]]); c.rect('white', 15, 8, 15, 13); c.rect('white', 13, 10, 17, 10);
       if (a === 2) for (let i = 0; i < 4; i++) c.glow(6 + i * 2, 12, 60, '#ffffff');
     });
-    c.at(P.sec === 0 ? P.sw : 0, b + P.sec, () => { c.ell('team', 17.5, 0.8, 2, 1.4); c.rect('team', 13, 0, 17, 1); c.px('team', 12, 2); });
+    c.at(P.sec === 0 ? P.sw : 0, b + P.sec, () => { c.ell('team', 17.5, 1.5, 2, 1.4); c.rect('team', 13, 1, 17, 2); c.px('team', 12, 3); });
   },
 };
 
@@ -763,7 +763,7 @@ U.elf_special = {
       c.px('ua_flower', 22, 3); c.px('ua_flower', 29, 3); c.px('ua_flower.3', 23, 7); c.px('ua_flower', 28, 7);
       const gl = a ? [0, 2.2, 3.6, 2][a] : P.glow * .9;
       if (gl) halo(c, 25.5, 4.2, 2.6 + gl, a === 2 ? 150 : 100, '#b8ff8a');
-      if (a === 2) star(c, 'glowG', 29, 0);
+      if (a === 2) star(c, 'glowG', 27, 1);
     });
     c.at(0, b, () => {
       elfHead(c, { hair: 'silver' });
@@ -892,7 +892,7 @@ U.dwarf_worker = {
       else { dArmL(c, 'team'); if (k) bundle(c, k, 7, 22); }
     });
     // pico: reposo, alzado (1), golpe con chispas (2), sigue (3)
-    const G = [[0, 25.5, 21], [-20, 24, 15], [120, 19, 18], [135, 19, 18]][a], T = rf(G[1], G[2], G[0]);
+    const G = [[0, 25.5, 21], [-20, 24, 15], [120, 18.5, 18], [135, 19, 18]][a], T = rf(G[1], G[2], G[0]);
     const pick = () => {
       c.rim((t, m) => rb(t, m, T, -13, 3.5, 2), 'wood');
       c.rim((t, m) => rp(t, m, T, PICK), 'iron'); rl(c, 'iron.3', T, -2, -13.5, 2, -13.5);
@@ -901,11 +901,11 @@ U.dwarf_worker = {
     if (a === 1) c.at(0, b, pick);
     c.at(0, b, () => {
       dwarfHead(c, 'ua_bbeard');
-      c.ell('leather', 15.5, 8.4, 5.4, 3.7); c.rect('leather', 9, 9, 22, 10); c.rect('leather.0', 9, 10, 22, 10);
-      c.rect('iron', 14, 4, 17, 5); c.rect('ua_wax', 15, 2, 16, 4); c.px('ua_wax.0', 16, 4);
+      c.ell('iron', 15.5, 7.6, 5.4, 3.4); c.rect('iron', 9, 9, 22, 10); c.rect('leather', 9, 10, 22, 10); c.px('iron.3', 13, 6);
+      c.rect('copper', 14, 4, 17, 5); c.rect('ua_wax', 15, 2, 16, 3); c.px('ua_wax.0', 16, 3);
     });
-    c.at(P.t & 1 && P.anim !== 'walk' ? 0 : P.sw * .5, b + (P.t & 1), () => { c.px('fire', 15, 1); c.px('glowY', 15, 0 + (P.t & 1)); c.px('fire', 16, 1); });
-    c.at(0, b, () => halo(c, 15.5, 1.5, 2.5 + P.glow * .6, 70, '#ffe98a'));
+    c.at(P.anim === 'walk' ? P.sw * .5 : 0, b, () => { c.px('fire', 15, 1); c.px('fire', 16, 1); c.px('glowY', 15 + (P.t & 1), 0); });
+    c.at(0, b, () => halo(c, 15.5, 1, 2.5 + P.glow * .6, 70, '#ffe98a'));
     c.at(0, b - (a ? 0 : P.s), () => {
       if (!a) { dArmR(c, 'team'); pick(); c.rect('skin', 23, 20, 26, 22); }
       else { if (a !== 1) pick(); dArmTo(c, 'team', 'skin', 23, 15, T(0, 0)); }
@@ -926,7 +926,7 @@ U.dwarf_inf = {
       c.ell('steel', 8, 15.5, 3.4, 2.8); c.ell('steel', 23, 15.5, 3.4, 2.8); c.rect('team', 6, 16, 10, 16); c.rect('team', 21, 16, 25, 16);
       c.px('gold', 8, 14); c.px('gold', 23, 14);
     });
-    const G = [[0, 25, 20], [-30, 22, 18], [100, 15, 19], [125, 16, 20]][a], T = rf(G[1], G[2], G[0]);
+    const G = [[0, 25, 20], [-30, 22, 18], [100, 15, 19], [118, 16, 17.5]][a], T = rf(G[1], G[2], G[0]);
     const AXE = [[1, -16], [3.5, -17.5], [6.5, -16], [7, -12.5], [5.5, -8.5], [3, -9.5], [1, -10]];
     const axe = () => {
       c.rim((t, m) => { rb(t, m, T, -16.5, 6.5, 2); rp(t, m, T, AXE); rp(t, m, T, [[-1, -15], [-3.5, -13.5], [-1, -12]]); }, 'steel');
@@ -937,7 +937,7 @@ U.dwarf_inf = {
     c.at(0, b + (a ? 0 : P.s), () => { if (!a) dArmL(c, 'steel', 'iron'); else dArmTo(c, 'steel', 'iron', 7, 15, T(0, 3)); });
     c.at(0, b, () => {
       dwarfHead(c, 'ua_rbeard');
-      c.ell('steel', 15.5, 8.6, 5.5, 3.9); c.rect('steel', 10, 9, 21, 10); c.rect('gold', 10, 10, 21, 10); c.rect('steel', 15, 10, 16, 12);
+      c.ell('steel', 15.5, 7.6, 5.5, 3.4); c.rect('steel', 10, 9, 21, 10); c.rect('gold', 10, 10, 21, 10); c.rect('steel', 15, 10, 16, 11);
       c.poly('bone', [[10.5, 8], [7, 7], [6, 3.5], [8.5, 5.5], [11, 6]]); c.poly('bone', [[20.5, 8], [24, 7], [25, 3.5], [22.5, 5.5], [20, 6]]);
       c.px('bone.0', 8, 7); c.px('bone.0', 23, 7); c.px('steel.3', 13, 6);
     });
@@ -956,7 +956,7 @@ U.dwarf_pike = {
     const b = P.body, a = P.atk;
     legs(c, P, 'iron', 'leather', DL, DR, 25, 27);
     c.at(0, b, () => { dwarfBody(c, 'steel'); c.dither('iron', 10, 15, 21, 21, 0, 'steel'); c.ell('steel', 23, 15.5, 3.2, 2.6); });
-    const G = [[0, 25, 20], [-15, 24, 18], [80, 11.5, 19], [100, 13, 20]][a], T = rf(G[1], G[2], G[0]);
+    const G = [[0, 25, 20], [-15, 24, 19.5], [80, 11.5, 19], [100, 13, 20]][a], T = rf(G[1], G[2], G[0]);
     const halberd = () => {
       c.rim((t, m) => { rb(t, m, T, -19, 9, 2); rp(t, m, T, [[1, -17.5], [5, -18.5], [5.5, -12.5], [1, -12]]); rp(t, m, T, [[-1, -16], [-4, -15], [-1, -13.5]]); rp(t, m, T, [[-1, -19], [1, -19], [0, -21]]); }, 'steel');
       rb(c, 'wood', T, -18.5, 9, 2); rp(c, 'blade', T, [[4, -18.3], [5, -18.5], [5.5, -12.5], [4.4, -12.4]]);
@@ -966,9 +966,9 @@ U.dwarf_pike = {
       if (!a) { dArmR(c, 'steel', 'iron'); halberd(); c.rect('iron', 23, 19, 26, 21); }
     });
     c.at(0, b, () => {
-      dwarfHead(c, 'ua_gbeard');
-      c.ell('steel', 15.5, 8.8, 5.4, 3.8); c.rect('steel', 10, 9, 21, 9); c.rect('steel', 10, 10, 11, 13); c.rect('steel', 20, 10, 21, 13);
-      c.rect('steel.3', 15, 5, 16, 8); c.rect('gold', 10, 9, 21, 9);
+      dwarfHead(c, 'hair');
+      c.ell('steel', 15.5, 7.6, 5.4, 3.4); c.rect('steel', 10, 9, 21, 10); c.rect('steel', 10, 10, 11, 13); c.rect('steel', 20, 10, 21, 13);
+      c.rect('steel.3', 15, 5, 16, 7); c.rect('gold', 10, 10, 21, 10); c.rect('team', 14, 3, 17, 4);
     });
     // escudo torre (contrafase al andar; avanza al golpear)
     c.at(a === 2 ? 1 : 0, b + (a ? 0 : P.s), () => {
@@ -994,28 +994,26 @@ U.dwarf_ranged = {
     c.at(0, b, () => {
       dwarfBody(c, 'leather', 'darkwood'); c.rect('team', 10, 23, 21, 26); c.rect('gold', 10, 26, 21, 26);
       c.ell('steel', 8, 15.5, 3, 2.4); c.ell('steel', 23, 15.5, 3, 2.4);
-      c.rim((t, m) => t.rect(m, 4, 16, 6, 24), 'leather'); c.rect('steel', 4, 15, 6, 15);               // carcaj de virotes
+      c.rect('leather', 19, 21, 21, 24); c.px('team', 19, 20); c.px('feather', 20, 20); c.px('team', 21, 20);   // bolsa de virotes
     });
-    c.at(0, b + P.sec, () => { c.px('team', 4, 14); c.px('feather', 5, 14); c.px('team', 6, 14); });
-    c.at(0, b + (a ? 0 : P.s), () => dArmL(c, 'leather'));
     c.at(0, b, () => {
-      dwarfHead(c, 'hair', { braid: true });
+      dwarfHead(c, 'ua_gbeard', { braid: true });
       c.ell('steel', 15.5, 10, 5.5, 5.3); c.rect('steel', 10, 10, 21, 13);                              // yelmo cerrado
       c.rect('ol', 12, 11, 19, 11); c.px('steel', 15, 11); c.px('steel', 16, 11); c.px('steel.0', 14, 13); c.px('steel.0', 17, 13);
       c.rect('gold', 10, 8, 21, 8); c.rect('steel.3', 15, 5, 16, 7);
     });
     c.at(P.sec === 0 ? P.sw : 0, b + P.sec, () => { c.rect('team', 14, 2, 17, 4); c.rect('team', 12, 3, 13, 5); });   // cresta
     // ballesta: en reposo baja; apunta (1), dispara (2), recarga (3)
-    const lift = [0, -3, -3, -1][a], rec = a === 2 ? -1 : 0, cocked = a !== 2 && a !== 3;
+    const lift = [0, -3, -3, -2][a], rec = a === 2 ? -1 : 0, nut = [20, 20, 26, 23][a];
+    c.at(0, b, () => { limb(c, 'leather', 6, 16, 11 + rec, 19 + lift, 3); limb(c, 'leather', 23, 15, 23 + rec, 19 + lift, 3); });
     c.at(rec, b + lift, () => {
-      c.rim((t, m) => { t.rect(m, 12, 19, 26, 20); t.rect(m, 12, 21, 15, 22); }, 'wood');             // caja y culata
-      c.rim((t, m) => { t.line(m, 26, 19, 28, 14); t.line(m, 27, 19, 29, 14); t.line(m, 26, 20, 28, 25); t.line(m, 27, 20, 29, 25); }, 'iron'); // arco de acero
-      if (cocked) { c.line('string', 28, 14, 21, 19); c.line('string', 21, 20, 28, 25); c.line('darkwood', 21, 18, 29, 18); c.px('steel', 30, 18); c.px('team', 22, 17); }
-      else c.line('string', a === 2 ? 29 : 28, 14, a === 2 ? 29 : 28, 25);
-      if (a === 3) { c.line('string', 28, 14, 25, 19); c.line('string', 25, 20, 28, 25); }
-      c.rect('gold', 17, 19, 18, 20); c.rect('iron', 16, 21, 17, 22);
-      dArmTo(c, 'leather', 'skin', 22, 15, [18, 20]); fist(c, 'skin', [13, 21]);
-      if (a === 2) { for (let x = 30; x < 32; x++) c.glow(x, 18, 90, '#ffffff'); }
+      c.rim((t, m) => { t.rect(m, 14, 18, 27, 19); t.poly(m, [[11, 18], [15, 18], [15, 21], [11, 22]]); }, 'wood');   // caja y culata
+      c.rim((t, m) => { t.poly(m, [[27, 18], [29, 18], [27.5, 12], [26, 12.5]]); t.poly(m, [[27, 19.5], [29, 19.5], [27.5, 25], [26, 24.5]]); }, 'steel'); // arco de acero
+      c.line('string', 26, 13, nut, 18); c.line('string', nut, 19, 26, 24);
+      if (a < 2) { c.line('darkwood', 20, 17, 29, 17); c.rect('steel', 30, 17, 31, 17); c.px('steel', 30, 16); c.px('team', 21, 16); c.px('team', 22, 16); }
+      c.rect('gold', 18, 18, 19, 19); c.rect('iron', 17, 20, 17, 21);
+      c.rect('skin', 11, 19, 13, 20); c.rect('skin', 23, 19, 25, 20);
+      if (a === 2) for (let x = 29; x < 32; x++) c.glow(x, 17, 90, '#ffffff');
     });
   },
 };
@@ -1023,22 +1021,22 @@ U.dwarf_ranged = {
 // ---- Carnero de montaña de perfil (mira a la derecha); lunge = embestida de la cabeza
 function ram(c, P, lunge) {
   const b = P.body;
-  c.at(0, b + P.sec, () => c.ell('ua_wool', 9.5, 16, 1.8, 1.6));
-  qleg(c, P, 'ua_ramface.0', 'ua_hoof', 14, 21 + b, .12, 0, 2, 2, 2.5);
-  qleg(c, P, 'ua_ramface.0', 'ua_hoof', 25, 21 + b, .62, 1, 2, 2, 2.5);
+  c.at(0, b + P.sec, () => c.ell('ua_wool', 9.5, 16.5, 1.8, 1.6));
+  qleg(c, P, 'ua_ramface.0', 'ua_hoof', 14, 22 + b, .12, 0, 2, 2, 2.5);
+  qleg(c, P, 'ua_ramface.0', 'ua_hoof', 25, 22 + b, .62, 1, 2, 2, 2.5);
   c.at(0, b, () => {
-    c.ell('ua_wool', 18.5, 17.5, 9.5, 5.2); c.ell('ua_wool', 25.5, 16.5, 4, 4.6);
-    for (const [x, y] of [[12, 15], [15, 13], [19, 14], [23, 13], [13, 19], [17, 18], [21, 19], [25, 18], [11, 17], [27, 15], [15, 21], [20, 21]]) c.px('ua_wool.0', x, y);
+    c.ell('ua_wool', 18.5, 18, 9.5, 5.2); c.ell('ua_wool', 25.5, 17.5, 4, 4.6);
+    for (const [x, y] of [[12, 16], [15, 14], [19, 15], [23, 14], [13, 20], [17, 19], [21, 20], [25, 19], [11, 18], [27, 16], [15, 22], [20, 22]]) c.px('ua_wool.0', x, y);
   });
-  c.at(lunge, b + (lunge ? 1 : 0), () => {
-    c.ell('ua_wool', 28, 13.5, 3.4, 3.6);
-    c.poly('ua_ramface', [[27.5, 10], [31.5, 9.5], [36, 13.5], [35.5, 16], [32.5, 16.5], [28.5, 14.5]]);
-    c.px('eye', 32, 12); c.px('ua_ramface.0', 35, 15);
-    c.ring('ua_horn', 29.5, 12.5, 3.7, 3.5, .25); c.px('ua_horn.0', 29, 12); c.px('ua_horn.0', 30, 13); c.px('ua_horn.3', 28, 10);
-    c.poly('ua_horn', [[30, 15], [32, 15.5], [31, 17]]); c.px('ua_horn.0', 27, 14); c.px('ua_horn.0', 31, 10);
+  c.at(lunge, b + (lunge ? 1 : 0), () => {                // cabeza baja con cuerno enroscado
+    c.ell('ua_wool', 28.5, 15.5, 3.4, 3.6);
+    c.poly('ua_ramface', [[28, 12.5], [32.5, 12.5], [37.5, 16.5], [37, 19.5], [33.5, 20.5], [29, 18]]);
+    c.px('eye', 33, 15); c.px('ua_ramface.0', 37, 19); c.rect('ua_ramface.2', 34, 15, 36, 15);
+    c.rim((t, m) => { t.ring(m, 29.5, 15.5, 4.2, 4, .2); t.poly(m, [[30.5, 18.5], [33, 19], [31.5, 21]]); }, 'ua_horn');
+    c.px('ua_horn.0', 29, 15); c.px('ua_horn.0', 30, 16); c.px('ua_horn.0', 28, 17); c.px('ua_horn.3', 28, 12); c.px('ua_horn.0', 26, 16); c.px('ua_horn.0', 32, 14);
   });
-  qleg(c, P, 'ua_ramface', 'ua_hoof', 12, 21 + b, 0, 0, 2, 2, 2.5);
-  qleg(c, P, 'ua_ramface', 'ua_hoof', 23, 21 + b, .5, 1, 2, 2, 2.5);
+  qleg(c, P, 'ua_ramface', 'ua_hoof', 12, 22 + b, 0, 0, 2, 2, 2.5);
+  qleg(c, P, 'ua_ramface', 'ua_hoof', 23, 22 + b, .5, 1, 2, 2, 2.5);
 }
 
 // ---- Jinete de carnero: enano con martillo sobre carnero de montaña
@@ -1048,29 +1046,28 @@ U.dwarf_cav = {
   draw(c, P) {
     const b = P.body, a = P.atk;
     ram(c, P, [0, 2, 1, 0][a]);
-    const G = [[-25, 21, 9], [-60, 20, 8], [100, 24, 10], [125, 24, 11]][a], T = rf(G[1], G[2], G[0]);
+    const G = [[25, 24, 12], [-50, 21, 9], [100, 24, 10], [125, 24, 11]][a], T = rf(G[1], G[2], G[0]);
     const hammer = () => {
-      c.rim((t, m) => { rb(t, m, T, -10, 3, 1.6); rb(t, m, T, -13.5, -9.5, 6); }, 'steel');
-      rb(c, 'wood', T, -9.5, 3, 1.6); rb(c, 'gold', T, -13.5, -12.5, 6); rb(c, 'rune', T, -11.5, -10.5, 2);
+      c.rim((t, m) => { rb(t, m, T, -7, 3, 1.6); rb(t, m, T, -10.5, -6.5, 6); }, 'steel');
+      rb(c, 'wood', T, -6.5, 3, 1.6); rb(c, 'gold', T, -10.5, -9.5, 6); rb(c, 'rune', T, -8.5, -7.5, 2);
     };
     c.at(0, b, () => {
       c.poly('team', [[13, 12], [24, 12], [24.5, 18], [12.5, 18]]); c.rect('gold', 12, 18, 24, 18);
       for (let x = 13; x <= 24; x += 2) c.px('gold.0', x, 19);
-      if (!a) hammer();
       c.rect('iron', 16, 13, 19, 18); c.rect('leather', 16, 19, 20, 21);                       // pierna corta y bota
       c.rect('steel', 14, 6, 22, 13); c.rect('team', 14, 10, 22, 13); c.rect('gold', 14, 13, 22, 13);
       c.ell('steel', 17, 6.5, 3, 2.2);
       // cabeza de perfil con barba enorme
-      c.ell('skin', 19.5, 4.5, 3.6, 3.4); c.px('skin', 23, 5); c.px('skin.3', 23, 4);
-      c.poly('ua_bbeard', [[17.5, 5.5], [22.5, 5.5], [24, 9], [22.5, 13], [19.5, 12.5], [17.5, 9]]); c.line('ua_bbeard.0', 20, 8, 21, 11);
-      c.px('eye', 21, 4); c.rect('ua_bbeard', 20, 3, 22, 3);
-      c.ell('steel', 19, 2.6, 3.8, 2.5); c.rect('steel', 15, 3, 22, 3); c.rect('gold', 15, 3, 22, 3);
-      c.poly('bone', [[16, 2], [14, 0.5], [13, -1], [16, 0.5]]);
+      c.ell('skin', 19.5, 5, 3.6, 3.4);
+      c.poly('ua_rbeard', [[17.5, 6], [22.5, 6], [24.5, 9], [23, 13.5], [19.5, 13], [17, 9]]); c.line('ua_rbeard.0', 20, 9, 21, 12); c.rect('ua_rbeard.2', 21, 7, 23, 7);
+      c.px('eye', 21, 5); c.rect('skin', 23, 5, 23, 6); c.px('skin.3', 23, 5);
+      c.ell('steel', 19, 2.4, 3.8, 2.4); c.rect('gold', 15, 4, 22, 4); c.px('steel.3', 18, 1);
+      c.poly('bone', [[16, 2.5], [13.5, 1.5], [13, 0], [16.5, 1]]);
     });
     c.at(0, b, () => {
-      if (a) hammer();
+      hammer();
       const h = T(0, 0); limb(c, 'steel', 20, 7, Math.round(h[0]) - 1, Math.round(h[1]) - 1, 2); fist(c, 'iron', h);
-      if (a === 2) { smear(c, G[1], G[2], 12, -50, 100); const p = T(0, -11.5); halo(c, p[0], p[1], 3, 90, '#9ff8f2'); }
+      if (a === 2) { smear(c, G[1], G[2], 10, -50, 100); const p = T(0, -8.5); halo(c, p[0], p[1], 3, 90, '#9ff8f2'); }
     });
   },
 };
@@ -1081,8 +1078,8 @@ U.dwarf_special = {
   draw(c, P) {
     const b = P.body, a = P.atk, rec = a === 2 ? -2 : a === 3 ? -1 : 0;
     c.at(rec * .5, b, () => {                                                                      // barril de pólvora a la espalda
-      c.rim((t, m) => t.ell(m, 15.5, 11, 7.5, 5.5), 'wood'); c.rect('iron', 8, 9, 23, 9); c.rect('iron', 8, 13, 23, 13);
-      c.line('string', 22, 7, 25, 4); c.px('fire', 25, 4);
+      c.rim((t, m) => { t.rect(m, 4, 6, 10, 16); t.rect(m, 5, 5, 9, 5); }, 'darkwood'); c.rect('iron', 4, 8, 10, 8); c.rect('iron', 4, 13, 10, 13);
+      c.rect('darkwood.2', 5, 9, 5, 12); c.line('string', 7, 4, 5, 2); c.px('fire', 5, 1); c.px('glowY', 4, 1);
     });
     legs(c, P, 'pants', 'leather', DL, DR, 25, 27);
     c.at(rec * .5, b, () => {
@@ -1092,11 +1089,11 @@ U.dwarf_special = {
     c.at(rec * .5, b + (a ? 0 : P.s), () => dArmL(c, 'team'));
     c.at(rec * .5, b, () => {
       dwarfHead(c, 'ua_rbeard');
-      c.ell('leather', 15.5, 8.6, 5.4, 3.8); c.rect('leather', 10, 9, 21, 9);
-      c.ell('copper', 13, 7.5, 1.8, 1.6); c.ell('copper', 18, 7.5, 1.8, 1.6); c.px('glowC', 13, 7); c.px('glowC', 18, 7); c.rect('copper', 14, 7, 16, 7);
+      c.ell('leather', 15.5, 7.6, 5.4, 3.4); c.rect('leather', 10, 9, 21, 10); c.rect('leather.0', 10, 10, 21, 10);
+      c.ell('copper', 13, 7, 1.8, 1.6); c.ell('copper', 18, 7, 1.8, 1.6); c.px('glowC', 13, 7); c.px('glowC', 18, 7); c.px('white', 12, 6); c.rect('copper', 14, 7, 16, 7);
     });
     // trabuco: al hombro (0), apunta (1), FUEGO (2), humo (3)
-    const G = [[40, 22, 20], [90, 16, 18], [90, 16, 18], [80, 16, 18]][a], T = rf(G[1] + rec, G[2], G[0]);
+    const G = [[40, 22, 20], [90, 15, 18], [90, 15, 18], [80, 15, 18]][a], T = rf(G[1] + rec, G[2], G[0]);
     c.at(0, b, () => {
       c.rim((t, m) => { rp(t, m, T, [[-1.5, 5], [1.5, 5], [1, 0], [-1, 0]]); rb(t, m, T, -11, 0, 2); rp(t, m, T, [[-1, -11], [1, -11], [2.2, -14], [-2.2, -14]]); }, 'ua_bronze');
       rp(c, 'darkwood', T, [[-1.5, 5], [1.5, 5], [1, 0], [-1, 0]]); rb(c, 'gold', T, -5, -4, 2.4); rb(c, 'ua_bronze.0', T, -14, -13, 4);
@@ -1104,10 +1101,10 @@ U.dwarf_special = {
       if (a) { dArmTo(c, 'team', 'skin', 22, 15, h); dArmTo(c, 'team', 'skin', 8, 16, h2); } else { dArmR(c, 'team'); fist(c, 'skin', h); }
       const mz = T(0, -15);
       if (a === 2) {                                                                             // fogonazo
-        c.poly('fire', [[mz[0] - 1, mz[1] - 3], [mz[0] + 4, mz[1] - 4], [mz[0] + 2.5, mz[1] - 1], [mz[0] + 5.5, mz[1]], [mz[0] + 2.5, mz[1] + 1.5], [mz[0] + 4, mz[1] + 4], [mz[0] - 1, mz[1] + 3]]);
+        c.poly('fire', [[mz[0] - 1, mz[1] - 3], [mz[0] + 3, mz[1] - 3.5], [mz[0] + 2, mz[1] - 1], [mz[0] + 4, mz[1]], [mz[0] + 2, mz[1] + 1.5], [mz[0] + 3, mz[1] + 3.5], [mz[0] - 1, mz[1] + 3]]);
         c.ell('glowY', mz[0] + 1, mz[1] + .5, 1.6, 1.8); halo(c, mz[0] + 1, mz[1], 6, 120, '#ffe98a'); halo(c, mz[0] + 1, mz[1], 8, 50, '#ff6a4a');
       }
-      if (a === 3) { c.ell('ua_smoke', mz[0] + 1.5, mz[1] - 1.5, 2, 1.8); c.ell('ua_smoke', mz[0] - .5, mz[1] - 4, 1.6, 1.5); c.px('ua_smoke.3', mz[0], mz[1] - 2); }
+      if (a === 3) { c.ell('ua_smoke', mz[0] + .5, mz[1] - 2, 2, 1.8); c.ell('ua_smoke', mz[0] - 1.5, mz[1] - 4.5, 1.6, 1.5); c.px('ua_smoke.3', mz[0] - 1, mz[1] - 3); }
       if (a === 1) c.px('fire', Math.round(T(0, -2)[0]), Math.round(T(0, -2)[1]) - 2);
     });
   },
@@ -1126,19 +1123,17 @@ U.dwarf_siege = {
       c.rect('iron', 3, 28, 6, 29);
     });
     c.at(rec, b, () => {
-      c.rim((t, m) => { t.poly(m, [[9, 14], [31, 10], [31.5, 15], [9.5, 20]]); t.ell(m, 9, 17, 3, 3); t.poly(m, [[31, 9], [35, 8.5], [35.5, 15.5], [31.5, 16]]); }, 'ua_bronze');
-      c.ell('gold', 5.5, 17.5, 1.5, 1.5);                                                          // cascabel
-      for (const x of [14, 22, 30]) c.line('gold', x, 13.5 - (x - 14) * .18, x + 1, 19 - (x - 14) * .3);
-      c.line('ua_bronze.3', 11, 15, 30, 11);
-      c.px('rune', 17, 15); c.px('rune', 18, 16); c.px('rune', 19, 15); c.px('rune', 25, 13); c.px('rune', 26, 14);
-      c.rect('ua_bronze.0', 34, 10, 35, 14); c.px('ol', 35, 12);
-      if (a === 1 || a === 0) c.px(a === 1 ? 'glowY' : 'iron', 11, 14);
-      if (a === 1) { c.px('fire', 11, 13); halo(c, 11, 13, 2.5 + P.glow * .5, 110, '#ffe98a'); }
+      c.rim((t, m) => { t.poly(m, [[10, 13.5], [30, 11], [30.5, 15.5], [10.5, 20.5]]); t.ell(m, 10, 17, 3.4, 3.5); t.ell(m, 5.8, 17.5, 1.4, 1.4); t.poly(m, [[29.5, 10], [33.5, 9.5], [34, 16], [30, 16.5]]); }, 'ua_bronze');
+      for (const [x, y0, y1] of [[15, 13, 19], [23, 12, 17]]) c.line('ua_bronze.0', x, y0, x, y1);
+      c.line('gold', 29, 11, 29, 16); c.line('ua_bronze.3', 11, 14.5, 29, 11.5); c.rect('ua_bronze.0', 33, 10, 33, 15);
+      c.px('rune', 18, 15); c.px('rune', 19, 16); c.px('rune', 20, 15); c.px('rune', 26, 13); c.px('rune', 27, 14);
+      if (a === 1 || a === 0) c.px(a === 1 ? 'glowY' : 'iron', 12, 14);
+      if (a === 1) { c.px('fire', 12, 13); halo(c, 12, 13, 2.5 + P.glow * .5, 110, '#ffe98a'); }
       if (a === 2) {
-        c.poly('fire', [[35, 8], [38.5, 9], [37, 11], [40, 12.5], [37, 14], [38.5, 16.5], [35, 16]]); c.ell('glowY', 36.5, 12.5, 1.6, 2.2);
-        halo(c, 36.5, 12.5, 5, 130, '#ffe98a'); halo(c, 36.5, 12.5, 7, 50, '#ff6a4a');
+        c.poly('fire', [[34, 8], [37.5, 8.5], [36, 11], [39.5, 12.5], [36, 14.5], [37.5, 17], [34, 17]]); c.ell('glowY', 35.5, 12.8, 1.6, 2.4);
+        halo(c, 35.5, 12.8, 5, 130, '#ffe98a'); halo(c, 35.5, 12.8, 7, 50, '#ff6a4a');
       }
-      if (a === 3) { c.ell('ua_smoke', 37.5, 11, 2.2, 2); c.ell('ua_smoke', 35.5, 7.5, 1.8, 1.6); c.px('ua_smoke.3', 36, 10); }
+      if (a === 3) { c.ell('ua_smoke', 36.5, 11.5, 2.2, 2); c.ell('ua_smoke', 34.5, 8, 1.8, 1.6); c.px('ua_smoke.3', 35, 10); }
     });
     c.at(0, b, () => { c.rect('darkwood', 18, 15, 24, 18); c.rect('iron', 18, 15, 24, 15); c.rect('team', 20, 16, 22, 17); });   // muñón
     wheel(c, 21, 23.5, 6, r, 'darkwood', 'wood', 3, 'iron', 'darkwood.0'); c.px('gold', 20, 22);
@@ -1158,26 +1153,25 @@ U.dwarf_general = {
       c.rect('team', 10, 24, 21, 26); c.rect('gold', 10, 26, 21, 26);
       c.ell('gold', 8, 15.5, 3.5, 2.9); c.ell('gold', 23, 15.5, 3.5, 2.9); c.px('rune', 8, 15); c.px('rune', 23, 15);
     });
-    const G = [[0, 25, 20], [-30, 22, 17], [110, 16, 19], [130, 17, 20]][a], T = rf(G[1], G[2], G[0]);
+    const G = [[0, 25, 20], [15, 22, 17], [110, 14, 19], [125, 15, 18]][a], T = rf(G[1], G[2], G[0]);
     const hammer = () => {
-      c.rim((t, m) => { rb(t, m, T, -13, 5, 2); rb(t, m, T, -18, -12, 9); }, 'iron');
-      rb(c, 'darkwood', T, -12, 5, 2); rb(c, 'gold', T, -18, -17, 9); rb(c, 'gold', T, -13, -12, 9); rb(c, 'gold', T, 4, 5, 2.6);
-      rb(c, 'rune', T, -15.5, -14.5, 5); rb(c, 'rune', T, -16, -14, 1);
-      const p = T(0, -15); halo(c, p[0], p[1], 5 + (a === 2 ? 2.5 : P.glow * .7), a === 2 ? 130 : 70, '#9ff8f2');
+      c.rim((t, m) => { rb(t, m, T, -11, 5, 2); rb(t, m, T, -16, -10.5, 8); }, 'iron');
+      rb(c, 'darkwood', T, -10.5, 5, 2); rb(c, 'gold', T, -16, -15, 8); rb(c, 'gold', T, -11.5, -10.5, 8); rb(c, 'gold', T, 4, 5, 2.6);
+      rb(c, 'rune', T, -13.8, -12.8, 4); rb(c, 'rune', T, -14.5, -12, 1);
+      const p = T(0, -13.3); halo(c, p[0], p[1], 5 + (a === 2 ? 2.5 : P.glow * .7), a === 2 ? 130 : 70, '#9ff8f2');
     };
-    if (a === 1) c.at(0, b, hammer);
     c.at(0, b + (a ? 0 : P.s), () => { if (!a) dArmL(c, 'gold', 'steel'); else dArmTo(c, 'gold', 'steel', 7, 15, T(0, 3)); });
     c.at(0, b, () => {
       dwarfHead(c, 'beard', { braid: true });
-      c.ell('gold', 15.5, 8.6, 5.5, 3.9); c.rect('gold', 10, 9, 21, 10); c.rect('gold.0', 10, 10, 21, 10);
+      c.ell('gold', 15.5, 7.6, 5.5, 3.4); c.rect('gold', 10, 8, 21, 10); c.rect('gold.0', 10, 10, 21, 10);
       for (const [x, h] of [[10, 3], [12, 2], [15, 1], [16, 1], [19, 2], [21, 3]]) c.rect('gold', x, h, x, 6);
-      c.px('gold.3', 15, 0); c.px('gold.3', 16, 0); c.px('red', 15, 8); c.px('red', 16, 8); c.px('team', 12, 8); c.px('team', 19, 8);
+      c.px('gold.3', 15, 0); c.px('gold.3', 16, 0); c.px('red', 15, 9); c.px('red', 16, 9); c.px('team', 12, 9); c.px('team', 19, 9);
       halo(c, 15.5, 3, 3 + P.glow, 55, '#ffe98a');
     });
     c.at(0, b - (a ? 0 : P.s), () => {
       if (!a) { dArmR(c, 'gold', 'steel'); hammer(); c.rect('steel', 23, 19, 26, 21); }
-      else { if (a !== 1) hammer(); dArmTo(c, 'gold', 'steel', 22, 15, T(0, 0)); }
-      if (a === 2) { smear(c, G[1], G[2], 17, -30, 110, 110); const p = T(0, -15); star(c, 'glowC', Math.round(p[0]) + 2, Math.round(p[1]) + 2); }
+      else { hammer(); dArmTo(c, 'gold', 'steel', 22, 15, T(0, 0)); }
+      if (a === 2) { smear(c, G[1], G[2], 15, -30, 110, 110); const p = T(0, -13); star(c, 'glowC', Math.round(p[0]) - 1, Math.round(p[1]) + 3); }
     });
   },
 };

@@ -76,7 +76,7 @@ const SG = { cell: 64, cw: 0, ch: 0, cells: [] };
 function sgInit(W, H) { SG.cw = Math.ceil(W * T / SG.cell); SG.ch = Math.ceil(H * T / SG.cell); SG.cells = Array.from({ length: SG.cw * SG.ch }, () => []); }
 function sgRebuild(units) {
   for (const c of SG.cells) c.length = 0;
-  for (const u of units) { if (u.dead) continue; const cx = Math.min(SG.cw - 1, Math.max(0, (u.x / SG.cell) | 0)), cy = Math.min(SG.ch - 1, Math.max(0, (u.y / SG.cell) | 0)); SG.cells[cy * SG.cw + cx].push(u); }
+  for (const u of units) { if (u.dead || u.inside) continue; const cx = Math.min(SG.cw - 1, Math.max(0, (u.x / SG.cell) | 0)), cy = Math.min(SG.ch - 1, Math.max(0, (u.y / SG.cell) | 0)); SG.cells[cy * SG.cw + cx].push(u); }
 }
 /** Llama fn(u) para cada unidad en el radio r (px). Devuelve true si fn devuelve true (corte). */
 function sgEach(x, y, r, fn) {

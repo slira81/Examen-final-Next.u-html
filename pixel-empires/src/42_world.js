@@ -93,7 +93,17 @@ const visibleAt = (x, y) => { if (G.human < 0 || G.cfg.revealed) return true; co
 const exploredAt = (tx, ty) => G.human < 0 || G.cfg.revealed || (tx >= 0 && ty >= 0 && tx < G.map.W && ty < G.map.H && G.vis[ty * G.map.W + tx] > 0);
 
 // --------------------------------------------------------------- paso del mundo
+const TIPS = [
+  [4, 'Consejo: selecciona a tus aldeanos y haz clic derecho sobre arbustos de bayas, árboles o minas para recolectar.'],
+  [30, 'Consejo: entrena más aldeanos en el centro urbano (selecciónalo y pulsa Q). Más aldeanos, economía más fuerte.'],
+  [75, 'Consejo: construye casas para subir la población y un molino, aserradero o campamento minero cerca de los recursos.'],
+  [150, 'Consejo: el ganado (ovejas, cerdos, vacas) es comida rápida: haz clic derecho sobre él con un aldeano.'],
+  [240, 'Consejo: necesitas 2 edificios (cuartel, molino, aserradero o campamento minero) para avanzar a la Era del Reino.'],
+  [420, 'Consejo: las tropas que sobreviven a los combates suben de nivel. Retira a los heridos para conservar a tus veteranos.'],
+  [600, 'Consejo: si te atacan, usa el toque de campana del centro urbano para refugiar a los aldeanos.'],
+];
 function worldStep(dt) {
+  if (G.human >= 0) { G.tipI = G.tipI || 0; if (G.tipI < TIPS.length && G.time >= TIPS[G.tipI][0]) { G.msg(TIPS[G.tipI][1], '#b8e0ff'); G.tipI++; } }
   if ((G.visT = (G.visT || 0) - dt) <= 0) { G.visT = 0.25; updVision(); }
   weatherStep(dt);
   fireStep(dt);
@@ -195,7 +205,7 @@ function fireStep(dt) {
 function disaster() {
   const alive = G.players.filter(p => p.alive); if (!alive.length) return;
   const p = alive[Math.floor(Math.random() * alive.length)], s = G.map.starts[p.id];
-  const kind = ['fire', 'quake', 'locust'][Math.floor(Math.random() * 3)];
+  const kind = G.time > 900 && Math.random() < 0.3 ? 'invasion' : ['fire', 'quake', 'locust'][Math.floor(Math.random() * 3)];
   const near = { x: (s.x + (Math.random() - 0.5) * 30) * T, y: (s.y + (Math.random() - 0.5) * 30) * T };
   if (kind === 'fire') {
     let best = null, bd = 1e9; for (const r of G.resBy.tree || []) { if (r.dead) continue; const d = Math.hypot(r.tx * T - near.x, r.ty * T - near.y); if (d < bd) { bd = d; best = r; } }
@@ -208,6 +218,21 @@ function disaster() {
     sgEach(c.x, c.y, 14 * T, u => { u.stun = Math.max(u.stun, 1.2); });
     for (let k = 0; k < 10; k++) addFx('fx_dust', c.x + (Math.random() - 0.5) * 300, c.y + (Math.random() - 0.5) * 200);
     G.msg('¡Desastre! Un terremoto sacude ' + (p.id === G.human ? 'tu reino' : 'el territorio de ' + p.name), '#ff8a4a', { ping: c, sound: 'alert' });
+  } else if (kind === 'invasion') {
+    // una horda de monstruos aparece en el borde más cercano y marcha hacia el centro urbano
+    const m = G.map, edges = [[2, s.y], [m.W - 3, s.y], [s.x, 2], [s.x, m.H - 3]];
+    edges.sort((a, b) => Math.hypot(a[0] - s.x, a[1] - s.y) - Math.hypot(b[0] - s.x, b[1] - s.y));
+    let [ex, ey] = edges[0];
+    for (let r = 0, found = false; r < 20 && !found; r++) for (let dy = -r; dy <= r && !found; dy++) for (let dx = -r; dx <= r; dx++) { const x = clamp(edges[0][0] + dx, 1, m.W - 2), y = clamp(edges[0][1] + dy, 1, m.H - 2); if (passable(y * m.W + x, HOSTILE) && !m.res[y * m.W + x]) { ex = x; ey = y; found = true; break; } }
+    const tc = G.blds.find(b => !b.dead && b.team === p.id && b.type === 'tc'), goal = tc ? centerOf(tc) : { x: s.x * T, y: s.y * T };
+    const n = 5 + Math.floor(G.time / 600) * 2, ogres = Math.floor(G.time / 1200);
+    for (let k = 0; k < n + ogres; k++) {
+      let x = ex + Math.round((Math.random() - 0.5) * 6), y = ey + Math.round((Math.random() - 0.5) * 6); x = clamp(x, 1, m.W - 2); y = clamp(y, 1, m.H - 2);
+      if (!passable(y * m.W + x, HOSTILE)) { x = ex; y = ey; }
+      const key = k < ogres ? 'neutral_ogre' : Math.random() < 0.6 ? 'neutral_goblin' : 'neutral_bandit';
+      const u = spawnUnit(key, HOSTILE, x * T + 8, y * T + 8); setMove(u, goal.x, goal.y, true);
+    }
+    G.msg('¡Invasión! Una horda de monstruos marcha hacia ' + (p.id === G.human ? 'tu centro urbano' : 'las tierras de ' + p.name), '#ff6a5a', { ping: { x: ex * T, y: ey * T }, sound: 'horn' });
   } else {
     let n = 0; for (const b of G.blds) if (!b.dead && b.team === p.id && b.type === 'farm') { b.food = Math.floor(b.food * 0.4); n++; }
     for (const r of G.resBy.berry || []) if (!r.dead && Math.hypot(r.tx - s.x, r.ty - s.y) < 16) r.amt = Math.floor(r.amt * 0.5);

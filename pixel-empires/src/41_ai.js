@@ -144,9 +144,13 @@ function aiThink(p) {
   for (const b of blds) { const c = centerOf(b); sgEach(c.x, c.y, 12 * T, u => { if (isEnemy(team, u.team) && !(isAnimal(u) && u.team === GAIA) && (isMil(u) || u.team === HOSTILE)) { threat = u; return true; } }); if (threat) break; }
   if (threat) {
     G.underAttack = G.underAttack || {}; G.underAttack[team] = { t: G.time, x: threat.x, y: threat.y };
+    // campana si el enemigo supera a la defensa cerca del centro urbano
+    let foes = 0, mine2 = 0; sgEach(home.x, home.y, 12 * T, u => { if (isEnemy(team, u.team) && (isMil(u) || u.team === HOSTILE)) foes += u.def.pop; else if (u.team === team && isMil(u)) mine2 += u.def.pop; });
+    if (!p.bell && foes >= 4 && foes > mine2 * 1.3 && dist(threat, home) < 10 * T) { ringBell(team); ai.bellT = G.time; }
     for (const u of army) if (u.order.t === 'idle' || (u.order.t === 'move' && !ai.attacking)) setMove(u, threat.x, threat.y, true);
     return;
   }
+  if (p.bell && G.time - (ai.bellT || 0) > 15) releaseBell(team);
   // ayudar a aliados atacados
   if (G.underAttack) for (const k in G.underAttack) { const ua = G.underAttack[k]; if (+k !== team && isAlly(team, +k) && G.time - ua.t < 10 && !ai.attacking && army.length > 4) { for (const u of army.slice(0, Math.ceil(army.length / 2))) if (u.order.t === 'idle') setMove(u, ua.x, ua.y, true); } }
   // --- ataque en oleadas

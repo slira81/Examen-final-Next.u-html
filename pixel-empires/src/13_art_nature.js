@@ -37,7 +37,7 @@
     nat_fish: '#a8b8c8', nat_plank: '#b08a58',
   });
   PE.addFixed({
-    nat_foam: '#eaf6fb', nat_foamA: '#d8eef8b0', nat_foamB: '#cfe8f670', nat_glint: '#f2fbff',
+    nat_foam: '#eaf6fb', nat_foamA: '#d8eef8b0', nat_foamB: '#cfe8f670', nat_glint: '#d8eeff',
     nat_spark: '#fffbe6', nat_ripple: '#dff2ffa0', nat_ripple2: '#dff2ff58',
     nat_scorchA: '#1a120e48', nat_scorchB: '#1a120e88', nat_scorchC: '#120a08c0', nat_ash: '#5a524c90', nat_ember: '#ff7a3a',
     nat_dust: '#3a2e2448', nat_dust2: '#2a201a60', nat_wisp: '#e6ffb8', nat_wispA: '#d8ffb0a0', nat_flame: '#ffe27a', nat_sparkA: '#ffd070b0',
@@ -186,24 +186,24 @@
     else { c.ell('nat_shall.1', 4.5, 11, 3.5, 2); c.ell('nat_shall.1', 11, 4, 3, 1.6); c.px('nat_shald.1', 12, 9); c.px('nat_shald.1', 3, 4); }
     SHW[v].forEach(([x, y, p], i) => wave(c, x, y, (f + p) % 4, 'nat_shall.2', i % 2 ? 'nat_shall.3' : 'nat_glint', 'nat_shald.1'));
   }, { frames: 4 });
-  // --- espuma de orilla (superposición): bits = lados con tierra 1N 2E 4S 8O
+  // --- espuma de orilla (superposición): bits = lados con tierra 1N 2E 4S 8O.
+  // El motor desfasa el frame por tile: los extremos de cada lado no dependen del frame
+  // (ventana W) y la ola sólo avanza/retrocede en el centro -> tiles vecinos siempre encajan.
   N.shore_foam = tile(1, (c, f, o) => {
     const m = o.mask | 0;
     const P = (s, a, d) => s === 1 ? [a, d] : s === 2 ? [15 - d, a] : s === 4 ? [a, 15 - d] : [d, a];
     const sides = [1, 2, 4, 8].filter(s => m & s);
-    const ext = [1, 2, 2, 1][f];                                    // la ola sube y baja
-    for (const s of sides) for (let a = 0; a < 16; a++) {          // burbujas sueltas que se retiran
-      const ph = (a + s * 5) % 8, db = [3, 3, 4, 4][f] + (ph > 4 ? 1 : 0);
-      if ((a + f * 3 + s) % 5 === 0) c.px('nat_foamB', ...P(s, a, db));
-    }
+    const W = a => Math.sin(Math.PI * (a + .5) / 16), up = [0, 1, 2, 1][f];
+    const wv = (a, s) => Math.sin((a + s * 3) * Math.PI / 4 + f * Math.PI / 2);
+    for (const s of sides) for (let a = 2; a < 14; a++)            // burbujas sueltas que se retiran
+      if ((a + f * 3 + s) % 5 === 0) c.px('nat_foamB', ...P(s, a, 2 + Math.round(W(a) * [1, 2, 3, 2][f])));
     for (const s of sides) for (let a = 0; a < 16; a++) {          // espuma suave
-      const wv = Math.sin((a + s * 3) * Math.PI / 4 + f * Math.PI / 2);
-      const e = ext + (wv > .3 ? 1 : 0);
+      const e = 1 + Math.round(W(a) * (up + (wv(a, s) > .3 ? 1 : 0)) * .8);
       for (let d = 1; d <= e; d++) c.px('nat_foamA', ...P(s, a, d));
     }
     for (const s of sides) for (let a = 0; a < 16; a++) {          // línea de espuma pegada a la tierra
       c.px('nat_foam', ...P(s, a, 0));
-      if (Math.sin((a + s * 3) * Math.PI / 4 + f * Math.PI / 2) > .55) c.px('nat_foam', ...P(s, a, 1));
+      if (W(a) * wv(a, s) > .55) c.px('nat_foam', ...P(s, a, 1));
     }
   }, { masks: true, frames: 4, variants: 1 });
 
@@ -386,13 +386,15 @@
       else c.px('nat_wisp', x, yy);
     });
   }, 32, 40, { ax: 16, ay: 39, render: { shadow: { cx: 16, cy: 37.5, rx: 11, ry: 2, a: 60 } } });
-  // --- tocón
+  // --- tocón: 0 corte limpio con anillos, 1 bajo y astillado con musgo
   N.stump = obj(16, 16, {
-    variants: 1, render: { shadow: { cx: 8, cy: 14, rx: 5.5, ry: 1.5, a: 60 } }, draw(c) {
-      c.rect('nat_bark', 4, 8, 11, 13); c.px('nat_bark', 3, 13); c.px('nat_bark', 12, 13); c.px('nat_bark', 3, 12); c.px('nat_bark', 13, 13);
-      c.ell('nat_cut.1', 8, 8, 4, 2);
-      c.ring('nat_cut.0', 8, 8, 2.8, 1.4, .45); c.px('nat_cut.2', 6, 7); c.px('nat_cut.0', 8, 8);
-      c.line('nat_bark.0', 6, 10, 6, 12); c.line('nat_bark.0', 9, 11, 9, 12);
+    variants: 2, render: { shadow: { cx: 8, cy: 14, rx: 5.5, ry: 1.5, a: 60 } }, draw(c, f, o) {
+      const v = V(o, 2), t = v ? 10 : 8;
+      c.rect('nat_bark', 4, t, 11, 13); c.px('nat_bark', 3, 13); c.px('nat_bark', 12, 13); c.px('nat_bark', 3, 12); c.px('nat_bark', 13, 13);
+      c.ell('nat_cut.1', 8, t, 4, 2);
+      c.ring('nat_cut.0', 8, t, 2.8, 1.4, .45); c.px('nat_cut.2', 6, t - 1); c.px('nat_cut.0', 8, t);
+      c.line('nat_bark.0', 6, t + 2, 6, 12); c.line('nat_bark.0', 9, t + 3, 9, 12);
+      if (v) { c.rect('nat_bark', 9, t - 3, 10, t - 1); c.px('nat_bark', 10, t - 4); c.rect('moss', 4, 12, 6, 13); c.px('moss', 11, 13); }   // astilla y musgo
     },
   });
 
