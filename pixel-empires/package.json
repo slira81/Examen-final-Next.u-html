@@ -1,0 +1,21 @@
+{
+  "name": "pixel-empires",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "description": "RTS estilo Age of Empires para navegador",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node tools/make_artifact.mjs",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "eslint-scope": "^9.1.2",
+    "espree": "^11.2.0",
+    "vite": "^8.3.5",
+    "vite-plugin-singlefile": "^2.3.4"
+  },
+  "dependencies": {
+    "three": "^0.187.0"
+  }
+}

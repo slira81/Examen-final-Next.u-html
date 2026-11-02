@@ -56,26 +56,26 @@ El entorno (terreno, árboles, minas y edificios) se dibuja al doble de resoluci
 
 ## Estructura
 
+Proyecto Vite con módulos ES. `npm run build` genera `dist/index.html` y la copia `Pixel Empires.html`: un único archivo autocontenido que se abre con doble clic.
+
 ```
-src/01_sprite.js          núcleo de sprites: rampas de color con cambio de matiz, contorno selectivo, poses
-src/02_vendor_zzfx.js     ZzFX (MIT) — https://github.com/KilledByAPixel/ZzFX
-src/10..14_art_*.js       arte por código: unidades, edificios, naturaleza, fauna, efectos e íconos
-src/20_data.js            razas, unidades, edificios, tecnologías, niveles
-src/30_map.js             generación de mapas
-src/31_path.js            A* y rejilla espacial
-src/40_game.js            simulación (combate, experiencia, economía, producción, guarnición)
-src/41_ai.js              IA
-src/42_world.js           niebla, clima, fuego, desastres, campamentos, tesoros, fauna
-src/43_diplo.js           diplomacia
-src/50_render.js          render
-src/51_ui.js · 52_input.js · 53_audio.js · 60_main.js
-tools/build.py            genera index.html y dist/artifact.html
-tools/artsheet.js         hoja de contacto del arte (Playwright)
-tools/test_game.js        simulación automática de partidas para pruebas y balance
-ART_SPEC.md               contrato de los módulos de arte
+index.html                 estructura de la interfaz (plantilla de Vite)
+src/main.js                arranque, pantalla inicial, galería y bucle (simulación 30 Hz + render)
+src/data/data.js           razas, unidades, edificios, tecnologías, niveles
+src/map/map.js             generación de mapas
+src/sim/path.js            A* y rejilla espacial
+src/sim/game.js            simulación (combate, experiencia, economía, producción, guarnición)
+src/ai/ai.js               IA rival
+src/world/world.js         niebla, clima, fuego, desastres, campamentos, tesoros, fauna
+src/world/diplo.js         diplomacia
+src/render/pixel/          render 2D actual y arte por código (se reemplaza por 3D)
+src/ui/ui.js, styles.css   interfaz
+src/input/input.js         ratón, teclado y gestos táctiles
+src/audio/audio.js, zzfx.js  sonido (ZzFX, MIT) y música procedural
+tools/                     pruebas automáticas con Playwright (partidas, paridad, móvil, capturas)
 ```
 
-Para regenerar el juego: `python3 tools/build.py`. Pruebas: `node tools/test_game.js 30 --obs --players=5` (simula 30 minutos con 5 IAs).
+Pruebas: `node tools/test_game.cjs 30 --obs --players=5` (simula 30 minutos), `node tools/play_test.cjs` (ratón y teclado), `node tools/mobile_test.cjs` (gestos táctiles) y `node tools/parity.cjs a.html b.html` (compara dos builds con aleatoriedad determinista).
 
 ## Referencias
 

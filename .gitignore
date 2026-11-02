@@ -1,1 +1,4 @@
 pixel-empires/tools/out/
+pixel-empires/node_modules/
+pixel-empires/dist/
+pixel-empires/tools/__pycache__/
