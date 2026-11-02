@@ -2,7 +2,7 @@ import { ZZFX } from './zzfx.js';
 import { mulberry32 } from '../map/map.js';
 import { G, clamp } from '../sim/game.js';
 import { visibleAt } from '../world/world.js';
-import { VIEW } from '../render/pixel/render.js';
+import { viewWorldSize } from '../render/view.js';
 /* =====================================================================
    Audio: efectos con ZzFX (MIT, github.com/KilledByAPixel/ZzFX) y
    música medieval procedural en modo dórico (laúd, flauta, bordón y
@@ -48,7 +48,7 @@ function sfx(name, vol = 1, pan = 0) {
 }
 function sfxAt(name, x, y, vol = 1) {
   if (!G || !G.cam || !audioOk()) return;
-  const vw = (VIEW.ww || 240), vh = (VIEW.wh || 150), dx = x - (G.cam.x), dy = y - (G.cam.y);
+  const vs = viewWorldSize(), vw = vs.w || 240, vh = vs.h || 150, dx = x - (G.cam.x), dy = y - (G.cam.y);
   if (Math.abs(dx) > vw * 0.7 || Math.abs(dy) > vh * 0.7) return;
   if (G.human >= 0 && !visibleAt(x, y)) return;
   sfx(name, vol * (1 - Math.min(0.6, Math.hypot(dx / vw, dy / vh))), dx / (vw * 0.6));

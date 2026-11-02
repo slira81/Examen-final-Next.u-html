@@ -15,6 +15,8 @@ const { chromium } = require('playwright');
   await p.evaluate(() => { document.getElementById('s-rivals').value = '2'; buildRivals(); });
   const st = await p.$('#s-start'); await st.scrollIntoViewIfNeeded(); await p.waitForTimeout(200); const bb = await st.boundingBox(); await tap(bb.x + bb.width / 2, bb.y + bb.height / 2); await p.waitForTimeout(900);
   log.push('started=' + await p.evaluate(() => !!PE_GAME.G) + ' S=' + await p.evaluate(() => VIEW.S + ' dpr ' + VIEW.dpr + ' internal ' + VIEW.w + 'x' + VIEW.h + ' zoom ' + VIEW.zmin + '-' + VIEW.zmax));
+  await p.evaluate(() => { PE_GAME.startGame({ seed: 777, size: 96, mapType: 'continental', players: ['human', 'orc', 'elf'].map((r, i) => ({ race: r, color: i, human: i === 0, team: 0, diff: 'easy', name: 'P' + i })), resources: 'high', weather: false, disasters: false }); });
+  await p.waitForTimeout(500);
   await p.screenshot({ path: 'tools/out/m_game.png' });
   const scr = (wx, wy) => p.evaluate(([wx, wy]) => ({ x: (Math.round(wx * VIEW.WS) - VIEW.ox) * VIEW.S / VIEW.dpr, y: (Math.round(wy * VIEW.WS) - VIEW.oy) * VIEW.S / VIEW.dpr }), [wx, wy]);
   // tocar un aldeano y luego un árbol

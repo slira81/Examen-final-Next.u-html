@@ -8,9 +8,11 @@ import './render/pixel/art/fauna_fx.js';
 import { PE } from './render/pixel/sprite.js';
 import { ANIMALS, BLD, DIFFICULTY, PLAYER_NAMES, RACES, RACE_KEYS, ROLES, T, UNITS } from './data/data.js';
 import { G, clamp, newGame, setG, simStep } from './sim/game.js';
-import { VIEW, drawMinimap, prerenderTerrain, render } from './render/pixel/render.js';
+import { RV, setRenderer } from './render/view.js';
+import { pixelRenderer } from './render/pixel/adapter.js';
+import { buildMiniBase, drawMinimap } from './ui/minimap.js';
 import { $, UI, initHUD, openHelp, openModal, updateLog, updateSelectionUI, updateTop, updateTouchUI } from './ui/ui.js';
-import { INPUT, cameraStep, centerOn, clampCam, initInput } from './input/input.js';
+import { INPUT, cameraStep, centerOn, clampCam, initInput, updateZoomButtons } from './input/input.js';
 import { audioUnlock, musicStart } from './audio/audio.js';
 import * as __m0 from './data/data.js';
 import * as __m1 from './map/map.js';
@@ -31,25 +33,7 @@ import * as __self from './main.js';
    principal (simulación a paso fijo de 30 Hz + render por frame).
    ===================================================================== */
 const SETUP = { race: 'human' };
-/** Lienzo nítido: cada píxel interno ocupa exactamente S píxeles del dispositivo. */
-function zoomLimits(devW, devH) {
-  let min = 1; while ((devW / min) * (devH / min) > 1.25e6) min++;        // límite de rendimiento
-  const max = Math.max(min, Math.floor(Math.min(devH, devW * 1.4) / 150));
-  return { min, max };
-}
-function resize() {
-  if (!VIEW.cv) return;
-  VIEW.dpr = Math.min(3, window.devicePixelRatio || 1);
-  const devW = Math.round(innerWidth * VIEW.dpr), devH = Math.round(innerHeight * VIEW.dpr), lim = zoomLimits(devW, devH);
-  VIEW.zmin = lim.min; VIEW.zmax = lim.max;
-  if (!VIEW.zoomSet) { VIEW.S = Math.round(Math.min(devH / 420, devW / 420)); VIEW.zoomSet = true; }
-  VIEW.S = clamp(VIEW.S, lim.min, lim.max);
-  VIEW.w = Math.ceil(devW / VIEW.S); VIEW.h = Math.ceil(devH / VIEW.S); VIEW.ww = VIEW.w / VIEW.WS; VIEW.wh = VIEW.h / VIEW.WS;
-  VIEW.cv.width = VIEW.w; VIEW.cv.height = VIEW.h;
-  VIEW.cv.style.width = (VIEW.w * VIEW.S / VIEW.dpr) + 'px'; VIEW.cv.style.height = (VIEW.h * VIEW.S / VIEW.dpr) + 'px';
-  VIEW.ctx.imageSmoothingEnabled = false; clampCam();
-  const zi = $('z-in'), zo = $('z-out'); if (zi) { zi.disabled = VIEW.S >= VIEW.zmax; zo.disabled = VIEW.S <= VIEW.zmin; }
-}
+function resize() { if (!RV.impl) return; RV.impl.resize(); clampCam(); updateZoomButtons(); }
 function showSetup() {
   setG(null); UI.paused = true;
   $('hud').hidden = true; $('setup').hidden = false;
@@ -89,7 +73,7 @@ function startFromSetup() {
 function startGame(cfg) {
   $('setup').hidden = true; $('hud').hidden = false; $('modal').hidden = true; UI.modal = false;
   newGame(cfg);
-  prerenderTerrain(); initHUD();
+  RV.impl.onGameStart(); buildMiniBase(); initHUD();
   UI.sig = ''; UI.page = 'root'; UI.placing = null; UI.paused = false; UI.logHTML = ''; UI.prSig = null;
   $('b-speed').textContent = '1x';
   resize();
@@ -155,7 +139,7 @@ function frame(ts) {
       }
       cameraStep(dt);
       for (const m of UI.marks) m.t += dt; UI.marks = UI.marks.filter(m => m.t < 0.5);
-      render(UI.paused ? 0 : dt);
+      RV.impl.frame(UI.paused ? 0 : dt, Math.min(1, ACC * 30));
       updateTop(); updateLog(); updateSelectionUI(false);
       if ((UI.miniT = (UI.miniT || 0) - dt) <= 0) { UI.miniT = 0.25; drawMinimap(); }
       if (G.time - (G.battleNear || -99) > 0) { /* música de batalla se gestiona en el audio */ }
@@ -164,7 +148,7 @@ function frame(ts) {
   requestAnimationFrame(frame);
 }
 function boot() {
-  VIEW.cv = $('game'); VIEW.ctx = VIEW.cv.getContext('2d');
+  setRenderer(pixelRenderer); RV.impl.init({ canvas: $('game') });
   window.addEventListener('resize', resize);
   if (matchMedia('(pointer: coarse)').matches) { INPUT.touch = true; document.body.classList.add('touch'); }
   $('s-rivals').onchange = buildRivals;
@@ -183,4 +167,4 @@ if (typeof window !== 'undefined') {
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 
-export { SETUP, zoomLimits, resize, showSetup, buildRivals, startFromSetup, startGame, GALLERY, openGallery, galleryTick, LAST, ACC, PREWARM, frame, boot };
+export { SETUP, resize, showSetup, buildRivals, startFromSetup, startGame, GALLERY, openGallery, galleryTick, LAST, ACC, PREWARM, frame, boot };

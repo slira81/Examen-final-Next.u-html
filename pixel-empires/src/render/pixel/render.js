@@ -4,6 +4,7 @@ import { TR, TR_COLOR, TR_PRIO, TR_TILE, TR_VARS } from '../../map/map.js';
 import { G, canPlace, farmFood, isAlly, isAnimal, isEnemy, tileOf } from '../../sim/game.js';
 import { exploredAt, visibleAt } from '../../world/world.js';
 import { UI, canRoad, placementTiles, roadTiles } from '../../ui/ui.js';
+import { teamColorIdx } from '../view.js';
 /* =====================================================================
    Render: el entorno (terreno, árboles, minas, edificios) se dibuja a
    escala WS respecto a los personajes, que conservan su tamaño nativo,
@@ -14,7 +15,6 @@ import { UI, canRoad, placementTiles, roadTiles } from '../../ui/ui.js';
    ===================================================================== */
 const VIEW = { S: 2, dpr: 1, w: 480, h: 300, WS: PE.ENV.scale, cv: null, ctx: null, anim: 0, cx: 0, cy: 0, ox: 0, oy: 0, ww: 240, wh: 150 };
 const TS = T * PE.ENV.scale;                       // tamaño de tile en pantalla interna
-const teamColorIdx = t => t >= 0 && t < 8 && G.players[t] ? G.players[t].color : 6;
 const SX = wx => Math.round(wx * VIEW.WS) - VIEW.ox, SY = wy => Math.round(wy * VIEW.WS) - VIEW.oy;
 
 // --------------------------------------------------------------- terreno
@@ -45,8 +45,6 @@ function prerenderTerrain() {
   VIEW.decorBy = new Map();
   for (const d of m.decor) { if (d.anim) continue; const c0 = Math.floor((d.tx - 1) / CHUNK), c1 = Math.floor((d.tx + 1) / CHUNK), r0 = Math.floor((d.ty - 2) / CHUNK), r1 = Math.floor(d.ty / CHUNK); for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) { const k = c + ',' + r; (VIEW.decorBy.get(k) || VIEW.decorBy.set(k, []).get(k)).push(d); } }
   // color del minimapa
-  VIEW.miniBase = new ImageData(W, H);
-  for (let i = 0; i < W * H; i++) { const c = PE.hx(TR_COLOR[m.terr[i]]); VIEW.miniBase.data.set([c[0], c[1], c[2], 255], i * 4); }
   VIEW.fog = PE.makeCanvas(W, H); VIEW.fogCtx = VIEW.fog.getContext('2d'); VIEW.fogImg = VIEW.fogCtx.createImageData(W, H); G.fogDirty = true;
 }
 function computeTile(tx, ty) {
@@ -85,7 +83,6 @@ function getChunk(cx, cy) {
 }
 function redrawTiles(tx, ty, r = 1) {
   for (let y = ty - r; y <= ty + r; y++) for (let x = tx - r; x <= tx + r; x++) if (x >= 0 && y >= 0 && x < G.map.W && y < G.map.H) { computeTile(x, y); const ch = VIEW.chunks.get(Math.floor(x / CHUNK) + ',' + Math.floor(y / CHUNK)); if (ch) ch.dirty = true; }
-  const i = ty * G.map.W + tx; VIEW.miniBase.data.set(PE.hx(TR_COLOR[G.map.terr[i]]).slice(0, 3), i * 4);
 }
 function updateFog() {
   const v = G.vis, d = VIEW.fogImg.data;
@@ -287,21 +284,5 @@ function drawWeather(dt) {
   if (cur === 'fog') { WX.fogOff += dt * 6; const g = c.createLinearGradient(0, 0, VIEW.w, VIEW.h); g.addColorStop(0, 'rgba(220,226,235,' + 0.32 * a + ')'); g.addColorStop(0.5, 'rgba(220,226,235,' + 0.16 * a + ')'); g.addColorStop(1, 'rgba(220,226,235,' + 0.34 * a + ')'); c.fillStyle = g; c.fillRect(0, 0, VIEW.w, VIEW.h); }
   if (w.flash > 0) { c.fillStyle = 'rgba(255,255,240,' + Math.min(0.7, w.flash * 0.7) + ')'; c.fillRect(0, 0, VIEW.w, VIEW.h); }
 }
-// --------------------------------------------------------------- minimapa
-function drawMinimap() {
-  const mc = UI.mini, x = mc.getContext('2d'), m = G.map, W = m.W, H = m.H;
-  if (mc.width !== W) { mc.width = W; mc.height = H; }
-  const img = new ImageData(new Uint8ClampedArray(VIEW.miniBase.data), W, H), d = img.data;
-  const put = (i, c) => { d[i * 4] = c[0]; d[i * 4 + 1] = c[1]; d[i * 4 + 2] = c[2]; };
-  const RC = { tree: [38, 92, 44], gold: [255, 210, 58], gems: [190, 110, 255], stone: [200, 200, 200], iron: [160, 110, 90], berry: [220, 80, 120], fish: [140, 200, 255] };
-  for (const r of G.map.resList) if (!r.dead && RC[r.kind]) put(r.ty * W + r.tx, RC[r.kind]);
-  for (const b of G.blds) { if (b.dead) continue; const col = PE.hx(PE.TEAM_COLORS[teamColorIdx(b.team)].hex); for (let y = b.ty; y < b.ty + b.fp; y++) for (let xx = b.tx; xx < b.tx + b.fp; xx++) if (exploredAt(xx, y)) put(y * W + xx, col); }
-  for (const u of G.units) { if (u.dead || u.inside || (isAnimal(u) && u.team >= 7)) continue; if (!isAlly(u.team, G.human) && !visibleAt(u.x, u.y)) continue; const col = PE.hx(PE.TEAM_COLORS[teamColorIdx(u.team)].hex); put(tileOf(u.y) * W + tileOf(u.x), col.map(v => Math.min(255, v + 40))); }
-  if (G.human >= 0 && !G.cfg.revealed) for (let i = 0; i < W * H; i++) { const v = G.vis[i]; if (v === 0) { d[i * 4] = 10; d[i * 4 + 1] = 8; d[i * 4 + 2] = 16; } else if (v === 1) { d[i * 4] *= 0.55; d[i * 4 + 1] *= 0.55; d[i * 4 + 2] *= 0.6; } }
-  x.putImageData(img, 0, 0);
-  x.strokeStyle = '#fff'; x.lineWidth = 1; x.strokeRect((G.cam.x - VIEW.ww / 2) / T + 0.5, (G.cam.y - VIEW.wh / 2) / T + 0.5, VIEW.ww / T, VIEW.wh / T);
-  for (const p of G.pings) { p.t += 0.25; const r = 2 + (p.t % 1) * 5; x.strokeStyle = '#ff5a4a'; x.beginPath(); x.arc(p.x / T, p.y / T, r, 0, 7); x.stroke(); }
-  G.pings = G.pings.filter(p => p.t < 4);
-}
 
-export { VIEW, TS, teamColorIdx, SX, SY, EDGE, DIRS8, hash2, tileImg, edgeTile, CHUNK, CHUNK_PX, prerenderTerrain, computeTile, getChunk, redrawTiles, updateFog, flipped, unitFrame, bar, drawEnv, drawFxBig, render, inView, drawRes, drawBld, drawUnit, drawCorpse, drawOverlays, WX, drawWeather, drawMinimap };
+export { VIEW, TS, SX, SY, EDGE, DIRS8, hash2, tileImg, edgeTile, CHUNK, CHUNK_PX, prerenderTerrain, computeTile, getChunk, redrawTiles, updateFog, flipped, unitFrame, bar, drawEnv, drawFxBig, render, inView, drawRes, drawBld, drawUnit, drawCorpse, drawOverlays, WX, drawWeather };

@@ -4,7 +4,8 @@ import { TR } from '../map/map.js';
 import { G, RES_TYPE, bStats, canAfford, castAbility, clamp, costOf, ejectAll, enqueue, isAnimal, isMil, isPlayer, kill, marketTrade, missingText, refund, releaseBell, removeBuilding, ringBell, setOrder, tribute, uStats } from '../sim/game.js';
 import { WEATHER, exploredAt } from '../world/world.js';
 import { STANCE_N, breakAlliance, declareWar, propose } from '../world/diplo.js';
-import { redrawTiles, teamColorIdx } from '../render/pixel/render.js';
+import { RV, teamColorIdx } from '../render/view.js';
+import { miniTileChanged } from './minimap.js';
 import { INPUT, cancelModes, clampCam } from '../input/input.js';
 import { AUDIO, sfx } from '../audio/audio.js';
 /* =====================================================================
@@ -326,7 +327,7 @@ function canRoad(tx, ty) {
 }
 function buildRoad(tiles) {
   let n = 0; const p = G.players[G.human];
-  for (const [tx, ty] of tiles) { if (!canRoad(tx, ty)) continue; if (p.res.stone < 2) { G.msg('Falta piedra para el camino', '#ffb070', { sound: 'error' }); break; } p.res.stone -= 2; G.map.terr[ty * G.map.W + tx] = TR.ROAD; redrawTiles(tx, ty); n++; }
+  for (const [tx, ty] of tiles) { if (!canRoad(tx, ty)) continue; if (p.res.stone < 2) { G.msg('Falta piedra para el camino', '#ffb070', { sound: 'error' }); break; } p.res.stone -= 2; G.map.terr[ty * G.map.W + tx] = TR.ROAD; RV.impl.terrainChanged(tx, ty); miniTileChanged(tx, ty); n++; }
   if (n) { sfx('build'); G.msg('Camino trazado: ' + n + ' casillas', '#cfe8a0'); }
 }
 

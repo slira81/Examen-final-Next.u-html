@@ -1,12 +1,11 @@
-import { PE } from '../render/pixel/sprite.js';
 import { BLD, T } from '../data/data.js';
 import { G, canAfford, canHarm, cancelQueue, centerOf, clamp, cmdAttack, cmdMove, costOf, isActive, isAlly, isAnimal, isEnemy, isMil, isPlayer, setMove, setOrder, startFarm, startGather, tileOf, tryBuild } from '../sim/game.js';
 import { exploredAt, visibleAt } from '../world/world.js';
 import { respondProposal } from '../world/diplo.js';
-import { VIEW } from '../render/pixel/render.js';
+import { RV, screenToWorld, worldPerCss, viewWorldSize } from '../render/view.js';
 import { $, UI, buildRoad, closeModal, esc, hideTip, onDiploClick, openDiplomacy, openHelp, openMenu, placementTiles, roadTiles, runCmd, showTip } from '../ui/ui.js';
 import { AUDIO, audioUnlock, musicStart, sfx } from '../audio/audio.js';
-import { openGallery, resize, showSetup } from '../main.js';
+import { openGallery, showSetup } from '../main.js';
 /* =====================================================================
    Entrada unificada (Pointer Events) para ratón y pantalla táctil.
    Ratón: clic selecciona, arrastrar = caja, clic derecho = ordenar,
@@ -16,38 +15,18 @@ import { openGallery, resize, showSetup } from '../main.js';
    zoom, doble toque = todas las unidades del mismo tipo en pantalla.
    ===================================================================== */
 const INPUT = { keys: {}, mx: -1, my: -1, mid: null, last: { t: 0, id: null }, grpTap: { d: null, t: 0 }, inWin: false, touch: false, ptrs: new Map(), gest: null };
-const cssToInternal = v => v * VIEW.dpr / VIEW.S;
-const toWorld = (cx, cy) => ({ x: cssToInternal(cx) / VIEW.WS + VIEW.cx, y: cssToInternal(cy) / VIEW.WS + VIEW.cy });
+const toWorld = (cx, cy) => screenToWorld(cx, cy);
 function mark(x, y, c) { UI.marks.push({ x, y, c, t: 0 }); }
 function ownSelUnits() { return G.sel.filter(e => e.k === 'u' && e.team === G.human && !e.dead && !e.inside); }
 
 /** Entidad bajo el cursor (unidades primero, luego edificios, recursos y tesoros). */
-function pickAt(w) {
-  let best = null, bd = 1e9;
-  for (const u of G.units) {
-    if (u.dead || u.inside || (!isAlly(u.team, G.human) && !visibleAt(u.x, u.y))) continue;
-    const def = PE.ART.units[u.key], hh = (def ? Math.min(def.ay, 34) : 14) / VIEW.WS, pad = INPUT.touch ? 5 : 1;
-    const dx = Math.abs(w.x - u.x), dy = w.y - (u.y - hh / 2);
-    if (dx < u.def.size * 0.6 + 3 + pad && Math.abs(dy) < hh / 2 + 1 + pad) { const d = dx + Math.abs(dy) * 0.5 - (u.team === G.human ? 3 : 0); if (d < bd) { bd = d; best = u; } }
-  }
-  if (best) return best;
-  for (const b of G.blds) {
-    if (b.dead || !exploredAt(b.tx + (b.fp >> 1), b.ty + (b.fp >> 1))) continue;
-    const img = PE.ART.buildings[b.key], h = img ? (typeof img.h === 'number' ? img.h : b.fp * T) : b.fp * T, extra = b.def.flat ? 0 : Math.max(0, h - b.fp * T) * 0.7;
-    if (w.x >= b.tx * T && w.x < (b.tx + b.fp) * T && w.y >= b.ty * T - extra && w.y < (b.ty + b.fp) * T) return b;
-  }
-  for (const t of G.treasures) if (!t.taken && Math.abs(w.x - (t.tx * T + 8)) < 10 && Math.abs(w.y - (t.ty * T + 8)) < 10 && exploredAt(t.tx, t.ty)) return t;
-  for (const r of G.resBy.carcass || []) if (!r.dead && Math.abs(w.x - r.x) < 10 && Math.abs(w.y - r.y) < 8) return r;
-  const tx = tileOf(w.x), ty = tileOf(w.y);
-  for (const [ox, oy] of [[0, 0], [0, 1], [0, -1]]) { const x = tx + ox, y = ty + oy; if (x < 0 || y < 0 || x >= G.map.W || y >= G.map.H) continue; const r = G.map.res[y * G.map.W + x]; if (r && !r.dead && exploredAt(x, y) && (oy === 0 || r.kind === 'tree')) { if (oy === 1 && w.y < (y * T) - 18) continue; return r; } }
-  return null;
-}
+function pickAt(w) { return RV.impl.pick(w, INPUT.pcss, INPUT.touch); }
 function clickSelect(w, shift, dbl) {
   const e = pickAt(w);
   if (!e) { if (!shift) G.sel = []; UI.page = 'root'; return; }
   if (e.k === 't') { G.sel = []; return; }
   if (dbl && e.k === 'u' && e.team === G.human) {
-    G.sel = G.units.filter(u => !u.dead && !u.inside && u.team === G.human && u.key === e.key && u.x > VIEW.cx && u.x < VIEW.cx + VIEW.ww && u.y > VIEW.cy && u.y < VIEW.cy + VIEW.wh); UI.page = 'root'; return;
+    G.sel = G.units.filter(u => !u.dead && !u.inside && u.team === G.human && u.key === e.key && RV.impl.isOnScreen(u)); UI.page = 'root'; return;
   }
   if (shift && e.k === 'u' && e.team === G.human) { G.sel = G.sel.includes(e) ? G.sel.filter(s => s !== e) : G.sel.filter(s => s.k === 'u' && s.team === G.human).concat(e); }
   else G.sel = [e];
@@ -55,10 +34,7 @@ function clickSelect(w, shift, dbl) {
   if (e.k === 'u' && e.team === G.human) sfx('click');
 }
 function boxSelect(d, shift) {
-  const a = toWorld(Math.min(d.x0, d.x1), Math.min(d.y0, d.y1)), b = toWorld(Math.max(d.x0, d.x1), Math.max(d.y0, d.y1));
-  const inBox = u => !u.dead && !u.inside && u.team === G.human && u.x >= a.x - 3 && u.x <= b.x + 3 && u.y >= a.y && u.y <= b.y + 8;
-  let s = G.units.filter(u => inBox(u) && !isAnimal(u));
-  if (!s.length) s = G.units.filter(u => inBox(u));
+  const s = RV.impl.unitsInScreenRect(d);
   G.sel = shift ? [...new Set(G.sel.filter(e => e.k === 'u' && e.team === G.human).concat(s))] : s; UI.page = 'root';
 }
 function rightClick(w) {
@@ -132,12 +108,13 @@ function handleTap(w) {
   clickSelect(w, false, dbl);
 }
 function touchDown(e) {
+  INPUT.pcss = { x: e.clientX, y: e.clientY };
   if (!INPUT.touch) { INPUT.touch = true; document.body.classList.add('touch'); }
   INPUT.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
   clearTimeout(INPUT.lpT);
   if (INPUT.ptrs.size >= 2) {
     const [a, b] = [...INPUT.ptrs.values()];
-    INPUT.gest = { type: 'pinch', d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, s0: VIEW.S, mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } };
+    INPUT.gest = { type: 'pinch', d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } }; RV.impl.pinchBegin();
     UI.drag = null; UI.roadDrag = null; UI.wallDrag = null; return;
   }
   const w = toWorld(e.clientX, e.clientY);
@@ -157,13 +134,12 @@ function touchMove(e) {
   if (g.type === 'pinch' && INPUT.ptrs.size >= 2) {
     const [a, b] = [...INPUT.ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y), mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
     // desplazamiento con dos dedos
-    G.cam.x -= cssToInternal(mid.x - g.mid.x) / VIEW.WS; G.cam.y -= cssToInternal(mid.y - g.mid.y) / VIEW.WS; g.mid = mid;
-    const want = clamp(Math.round(g.s0 * d / g.d0), VIEW.zmin, VIEW.zmax);
-    if (want !== VIEW.S) zoomAt(want, mid.x, mid.y); else clampCam();
+    const k = worldPerCss(); G.cam.x -= (mid.x - g.mid.x) * k; G.cam.y -= (mid.y - g.mid.y) * k; g.mid = mid;
+    RV.impl.pinchUpdate(d / g.d0, mid.x, mid.y); clampCam(); updateZoomButtons();
     return;
   }
   if (g.type === 'tap' && Math.hypot(e.clientX - g.x0, e.clientY - g.y0) > 10) { g.type = 'pan'; clearTimeout(INPUT.lpT); }
-  if (g.type === 'pan') { G.cam.x = g.cam.x - cssToInternal(e.clientX - g.x0) / VIEW.WS; G.cam.y = g.cam.y - cssToInternal(e.clientY - g.y0) / VIEW.WS; clampCam(); }
+  if (g.type === 'pan') { const k = worldPerCss(); G.cam.x = g.cam.x - (e.clientX - g.x0) * k; G.cam.y = g.cam.y - (e.clientY - g.y0) * k; clampCam(); }
   else if (g.type === 'box' && UI.drag) { UI.drag.x1 = e.clientX; UI.drag.y1 = e.clientY; }
   else if (g.type === 'line') UI.mouseWorld = toWorld(e.clientX, e.clientY);
 }
@@ -175,9 +151,10 @@ function touchUp(e) {
   if (e.type === 'pointercancel') { UI.drag = null; return; }
   if (g.type === 'box') { if (UI.drag) boxSelect(UI.drag, false); UI.drag = null; return; }
   if (g.type === 'line') { if (UI.roadDrag) { buildRoad(roadTiles()); UI.roadDrag = null; UI.roadMode = false; } else if (UI.wallDrag) { placeAt(false); UI.wallDrag = null; } return; }
-  if (g.type === 'tap') handleTap(toWorld(e.clientX, e.clientY));
+  if (g.type === 'tap') { INPUT.pcss = { x: e.clientX, y: e.clientY }; handleTap(toWorld(e.clientX, e.clientY)); }
 }
 function mouseDown(e) {
+  INPUT.pcss = { x: e.clientX, y: e.clientY };
   const w = toWorld(e.clientX, e.clientY);
   if (e.button === 1) { INPUT.mid = { x: e.clientX, y: e.clientY, cx: G.cam.x, cy: G.cam.y }; e.preventDefault(); return; }
   if (e.button === 0) {
@@ -196,7 +173,7 @@ function mouseMove(e) {
   if (!G) return;
   UI.mouseWorld = toWorld(e.clientX, e.clientY);
   if (UI.drag) { UI.drag.x1 = e.clientX; UI.drag.y1 = e.clientY; if (Math.hypot(UI.drag.x1 - UI.drag.x0, UI.drag.y1 - UI.drag.y0) > 5) UI.drag.box = true; }
-  if (INPUT.mid) { G.cam.x = INPUT.mid.cx - cssToInternal(e.clientX - INPUT.mid.x) / VIEW.WS; G.cam.y = INPUT.mid.cy - cssToInternal(e.clientY - INPUT.mid.y) / VIEW.WS; clampCam(); }
+  if (INPUT.mid) { const k = worldPerCss(); G.cam.x = INPUT.mid.cx - (e.clientX - INPUT.mid.x) * k; G.cam.y = INPUT.mid.cy - (e.clientY - INPUT.mid.y) * k; clampCam(); }
 }
 function mouseUp(e) {
   if (e.button === 1) { INPUT.mid = null; return; }
@@ -206,13 +183,14 @@ function mouseUp(e) {
   const d = UI.drag; UI.drag = null; if (!d) return;
   if (d.box) boxSelect(d, e.shiftKey);
   else {
+    INPUT.pcss = { x: d.x0, y: d.y0 };
     const now = performance.now(), w = toWorld(d.x0, d.y0), e0 = pickAt(w), dbl = now - INPUT.last.t < 350 && e0 && INPUT.last.id === e0.id;
     INPUT.last = { t: now, id: e0 && e0.id }; clickSelect(w, e.shiftKey, dbl);
   }
 }
 function cancelModes() { UI.placing = null; UI.roadMode = false; UI.amove = false; UI.rallyMode = false; UI.garMode = false; UI.wallDrag = null; UI.roadDrag = null; UI.ghost = false; }
 function initInput() {
-  const cv = VIEW.cv;
+  const cv = RV.impl.dom || document.getElementById('game');
   cv.addEventListener('contextmenu', e => e.preventDefault());
   cv.addEventListener('pointerdown', e => {
     audioUnlock(); musicStart();
@@ -225,11 +203,11 @@ function initInput() {
   document.addEventListener('mouseleave', () => { INPUT.inWin = false; });
   cv.addEventListener('wheel', e => {
     if (!G || UI.modal) return; e.preventDefault();
-    zoomAt(VIEW.S + (e.deltaY < 0 ? 1 : -1), e.clientX, e.clientY);
+    zoomStep(e.deltaY < 0 ? 1 : -1, e.clientX, e.clientY);
   }, { passive: false });
   // botones táctiles y de zoom
-  $('z-in').onclick = () => zoomAt(VIEW.S + 1, innerWidth / 2, innerHeight / 2);
-  $('z-out').onclick = () => zoomAt(VIEW.S - 1, innerWidth / 2, innerHeight / 2);
+  $('z-in').onclick = () => zoomStep(1, innerWidth / 2, innerHeight / 2);
+  $('z-out').onclick = () => zoomStep(-1, innerWidth / 2, innerHeight / 2);
   $('t-desel').onclick = () => { G.sel = []; cancelModes(); UI.page = 'root'; };
   $('t-army').onclick = () => onKey({ key: 'm', preventDefault() {} });
   $('t-idle').onclick = () => onKey({ key: '.', preventDefault() {} });
@@ -294,29 +272,25 @@ function onKey(e) {
   const c = (UI.cmds || []).find(c => c && c.hk && c.hk.toLowerCase() === k);
   if (c) { e.preventDefault(); runCmd(c); }
 }
-/** Cambia el zoom (entero, para mantener los píxeles nítidos) conservando el punto bajo (cx, cy). */
-function zoomAt(s, cx, cy) {
-  s = clamp(s, VIEW.zmin, VIEW.zmax); if (s === VIEW.S || !G) { VIEW.S = s; return; }
-  const before = toWorld(cx, cy); VIEW.S = s; resize(); const after = toWorld(cx, cy);
-  G.cam.x += before.x - after.x; G.cam.y += before.y - after.y; clampCam();
-}
+/** Acerca (dir > 0) o aleja (dir < 0) conservando el punto bajo (cx, cy). */
+function zoomStep(dir, cx, cy) { if (!G) return; RV.impl.zoomStep(dir, cx, cy); clampCam(); updateZoomButtons(); }
+function updateZoomButtons() { const z = RV.impl.zoomState(), zi = $('z-in'), zo = $('z-out'); if (zi) { zi.disabled = !z.canIn; zo.disabled = !z.canOut; } }
 /** Centra la cámara en (x, y) dentro del área visible entre la barra superior y el panel. */
 function panelGeom() {
   const p = $('bottom'), t = $('top'), side = p && p.offsetWidth < innerWidth * 0.5;
   return { top: (t ? t.offsetHeight + t.offsetTop : 44) + 6, bot: side ? 0 : (p ? p.offsetHeight + 8 : 150), right: side ? p.offsetWidth + 8 : 0 };
 }
 function centerOn(x, y) {
-  const k = VIEW.dpr / VIEW.S / VIEW.WS, g = panelGeom();
+  const k = worldPerCss(), g = panelGeom();
   G.cam.x = x + g.right / 2 * k; G.cam.y = y + (g.bot - g.top) / 2 * k; clampCam();
 }
-function setZoom(s) { zoomAt(s, innerWidth / 2, innerHeight / 2); }
 function clampCam() {
-  if (!G) return; const W = G.map.W * T, H = G.map.H * T, k = VIEW.dpr / VIEW.S / VIEW.WS, ww = VIEW.w / VIEW.WS, wh = VIEW.h / VIEW.WS;
+  if (!G) return; const W = G.map.W * T, H = G.map.H * T, k = worldPerCss(), vs = viewWorldSize(), ww = vs.w, wh = vs.h;
   const g = panelGeom(), padB = g.bot * k + 8, padT = g.top * k, padR = g.right * k;
   G.cam.x = clamp(G.cam.x, ww / 2 - 24, W - ww / 2 + 24 + padR); G.cam.y = clamp(G.cam.y, wh / 2 - padT, H - wh / 2 + padB);
 }
 function cameraStep(dt) {
-  const sp = 560 / VIEW.WS * dt * (VIEW.ww / 300 + 0.4), k = INPUT.keys, e = 6;
+  const sp = 280 * dt * (viewWorldSize().w / 300 + 0.4), k = INPUT.keys, e = 6;
   let dx = 0, dy = 0;
   if (INPUT.touch && !INPUT.inWin) INPUT.mx = -1;
   if (k['arrowleft'] || (INPUT.inWin && INPUT.mx >= 0 && INPUT.mx < e)) dx -= sp;
@@ -326,4 +300,4 @@ function cameraStep(dt) {
   if (dx || dy) { G.cam.x += dx; G.cam.y += dy; clampCam(); }
 }
 
-export { INPUT, cssToInternal, toWorld, mark, ownSelUnits, pickAt, clickSelect, boxSelect, rightClick, placeAt, handleTap, touchDown, touchMove, touchUp, mouseDown, mouseMove, mouseUp, cancelModes, initInput, onKey, zoomAt, panelGeom, centerOn, setZoom, clampCam, cameraStep };
+export { INPUT, toWorld, mark, ownSelUnits, pickAt, clickSelect, boxSelect, rightClick, placeAt, handleTap, touchDown, touchMove, touchUp, mouseDown, mouseMove, mouseUp, cancelModes, initInput, onKey, zoomStep, updateZoomButtons, panelGeom, centerOn, clampCam, cameraStep };
