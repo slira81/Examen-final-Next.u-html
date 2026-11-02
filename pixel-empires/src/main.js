@@ -34,6 +34,7 @@ import * as __v2 from './render/three/engine.js';
 import * as __v3 from './render/three/terrain.js';
 import * as __v4 from './render/pixel/adapter.js';
 import * as __v5 from './ui/minimap.js';
+import { startViewer } from './render/three/viewer.js';
 /* =====================================================================
    Arranque: pantalla de configuración, galería de diseños, bucle
    principal (simulación a paso fijo de 30 Hz + render por frame).
@@ -176,6 +177,8 @@ if (typeof window !== 'undefined') {
   for (const m of [__m0, __m1, __m2, __m3, __m4, __m5, __m6, __m7, __m8, __m9, __m10, __m11, __m12, __self, __v1, __v2, __v3, __v4, __v5]) for (const k in m) if (k !== 'G' && !(k in window)) window[k] = m[k];
   Object.defineProperty(window, 'G', { get: () => G, configurable: true });
 }
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+// '?viewer=units|buildings|nature' abre el visor de modelos 3D en lugar del juego
+const start = /[?&]viewer=/.test(location.search) ? startViewer : boot;
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 
 export { SETUP, resize, showSetup, buildRivals, startFromSetup, startGame, GALLERY, openGallery, galleryTick, LAST, ACC, PREWARM, frame, boot };
