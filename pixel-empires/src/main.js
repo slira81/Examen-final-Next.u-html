@@ -10,6 +10,7 @@ import { ANIMALS, BLD, DIFFICULTY, PLAYER_NAMES, RACES, RACE_KEYS, ROLES, T, UNI
 import { G, clamp, newGame, setG, simStep } from './sim/game.js';
 import { RV, setRenderer } from './render/view.js';
 import { pixelRenderer } from './render/pixel/adapter.js';
+import { threeRenderer } from './render/three/engine.js';
 import { buildMiniBase, drawMinimap } from './ui/minimap.js';
 import { $, UI, initHUD, openHelp, openModal, updateLog, updateSelectionUI, updateTop, updateTouchUI } from './ui/ui.js';
 import { INPUT, cameraStep, centerOn, clampCam, initInput, updateZoomButtons } from './input/input.js';
@@ -28,6 +29,11 @@ import * as __m10 from './input/input.js';
 import * as __m11 from './audio/audio.js';
 import * as __m12 from './audio/zzfx.js';
 import * as __self from './main.js';
+import * as __v1 from './render/view.js';
+import * as __v2 from './render/three/engine.js';
+import * as __v3 from './render/three/terrain.js';
+import * as __v4 from './render/pixel/adapter.js';
+import * as __v5 from './ui/minimap.js';
 /* =====================================================================
    Arranque: pantalla de configuración, galería de diseños, bucle
    principal (simulación a paso fijo de 30 Hz + render por frame).
@@ -134,7 +140,7 @@ function frame(ts) {
     if (G) {
       if (!UI.paused) {
         ACC += dt * G.speed; let n = 0;
-        while (ACC >= 1 / 30 && n++ < 8) { simStep(1 / 30); ACC -= 1 / 30; }
+        while (ACC >= 1 / 30 && n++ < 8) { if (RV.impl.beforeStep) RV.impl.beforeStep(); simStep(1 / 30); ACC -= 1 / 30; }
         if (n >= 8) ACC = 0;
       }
       cameraStep(dt);
@@ -148,7 +154,12 @@ function frame(ts) {
   requestAnimationFrame(frame);
 }
 function boot() {
-  setRenderer(pixelRenderer); RV.impl.init({ canvas: $('game') });
+  // 3D por defecto; '#pixel' en la dirección o falta de WebGL usan el render pixel anterior
+  let use3d = !/pixel/.test(location.hash + location.search);
+  if (use3d) { try { const t = document.createElement('canvas'); use3d = !!(t.getContext('webgl2')); } catch (_) { use3d = false; } }
+  setRenderer(use3d ? threeRenderer : pixelRenderer);
+  try { RV.impl.init({ canvas: $('game'), canvas3d: $('game3d'), overlay: $('overlay') }); }
+  catch (e) { console.error('Sin WebGL, se usa el render pixel', e); setRenderer(pixelRenderer); RV.impl.init({ canvas: $('game') }); }
   window.addEventListener('resize', resize);
   if (matchMedia('(pointer: coarse)').matches) { INPUT.touch = true; document.body.classList.add('touch'); }
   $('s-rivals').onchange = buildRivals;
@@ -162,7 +173,7 @@ function boot() {
 window.PE_GAME = { startGame, simStep, get G() { return G; } };
 // Puente de depuración: expone los módulos en window para las pruebas automáticas (Playwright).
 if (typeof window !== 'undefined') {
-  for (const m of [__m0, __m1, __m2, __m3, __m4, __m5, __m6, __m7, __m8, __m9, __m10, __m11, __m12, __self]) for (const k in m) if (k !== 'G' && !(k in window)) window[k] = m[k];
+  for (const m of [__m0, __m1, __m2, __m3, __m4, __m5, __m6, __m7, __m8, __m9, __m10, __m11, __m12, __self, __v1, __v2, __v3, __v4, __v5]) for (const k in m) if (k !== 'G' && !(k in window)) window[k] = m[k];
   Object.defineProperty(window, 'G', { get: () => G, configurable: true });
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();

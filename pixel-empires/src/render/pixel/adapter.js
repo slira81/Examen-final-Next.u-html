@@ -34,6 +34,7 @@ const pixelRenderer = {
   frame(dt) { render(dt); },
   terrainChanged(tx, ty) { redrawTiles(tx, ty); },
   screenToWorld(cx, cy) { return { x: cssToInternal(cx) / VIEW.WS + VIEW.cx, y: cssToInternal(cy) / VIEW.WS + VIEW.cy }; },
+  worldToScreen(x, y) { return { x: (Math.round(x * VIEW.WS) - VIEW.ox) * VIEW.S / VIEW.dpr, y: (Math.round(y * VIEW.WS) - VIEW.oy) * VIEW.S / VIEW.dpr, z: 0 }; },
   worldPerCss() { return VIEW.dpr / VIEW.S / VIEW.WS; },
   viewWorldSize() { return { w: VIEW.w / VIEW.WS, h: VIEW.h / VIEW.WS }; },
   zoomState() { return { canIn: VIEW.S < VIEW.zmax, canOut: VIEW.S > VIEW.zmin }; },

@@ -2,13 +2,15 @@
 const { chromium } = require('playwright');
 const files = process.argv.slice(2);
 (async () => {
-  const b = await chromium.launch(); const out = [];
+  const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] }); const out = [];
   for (const f of files) {
     const p = await b.newPage({ viewport: { width: 1366, height: 800 } }); const errs = [];
     p.on('pageerror', e => errs.push(e.message));
     await p.addInitScript(() => { let a = 123456789; Math.random = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; performance.now = (() => { let t = 0; return () => (t += 16); })(); });
     await p.goto('file://' + require('path').resolve(f));
     const sig = await p.evaluate(() => {
+      // re-sembrar justo antes de la partida: lo que consuman los módulos al cargar (Three.js crea UUIDs) no cuenta
+      let a = 987654321; Math.random = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
       const players = ['human', 'elf', 'dwarf', 'orc'].map((r, i) => ({ race: r, color: i, human: false, team: 0, diff: 'normal', name: 'P' + i }));
       PE_GAME.startGame({ seed: 4242, size: 96, mapType: 'continental', players, resources: 'normal', weather: true, disasters: true, observer: true });
       const G = PE_GAME.G; UI.paused = true;

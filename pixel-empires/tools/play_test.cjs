@@ -1,12 +1,13 @@
 // Simula interacciones reales de un jugador con ratón y teclado.
 const { chromium } = require('playwright');
 (async () => {
-  const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1366, height: 800 } });
+  const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] }); const p = await b.newPage({ viewport: { width: 1366, height: 800 } });
   const errs = []; p.on('pageerror', e => errs.push(e.message + ' ' + (e.stack || '').split('\n')[1]));
+  await p.addInitScript(() => { window.__TEST__ = true; });
   await p.goto('file://' + require('path').resolve(__dirname, '../dist/index.html'));
   await p.evaluate(() => PE_GAME.startGame({ seed: 777, size: 96, mapType: 'continental', players: ['human', 'orc'].map((r, i) => ({ race: r, color: i, human: i === 0, team: 0, diff: 'easy', name: 'P' + i })), resources: 'high', weather: false, disasters: false }));
   await p.waitForTimeout(400);
-  const scr = (wx, wy) => p.evaluate(([wx, wy]) => ({ x: (Math.round(wx * VIEW.WS) - VIEW.ox) * VIEW.S / VIEW.dpr, y: (Math.round(wy * VIEW.WS) - VIEW.oy) * VIEW.S / VIEW.dpr }), [wx, wy]);
+  const scr = (wx, wy) => p.evaluate(([wx, wy]) => RV.impl.worldToScreen(wx, wy), [wx, wy]);
   const log = [];
   // 1) seleccionar aldeano con clic y mandar a un árbol cercano
   const info = await p.evaluate(() => { const G = PE_GAME.G, u = G.units.find(u => u.team === 0 && u.def.role === 'worker'); const r = findRes(u, 'tree', 30); G.cam.x = (u.x + r.tx * 16) / 2; G.cam.y = (u.y + r.ty * 16) / 2; return { ux: u.x, uy: u.y - 6, id: u.id, rx: r.tx * 16 + 8, ry: r.ty * 16 + 4 }; });
@@ -22,7 +23,7 @@ const { chromium } = require('playwright');
   await p.waitForTimeout(150); s = await scr(spot.x, spot.y); await p.mouse.move(s.x, s.y); await p.mouse.click(s.x, s.y); await p.waitForTimeout(200);
   log.push('casa=' + await p.evaluate(() => PE_GAME.G.blds.filter(b => b.team === 0 && b.type === 'house').map(b => (b.done ? 'hecha' : 'obra') + ' nb' + b.nb).join(',')));
   // 3) centro urbano: H, entrenar con Q, punto de reunión con clic derecho
-  await p.keyboard.press('h'); await p.waitForTimeout(100); await p.keyboard.press('q'); await p.keyboard.press('q');
+  await p.keyboard.press('h'); await p.waitForTimeout(900); await p.keyboard.press('q'); await p.waitForTimeout(400); await p.keyboard.press('q'); await p.waitForTimeout(400);
   log.push('cola=' + await p.evaluate(() => PE_GAME.G.sel[0].queue.length));
   s = await scr((await p.evaluate(() => PE_GAME.G.cam.x)) + 60, (await p.evaluate(() => PE_GAME.G.cam.y)) + 30); await p.mouse.click(s.x, s.y, { button: 'right' });
   log.push('rally=' + await p.evaluate(() => !!PE_GAME.G.sel[0].rally));

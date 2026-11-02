@@ -4,7 +4,7 @@ const { chromium } = require('playwright');
 (async () => {
   const args = process.argv.slice(2), mins = +(args.find(a => /^\d+$/.test(a)) || 10);
   const opt = Object.fromEntries(args.filter(a => a.startsWith('--')).map(a => { const [k, v] = a.slice(2).split('='); return [k, v ?? true]; }));
-  const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1366, height: 800 } });
+  const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] }); const p = await b.newPage({ viewport: { width: 1366, height: 800 } });
   const errs = []; p.on('pageerror', e => errs.push('PAGEERROR ' + e.message + '\n' + (e.stack || '').split('\n').slice(0, 4).join('\n')));
   p.on('console', m => { if (m.type() === 'error') errs.push('CONSOLE ' + m.text()); });
   await p.goto('file://' + require('path').resolve(__dirname, '../dist/index.html'));
@@ -22,7 +22,7 @@ const { chromium } = require('playwright');
     const simMs = performance.now() - t1;
     const summary = G.players.map(pl => ({ name: pl.name, race: pl.race, alive: pl.alive, age: pl.age, pop: pl.pop + '/' + pl.popCap, res: Object.fromEntries(Object.entries(pl.res).map(([k, v]) => [k, Math.round(v)])), units: G.units.filter(u => u.team === pl.id && !u.dead && u.def.role !== 'animal').length, mil: G.units.filter(u => u.team === pl.id && !u.dead && isMil(u)).length, blds: G.blds.filter(b => b.team === pl.id && !b.dead).map(b => b.type).sort().join(','), techs: [...pl.techs].join(','), maxLvl: pl.stats.maxLevel, killed: pl.stats.killed, lost: pl.stats.lost, gen: !!pl.generalId }));
     const lv = {}; for (const u of G.units) if (!u.dead && isMil(u)) lv[u.lvl] = (lv[u.lvl] || 0) + 1;
-    const r0 = performance.now(); for (let i = 0; i < 60; i++) { G.cam.x = G.map.W * 8 + Math.sin(i / 9) * 300; G.cam.y = G.map.H * 8; render(1 / 60); } const renderMs = ((performance.now() - r0) / 60).toFixed(2);
+    const r0 = performance.now(); for (let i = 0; i < 60; i++) { G.cam.x = G.map.W * 8 + Math.sin(i / 9) * 300; G.cam.y = G.map.H * 8; RV.impl.frame(1 / 60, 0.5); } const renderMs = ((performance.now() - r0) / 60).toFixed(2);
     return { renderMs, tStart: Math.round(tStart), simMs: Math.round(simMs), msPerStep: (simMs / steps).toFixed(3), time: Math.round(G.time), units: G.units.length, over: G.over, weather: G.weather.cur, levels: lv, summary, missing: [...PE.MISSING].slice(0, 40), msgs: G.msgs.filter(m => /avanza|general|ha caído|derrotado|guerra|alianza|paz/i.test(m.text)).slice(-25).map(m => Math.round(m.t) + 's ' + m.text), idleW: G.units.filter(u => !u.dead && u.def.role === 'worker' && u.order.t === 'idle').length };
   }, { mins, opt });
   if (opt.shot) {

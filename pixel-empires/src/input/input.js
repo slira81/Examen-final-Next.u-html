@@ -16,6 +16,8 @@ import { openGallery, showSetup } from '../main.js';
    ===================================================================== */
 const INPUT = { keys: {}, mx: -1, my: -1, mid: null, last: { t: 0, id: null }, grpTap: { d: null, t: 0 }, inWin: false, touch: false, ptrs: new Map(), gest: null };
 const toWorld = (cx, cy) => screenToWorld(cx, cy);
+/** Desplazamiento de cámara (px de mundo) para un arrastre de (dx, dy) px CSS. */
+const panDelta = (dx, dy) => { if (RV.impl.panDelta) return RV.impl.panDelta(dx, dy); const k = worldPerCss(); return { x: dx * k, y: dy * k }; };
 function mark(x, y, c) { UI.marks.push({ x, y, c, t: 0 }); }
 function ownSelUnits() { return G.sel.filter(e => e.k === 'u' && e.team === G.human && !e.dead && !e.inside); }
 
@@ -134,12 +136,12 @@ function touchMove(e) {
   if (g.type === 'pinch' && INPUT.ptrs.size >= 2) {
     const [a, b] = [...INPUT.ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y), mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
     // desplazamiento con dos dedos
-    const k = worldPerCss(); G.cam.x -= (mid.x - g.mid.x) * k; G.cam.y -= (mid.y - g.mid.y) * k; g.mid = mid;
+    const pd = panDelta(mid.x - g.mid.x, mid.y - g.mid.y); G.cam.x -= pd.x; G.cam.y -= pd.y; g.mid = mid;
     RV.impl.pinchUpdate(d / g.d0, mid.x, mid.y); clampCam(); updateZoomButtons();
     return;
   }
   if (g.type === 'tap' && Math.hypot(e.clientX - g.x0, e.clientY - g.y0) > 10) { g.type = 'pan'; clearTimeout(INPUT.lpT); }
-  if (g.type === 'pan') { const k = worldPerCss(); G.cam.x = g.cam.x - (e.clientX - g.x0) * k; G.cam.y = g.cam.y - (e.clientY - g.y0) * k; clampCam(); }
+  if (g.type === 'pan') { const pd = panDelta(e.clientX - g.x0, e.clientY - g.y0); G.cam.x = g.cam.x - pd.x; G.cam.y = g.cam.y - pd.y; clampCam(); }
   else if (g.type === 'box' && UI.drag) { UI.drag.x1 = e.clientX; UI.drag.y1 = e.clientY; }
   else if (g.type === 'line') UI.mouseWorld = toWorld(e.clientX, e.clientY);
 }
@@ -173,7 +175,7 @@ function mouseMove(e) {
   if (!G) return;
   UI.mouseWorld = toWorld(e.clientX, e.clientY);
   if (UI.drag) { UI.drag.x1 = e.clientX; UI.drag.y1 = e.clientY; if (Math.hypot(UI.drag.x1 - UI.drag.x0, UI.drag.y1 - UI.drag.y0) > 5) UI.drag.box = true; }
-  if (INPUT.mid) { const k = worldPerCss(); G.cam.x = INPUT.mid.cx - (e.clientX - INPUT.mid.x) * k; G.cam.y = INPUT.mid.cy - (e.clientY - INPUT.mid.y) * k; clampCam(); }
+  if (INPUT.mid) { const pd = panDelta(e.clientX - INPUT.mid.x, e.clientY - INPUT.mid.y); G.cam.x = INPUT.mid.cx - pd.x; G.cam.y = INPUT.mid.cy - pd.y; clampCam(); }
 }
 function mouseUp(e) {
   if (e.button === 1) { INPUT.mid = null; return; }
@@ -281,22 +283,23 @@ function panelGeom() {
   return { top: (t ? t.offsetHeight + t.offsetTop : 44) + 6, bot: side ? 0 : (p ? p.offsetHeight + 8 : 150), right: side ? p.offsetWidth + 8 : 0 };
 }
 function centerOn(x, y) {
-  const k = worldPerCss(), g = panelGeom();
-  G.cam.x = x + g.right / 2 * k; G.cam.y = y + (g.bot - g.top) / 2 * k; clampCam();
+  const g = panelGeom(), pd = panDelta(g.right / 2, (g.bot - g.top) / 2);
+  G.cam.x = x + pd.x; G.cam.y = y + pd.y; clampCam();
 }
 function clampCam() {
-  if (!G) return; const W = G.map.W * T, H = G.map.H * T, k = worldPerCss(), vs = viewWorldSize(), ww = vs.w, wh = vs.h;
+  if (!G) return; if (RV.impl.clampCam) { RV.impl.clampCam(G.cam); return; }
+  const W = G.map.W * T, H = G.map.H * T, k = worldPerCss(), vs = viewWorldSize(), ww = vs.w, wh = vs.h;
   const g = panelGeom(), padB = g.bot * k + 8, padT = g.top * k, padR = g.right * k;
   G.cam.x = clamp(G.cam.x, ww / 2 - 24, W - ww / 2 + 24 + padR); G.cam.y = clamp(G.cam.y, wh / 2 - padT, H - wh / 2 + padB);
 }
 function cameraStep(dt) {
   const sp = 280 * dt * (viewWorldSize().w / 300 + 0.4), k = INPUT.keys, e = 6;
   let dx = 0, dy = 0;
-  if (INPUT.touch && !INPUT.inWin) INPUT.mx = -1;
+  if ((INPUT.touch && !INPUT.inWin) || window.__TEST__) INPUT.mx = -1;
   if (k['arrowleft'] || (INPUT.inWin && INPUT.mx >= 0 && INPUT.mx < e)) dx -= sp;
-  if (k['arrowright'] || (INPUT.inWin && INPUT.mx > innerWidth - e)) dx += sp;
-  if (k['arrowup'] || (INPUT.inWin && INPUT.my >= 0 && INPUT.my < e)) dy -= sp;
-  if (k['arrowdown'] || (INPUT.inWin && INPUT.my > innerHeight - e)) dy += sp;
+  if (k['arrowright'] || (INPUT.inWin && INPUT.mx > innerWidth - e && !window.__TEST__)) dx += sp;
+  if (k['arrowup'] || (INPUT.inWin && INPUT.my >= 0 && INPUT.my < e && !window.__TEST__)) dy -= sp;
+  if (k['arrowdown'] || (INPUT.inWin && INPUT.my > innerHeight - e && !window.__TEST__)) dy += sp;
   if (dx || dy) { G.cam.x += dx; G.cam.y += dy; clampCam(); }
 }
 
