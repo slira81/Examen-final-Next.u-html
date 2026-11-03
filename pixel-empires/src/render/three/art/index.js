@@ -36,11 +36,11 @@ function skeletonOf(key) {
 }
 /**
  * Geometría fusionada de un modelo. variant: índice de variante (árboles, rocas) o nombre de
- * sub-modelo para edificios compuestos (muro: 'post' | 'seg').
+ * sub-modelo para edificios compuestos (muro: 'post' | 'seg'). lod: versión simplificada lejana.
  */
-function artGeometry(key, kind, variant = 0) {
-  const ck = key + '#' + variant; let g = GEO.get(ck); if (g) return g;
-  const d = artDef(key, kind), b = new Builder();
+function artGeometry(key, kind, variant = 0, lod = false) {
+  const ck = key + '#' + variant + (lod ? '#lod' : ''); let g = GEO.get(ck); if (g) return g;
+  const d = artDef(key, kind), b = new Builder(lod);
   try {
     if (kind === 'unit') d.build(b, skeletonOf(key).P);
     else if (typeof variant === 'string' && d[variant]) d[variant](b);

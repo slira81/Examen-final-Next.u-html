@@ -69,4 +69,29 @@ function modelIcon(_renderer, kind, key, team = 0, out = 64) {
   PR.cache.set(ck, cv);
   return cv;
 }
-export { modelIcon };
+/**
+ * Frame animado de una unidad dibujado en un canvas (galería). anim: 'idle' | 'walk' | 'attack'.
+ * Las unidades se renderizan cada vez (sin caché); edificios y naturaleza usan el retrato fijo.
+ */
+const GAL = { sets: new Map(), poses: new Map() };
+function modelFrameTo(cv, kind, key, team, anim, t) {
+  if (kind !== 'units') { const ic = modelIcon(null, kind, key, team, 96); if (ic && !cv.dataset.done) { cv.width = cv.height = 96; cv.getContext('2d').drawImage(ic, 0, 0); cv.dataset.done = '1'; cv.dataset.r3d = '1'; } return !!ic; }
+  const size = 192; setup(size); const R = PR.r;
+  let set = GAL.sets.get(key), pose = GAL.poses.get(key);
+  if (!set) { set = new RigSet(PR.scene, artGeometry(key, 'unit'), { cap: 1, shadow: false }); GAL.sets.set(key, set); pose = new Pose(skeletonOf(key)); GAL.poses.set(key, pose); }
+  for (const [k, s2] of GAL.sets) s2.mesh.visible = k === key;
+  const def = artDef(key, 'unit'), st = { anim, f: (t * 10) % 8, k: (t % 1.2) / 1.2, t, seed: 0, work: null, carry: null, stun: 0, dead: -1, wheel: -(t * 10 / 8) * Math.PI * 2 };
+  if (anim !== 'walk') st.wheel = 0;
+  animate(def, pose, st); const row = bonesRow(); writeBones(pose, BT.data, row * MAXP * 12); BT.tex.needsUpdate = true;
+  set.begin(); set.add(row, 0, 0, 0, 0.55, 1, new THREE.Color(PE.TEAM_COLORS[team] ? PE.TEAM_COLORS[team].hex : '#3a6ad8')); set.end();
+  const box = set.geo0.boundingBox, c = box.getCenter(new THREE.Vector3()), r = box.getSize(new THREE.Vector3()).length() / 2;
+  const dir = new THREE.Vector3(0.35, 0.42, 1).normalize(), dist = r / Math.sin(THREE.MathUtils.degToRad(12)) * 0.95;
+  PR.cam.position.copy(c).addScaledVector(dir, dist); PR.cam.lookAt(c); PR.cam.near = dist * 0.2; PR.cam.far = dist * 3; PR.cam.updateProjectionMatrix();
+  const saved = GLOBAL.uFogOn.value; GLOBAL.uFogOn.value = 0;
+  R.setClearColor(0x000000, 0); R.clear(); R.render(PR.scene, PR.cam);
+  GLOBAL.uFogOn.value = saved; set.mesh.visible = false;
+  if (cv.width !== 96) { cv.width = cv.height = 96; } cv.dataset.r3d = '1';
+  const x = cv.getContext('2d'); x.clearRect(0, 0, 96, 96); x.imageSmoothingQuality = 'high'; x.drawImage(R.domElement, 0, 0, size, size, 0, 0, 96, 96);
+  return true;
+}
+export { modelIcon, modelFrameTo };

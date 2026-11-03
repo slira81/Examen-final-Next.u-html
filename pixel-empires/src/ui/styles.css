@@ -108,6 +108,7 @@ table.stats-t th{color:var(--gold2);font-weight:600}tr.dead{opacity:.45}
 .sbtns .go:hover{background:linear-gradient(180deg,#d09a3a,#94601e 55%,#6a4014);box-shadow:var(--bevel),0 0 26px rgba(255,210,120,.6),0 3px 6px rgba(0,0,0,.5)}
 .gtabs,.gmode{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0}.gtabs button.on,.gmode button.on{background:linear-gradient(180deg,#8a6234,#5a3c1c);border-color:var(--gold2)}
 .ggrid{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}.ggrid figure{margin:0;display:grid;justify-items:center;gap:2px;background:radial-gradient(circle at 50% 35%,#3a4652,#16130f 80%);padding:6px;border:1px solid var(--gold3);border-radius:8px}
+.gc[data-r3d]{width:96px;height:96px;image-rendering:auto}
 .ggrid figcaption{font-size:12px;color:var(--mute);max-width:130px;text-align:center}.gc{image-rendering:pixelated}
 /* controles flotantes: zoom (siempre) y botones táctiles */
 #zoom{position:fixed;right:max(14px,env(safe-area-inset-right,0px));bottom:calc(var(--panelH,150px) + 26px);display:grid;gap:6px;z-index:5}

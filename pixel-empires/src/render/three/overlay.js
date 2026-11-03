@@ -20,11 +20,12 @@ function resizeOverlay(dpr) {
 }
 function rrect(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
 function bar(c, x, y, w, f, colr) {
-  c.fillStyle = 'rgba(14,9,8,.82)'; rrect(c, x - 1.5, y - 1.5, w + 3, 7, 3); c.fill();
-  const fw = Math.max(1.5, w * f), g = c.createLinearGradient(0, y, 0, y + 4);
-  const base = colr || (f > 0.5 ? '#5fd35a' : f > 0.25 ? '#e8c43a' : '#e4483a');
-  g.addColorStop(0, '#ffffff'); g.addColorStop(0.25, base); g.addColorStop(1, base);
-  c.fillStyle = g; rrect(c, x, y, fw, 4, 2); c.fill();
+  // rectángulos simples (rápidos con cientos de barras): fondo, relleno y brillo superior
+  x = Math.round(x); y = Math.round(y);
+  c.fillStyle = 'rgba(14,9,8,.82)'; c.fillRect(x - 1, y - 1, w + 2, 6);
+  const fw = Math.max(1, Math.round(w * f));
+  c.fillStyle = colr || (f > 0.5 ? '#4fc34a' : f > 0.25 ? '#e0b830' : '#d8402f'); c.fillRect(x, y, fw, 4);
+  c.fillStyle = 'rgba(255,255,255,.35)'; c.fillRect(x, y, fw, 1);
 }
 const BADGE = [null, null, ['#c98a4a', '#7a4a22'], ['#d8dde4', '#7a828c'], ['#ffd86a', '#a8741c'], ['#b8f0ff', '#3a8ab0']];
 /** Insignia de nivel (2–5): escudo con galones, de bronce a diamante. */

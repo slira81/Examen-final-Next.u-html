@@ -13,8 +13,8 @@ const CH = 16;                 // casillas por bloque
 // altura base por terreno: hierba, hierba oscura, tierra, arena, nieve, camino, roca, agua, vado
 const BASE_H = [0, 0.03, -0.01, -0.07, 0.12, -0.02, 1.0, -0.62, -0.24];
 // paleta (sRGB): color A y B por terreno, mezclados con ruido
-const PAL_A = ['#5e9a3e', '#3f7e35', '#8c6a45', '#dcc58e', '#e8eef5', '#9c8a6c', '#7c7a7c', '#3d5a6a', '#b9a273'];
-const PAL_B = ['#7bb04c', '#4f9040', '#a07c52', '#ead6a2', '#f6f9fc', '#b2a283', '#959091', '#2e4a5a', '#a89064'];
+const PAL_A = ['#5e9a3e', '#3f7e35', '#8c6a45', '#dcc58e', '#cdd8e6', '#9c8a6c', '#7c7a7c', '#3d5a6a', '#b9a273'];
+const PAL_B = ['#7bb04c', '#4f9040', '#a07c52', '#ead6a2', '#eef3f8', '#b2a283', '#959091', '#2e4a5a', '#a89064'];
 const WATER_LEVEL = -0.16;
 
 const TERR = { heights: null, N: 0, W: 0, H: 0, group: null, typesTex: null, material: null };
@@ -69,7 +69,7 @@ vec3 pe_terrCol(int t, vec2 p) {
     float e = min(min(g.x, 1.0 - g.x), min(g.y, 1.0 - g.y));
     c *= mix(0.62, 1.0, smoothstep(0.03, 0.14, e)) * (0.9 + 0.2 * pe_hash(floor(q)));
   } else if (t == 6) c *= 0.85 + 0.3 * pe_noise(p * vec2(1.5, 6.0));
-  else if (t == 4) c *= 0.96 + 0.06 * n2;
+  else if (t == 4) { c *= 0.88 + 0.12 * n2 + 0.08 * pe_noise(p * 1.7); c = mix(c, vec3(0.62, 0.7, 0.82), 0.18 * (1.0 - n)); }   // nieve con sombras azuladas
   return c;
 }
 int pe_type(ivec2 c) { c = clamp(c, ivec2(0), ivec2(uMapSize) - 1); return int(texelFetch(uTypes, c, 0).r); }

@@ -17,7 +17,7 @@ import { VIEWS, buildEntities, updateEntities, disposeEntities, lerpXY, bldHeigh
 import { initOverlay, resizeOverlay, drawOverlay } from './overlay.js';
 import { initParticles, disposeParticles } from './particles.js';
 import { updateEffects } from './effects.js';
-import { modelIcon } from './portrait.js';
+import { modelIcon, modelFrameTo } from './portrait.js';
 import { Q, PRESETS } from './quality.js';
 import { titleFrame, disposeTitle } from './title3d.js';
 
@@ -193,7 +193,7 @@ function frame3(dt, alpha) {
   const pts = [a, b, c, d].filter(Boolean); let x0 = 0, x1 = G.map.W - 1, y0 = 0, y1 = G.map.H - 1;
   if (pts.length === 4) { x0 = Math.max(0, Math.floor(Math.min(...pts.map(p => p.X))) - 2); x1 = Math.min(G.map.W - 1, Math.ceil(Math.max(...pts.map(p => p.X))) + 2); y0 = Math.max(0, Math.floor(Math.min(...pts.map(p => p.Z))) - 2); y1 = Math.min(G.map.H - 1, Math.ceil(Math.max(...pts.map(p => p.Z))) + 3); }
   E.foot = pts.length === 4 ? [a, b, d, c] : null;
-  updateEntities(alpha, { tileBox: { x0, y0, x1, y1 }, placement: placementInfo(), dt, time: E.time });
+  updateEntities(alpha, { tileBox: { x0, y0, x1, y1 }, placement: placementInfo(), dt, time: E.time, dist: E.dist });
   updateEffects(dt, alpha, E.foot);
   E.renderer.render(E.scene, E.camera);
   drawOverlay(dt, alpha, project, viewPx());
@@ -235,6 +235,8 @@ const threeRenderer = {
     if (o.shadows !== undefined) Q.shadows = o.shadows; if (o.particles !== undefined) Q.particles = o.particles; if (o.scale) Q.scale = o.scale;
     if (E.renderer) { applyQuality(); resize3(); E.scene.traverse(m => { if (m.material) m.material.needsUpdate = true; }); }
   },
+  /** Galería: dibuja el modelo (animado si es unidad) en un canvas; false si no hay modelo 3D. */
+  galleryFrame(cv, kind, key, anim, t) { return E.renderer ? isolated(() => modelFrameTo(cv, kind, key.startsWith('neutral_') && kind === 'buildings' ? key.slice(8) : key, 0, anim, t)) : false; },
   icon(kind, key, team, size) { return E.ready || E.renderer ? modelIcon(E.renderer, kind, key, team, size) : null; },
   quality: Q, applyQuality, E,
 };

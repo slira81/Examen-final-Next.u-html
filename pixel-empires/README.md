@@ -1,6 +1,6 @@
 # Pixel Empires
 
-Juego de estrategia en tiempo real al estilo Age of Empires, con gráficos pixel art generados por código. Todo cabe en un solo archivo HTML, sin dependencias externas salvo las fuentes.
+Juego de estrategia en tiempo real al estilo Age of Empires, con gráficos 3D low-poly estilizados generados por código (geometría procedural, materiales y shaders; sin modelos ni texturas externas). Todo cabe en un solo archivo HTML; la única dependencia es Three.js (incluida en el archivo) y las fuentes se cargan de Google Fonts. La versión pixel art anterior queda como respaldo automático en navegadores sin WebGL2 (o con `#pixel` en la dirección).
 
 **Jugar:** abre `index.html` en el navegador. Funciona en escritorio (ratón y teclado) y en móvil (pantalla táctil, en horizontal o vertical).
 
@@ -32,7 +32,8 @@ Juego de estrategia en tiempo real al estilo Age of Empires, con gráficos pixel
 - **Diplomacia** con hasta 5 reinos rivales: alianzas, paz, guerra, tributos, relaciones y exigencias. Los aliados comparten visión y se defienden entre sí. Las IAs también negocian entre ellas.
 - **IA:** reparte aldeanos, construye, avanza de era, investiga, entrena ejércitos mixtos, se defiende, ataca en oleadas, usa el mercado y la campana, y apoya a sus aliados.
 - **Audio:** efectos con ZzFX y música medieval procedural en modo dórico, con dos temas: paz y batalla.
-- **Galería de diseños:** desde el menú puedes ver todas las unidades animadas (quieto, caminar, atacar) y todos los edificios de cada raza.
+- **Galería de diseños:** desde el menú puedes ver todas las unidades animadas en 3D (quieto, caminar, atacar) y todos los edificios de cada raza.
+- **Opciones gráficas:** calidad baja, media o alta, sombras, cantidad de partículas y escala de resolución (en el título y en el menú de pausa). En móviles empieza en calidad baja.
 - **Modo observador:** en la configuración puedes marcar «Solo observar» para ver a las IAs jugar entre sí con el mapa revelado.
 
 ## Controles
@@ -50,9 +51,15 @@ Juego de estrategia en tiempo real al estilo Age of Empires, con gráficos pixel
 | Atajos | H centro urbano · . aldeano inactivo · M todo el ejército · A atacar moviéndose · S detener · Supr eliminar · P o Esc pausa |
 | Panel de comandos | Q W E R T / A S D F G / Z X C V B |
 
-## Proporciones
+## Render 3D
 
-El entorno (terreno, árboles, minas y edificios) se dibuja al doble de resolución que los personajes con el mismo código de arte: el núcleo evalúa las formas a nivel de subpíxel (`SCanvasScaled` en `src/01_sprite.js`), así que las curvas y los contornos quedan finos y del mismo tamaño de píxel que las unidades. Una casa mide unas tres veces la altura de un aldeano.
+- Cámara en perspectiva con ángulo fijo de 52°, zoom suave anclado al cursor o al pellizco y desplazamiento por bordes, flechas y arrastre.
+- Terreno con relieve a partir del mapa, mezcla de tipos de suelo y caminos empedrados; agua animada con espuma; sol cálido con sombras limitadas a lo visible; niebla de guerra en shader con bordes suaves.
+- Unidades con piezas rígidas animadas por código (reposo, andar, ataques por estilo, trabajos y muerte); las matrices de cada pieza viajan en una textura de GPU y se dibujan con instancias.
+- Edificios con obra que sube entre andamios, humo, fuego, derrumbe y escombros, muros que se conectan y puertas que se abren.
+- Partículas, proyectiles con arco y estela, clima 3D (lluvia, nieve, niebla, tormenta con relámpagos) y sacudida de cámara.
+- La simulación es la misma que la del render pixel: el render usa su propio generador aleatorio y no altera la partida (`tools/parity.cjs` lo comprueba).
+- La especificación del arte está en `docs/ART3D.md`; el visor de modelos se abre con `index.html?viewer=units` (o `buildings`, `nature`, `keys=a,b,c`).
 
 ## Estructura
 
@@ -68,14 +75,17 @@ src/sim/game.js            simulación (combate, experiencia, economía, producc
 src/ai/ai.js               IA rival
 src/world/world.js         niebla, clima, fuego, desastres, campamentos, tesoros, fauna
 src/world/diplo.js         diplomacia
-src/render/pixel/          render 2D actual y arte por código (se reemplaza por 3D)
+src/render/view.js         contrato común de los renders (picking, cámara, zoom, iconos)
+src/render/three/          render 3D: motor, terreno, agua, entidades, rig, partículas, efectos, retratos, título
+src/render/three/art/      arte procedural por autor (unidades, edificios, naturaleza, iconos) y modelos de reserva
+src/render/pixel/          render pixel anterior (respaldo sin WebGL2)
 src/ui/ui.js, styles.css   interfaz
 src/input/input.js         ratón, teclado y gestos táctiles
 src/audio/audio.js, zzfx.js  sonido (ZzFX, MIT) y música procedural
 tools/                     pruebas automáticas con Playwright (partidas, paridad, móvil, capturas)
 ```
 
-Pruebas: `node tools/test_game.cjs 30 --obs --players=5` (simula 30 minutos), `node tools/play_test.cjs` (ratón y teclado), `node tools/mobile_test.cjs` (gestos táctiles) y `node tools/parity.cjs a.html b.html` (compara dos builds con aleatoriedad determinista).
+Pruebas: `node tools/test_game.cjs 30 --obs --players=5` (simula 30 minutos), `node tools/play_test.cjs` (ratón y teclado), `node tools/mobile_test.cjs` (gestos táctiles), `node tools/parity.cjs a.html b.html` (compara dos builds con aleatoriedad determinista), `node tools/race_match.cjs` (una partida con cada raza), `node tools/observer_long.cjs 16` (observador a 2x: errores, memoria y frames), `node tools/perf3d.cjs 300` (coste por frame con muchas unidades), `node tools/shot3d.cjs` y `node tools/viewer_shot.cjs` (capturas).
 
 ## Referencias
 

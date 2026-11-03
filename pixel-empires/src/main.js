@@ -34,6 +34,8 @@ import * as __v2 from './render/three/engine.js';
 import * as __v3 from './render/three/terrain.js';
 import * as __v4 from './render/pixel/adapter.js';
 import * as __v5 from './ui/minimap.js';
+import * as __v6 from './render/three/particles.js';
+import * as __v7 from './render/three/entities.js';
 import { startViewer } from './render/three/viewer.js';
 import { loadGfx, applyGfx, openGraphics } from './ui/graphics.js';
 /* =====================================================================
@@ -121,7 +123,10 @@ function openGallery(tab) {
 function galleryTick(dt) {
   if (!GALLERY || $('modal').hidden) { GALLERY = null; return; }
   GALLERY.t += dt; const f = Math.floor(GALLERY.t * 8);
+  // render 3D: modelos (unidades animadas a ~15 fps)
+  if (RV.impl.galleryFrame) { if ((GALLERY.acc = (GALLERY.acc || 0) + dt) < 1 / 15) return; GALLERY.acc = 0; let ok = true; document.querySelectorAll('canvas.gc').forEach(cv => { ok = RV.impl.galleryFrame(cv, cv.dataset.kind, cv.dataset.key, GALLERY.anim, GALLERY.t) && ok; }); if (ok) return; }
   document.querySelectorAll('canvas.gc').forEach(cv => {
+    if (cv.dataset.r3d) return;
     const kind = cv.dataset.kind, key = cv.dataset.key, def = PE.ART[kind][key];
     let img;
     if (kind === 'units') img = PE.frame('units', key, f, { team: 0, anim: GALLERY.anim });
@@ -180,7 +185,7 @@ function boot() {
 window.PE_GAME = { startGame, simStep, get G() { return G; } };
 // Puente de depuración: expone los módulos en window para las pruebas automáticas (Playwright).
 if (typeof window !== 'undefined') {
-  for (const m of [__m0, __m1, __m2, __m3, __m4, __m5, __m6, __m7, __m8, __m9, __m10, __m11, __m12, __self, __v1, __v2, __v3, __v4, __v5]) for (const k in m) if (k !== 'G' && !(k in window)) window[k] = m[k];
+  for (const m of [__m0, __m1, __m2, __m3, __m4, __m5, __m6, __m7, __m8, __m9, __m10, __m11, __m12, __self, __v1, __v2, __v3, __v4, __v5, __v6, __v7]) for (const k in m) if (k !== 'G' && !(k in window)) window[k] = m[k];
   Object.defineProperty(window, 'G', { get: () => G, configurable: true });
 }
 // '?viewer=units|buildings|nature' abre el visor de modelos 3D en lugar del juego

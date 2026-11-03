@@ -249,8 +249,8 @@ function siegeAnim(P, A, st) {
 /** Muerte: cae y yace; se hunde al final (los cadáveres duran 12 s en la simulación). */
 function deathAnim(P, A, st, sk) {
   const k = ease(Math.min(1, st.dead / 0.5)), sink = Math.max(0, st.dead - 9) * 0.05;
-  if (sk === 'humanoid') { P.r('root', 1.42 * k, 0, 0.12 * k); P.p('root', 0, 0.03 * k - sink, -0.02 * k); P.r('armL', -0.4 * k, 0, -0.9 * k); P.r('armR', -0.4 * k, 0, 0.9 * k); P.r('legL', -0.15 * k, 0, -0.1 * k); P.r('legR', 0.1 * k, 0, 0.1 * k); P.r('head', -0.3 * k, 0, 0); }
-  else { const r = 1.45 * k; P.r('root', 0, 0, r); P.p('root', 0, 0.05 * (A.size || 1) * k - sink, 0); P.r('legFL', 0.2 * k, 0, 0); P.r('legBL', -0.2 * k, 0, 0); P.r('rBody', -0.6 * k, 0, 0.3 * k); P.r('head', 0.3 * k, 0, 0); for (const w of ['wheelFL', 'wheelBR']) P.s(w, 1 - k * 0.0); }
+  if (sk === 'humanoid') { const hk = (A.height || 0.62) / 0.62; P.r('root', 1.42 * k, 0, 0.12 * k); P.p('root', 0, 0.075 * hk * k - sink, -0.02 * k); P.r('armL', -0.4 * k, 0, -0.9 * k); P.r('armR', -0.4 * k, 0, 0.9 * k); P.r('legL', -0.15 * k, 0, -0.1 * k); P.r('legR', 0.1 * k, 0, 0.1 * k); P.r('head', -0.3 * k, 0, 0); }
+  else { const r = 1.45 * k; P.r('root', 0, 0, r); P.p('root', 0, 0.1 * (A.size || 1) * k - sink, 0); P.r('legFL', 0.2 * k, 0, 0); P.r('legBL', -0.2 * k, 0, 0); P.r('rBody', -0.6 * k, 0, 0.3 * k); P.r('head', 0.3 * k, 0, 0); }
 }
 /**
  * Calcula la pose de un modelo para un estado de la simulación.

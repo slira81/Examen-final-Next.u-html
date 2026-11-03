@@ -31,15 +31,18 @@ const hash = (a, b) => { let h = (a * 374761393 + b * 668265263) | 0; h = (h ^ (
 const wrapA = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
 
 function rigSet(key) {
-  let s = V.rig.get(key);
-  if (!s) { s = new RigSet(V.scene, artGeometry(key, 'unit'), { cap: 8 }); V.rig.set(key, s); }
+  const lod = V.lodUnits, k = lod ? key + '#lod' : key;
+  let s = V.rig.get(k);
+  if (!s) { s = new RigSet(V.scene, artGeometry(key, 'unit', 0, lod), { cap: 8 }); V.rig.set(k, s); }
+  s.mesh.castShadow = !V.far;
   if (!V.used.has(s)) { V.used.add(s); s.begin(); }
   return s;
 }
 function statSet(key, kind, variant = 0, opts) {
-  const k = key + '#' + variant + (opts && opts.ghost ? '#g' : '');
+  const lod = !(opts && opts.ghost) && (kind === 'nature' ? V.lodNature : kind === 'bld' ? V.lodUnits : false);
+  const k = key + '#' + variant + (opts && opts.ghost ? '#g' : '') + (lod ? '#lod' : '');
   let s = V.stat.get(k);
-  if (!s) { s = new StaticSet(V.scene, artGeometry(key, kind, variant), Object.assign({ cap: 8 }, opts || {})); V.stat.set(k, s); }
+  if (!s) { s = new StaticSet(V.scene, artGeometry(key, kind, variant, lod), Object.assign({ cap: 8 }, opts || {})); V.stat.set(k, s); }
   if (!V.used.has(s)) { V.used.add(s); s.begin(); }
   return s;
 }
@@ -153,6 +156,8 @@ function updateEntities(alpha, ctx) {
   const human = G.human, m = G.map, dt = ctx.dt || 0, time = ctx.time || 0;
   for (const s of V.used) s.begin();
   V.used.clear();
+  // nivel de detalle según la distancia de la cámara (y siempre simplificado en calidad baja)
+  const dist = ctx.dist || 20; V.lodNature = dist > 27 || Q.preset === 'low'; V.lodUnits = dist > 33 || Q.preset === 'low'; V.far = dist > 34;
   bonesBegin();
   // recorte por cámara (área visible del suelo con margen)
   const tb = ctx.tileBox, inView = (x, y, m) => x >= (tb.x0 - m) * T && x <= (tb.x1 + 1 + m) * T && y >= (tb.y0 - m) * T && y <= (tb.y1 + 1 + m) * T;

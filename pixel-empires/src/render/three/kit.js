@@ -45,9 +45,14 @@ const _tc = new THREE.Color(), _e = new THREE.Euler(), _q = new THREE.Quaternion
 function shade(hex, k) { const c = lin(hex).clone(); c.offsetHSL(0, 0, k); return '#' + c.getHexString(THREE.SRGBColorSpace); }
 
 class Builder {
-  constructor() { this.geos = []; this.part = 0; }
+  /** lod: versión lejana (menos segmentos y sin piezas diminutas). */
+  constructor(lod = false) { this.geos = []; this.part = 0; this.lod = lod; }
   /** Añade una geometría de Three.js ya creada con las opciones comunes. */
   add(geo, o = {}) {
+    if (this.lod && !o.keep) {   // en la versión lejana se omiten los detalles muy pequeños
+      geo.computeBoundingSphere(); const sc = Math.max(o.sx ?? o.s ?? 1, o.sy ?? o.s ?? 1, o.sz ?? o.s ?? 1);
+      if (geo.boundingSphere.radius * sc < 0.022) return this;
+    }
     let g = geo.index ? geo.toNonIndexed() : geo.clone();
     _e.set(o.rx || 0, o.ry || 0, o.rz || 0, o.order || 'XYZ'); _q.setFromEuler(_e);
     _s.set(o.sx ?? o.s ?? 1, o.sy ?? o.s ?? 1, o.sz ?? o.s ?? 1); _v.set(o.x || 0, o.y || 0, o.z || 0);
@@ -72,12 +77,12 @@ class Builder {
   // ---- primitivas (centradas en el origen salvo que se indique)
   box(w, h, d, o) { return this.add(new THREE.BoxGeometry(w, h, d), o); }
   /** Cilindro/prisma: rTop, rBot, alto, lados (6 = hexagonal, estilo low-poly). */
-  cyl(rt, rb, h, seg = 7, o) { return this.add(new THREE.CylinderGeometry(rt, rb, h, seg, 1), o); }
-  cone(r, h, seg = 6, o) { return this.add(new THREE.ConeGeometry(r, h, seg, 1), o); }
+  cyl(rt, rb, h, seg = 7, o) { return this.add(new THREE.CylinderGeometry(rt, rb, h, this.lod ? Math.min(seg, 5) : seg, 1), o); }
+  cone(r, h, seg = 6, o) { return this.add(new THREE.ConeGeometry(r, h, this.lod ? Math.min(seg, 5) : seg, 1), o); }
   /** Esfera low-poly (icosaedro); detail 0 = 20 caras, 1 = 80. */
-  ball(r, detail = 1, o) { return this.add(new THREE.IcosahedronGeometry(r, detail), o); }
+  ball(r, detail = 1, o) { return this.add(new THREE.IcosahedronGeometry(r, this.lod ? 0 : detail), o); }
   /** Esfera achatada/estirada por ejes. */
-  blob(rx, ry, rz, detail = 1, o = {}) { return this.add(new THREE.IcosahedronGeometry(1, detail), Object.assign({}, o, { sx: rx, sy: ry, sz: rz })); }
+  blob(rx, ry, rz, detail = 1, o = {}) { return this.add(new THREE.IcosahedronGeometry(1, this.lod ? 0 : detail), Object.assign({}, o, { sx: rx * (o.sx ?? 1), sy: ry * (o.sy ?? 1), sz: rz * (o.sz ?? 1) })); }
   /** Cuña (prisma triangular): base w×d, alto h, cumbrera a lo largo de X (tejado a dos aguas). */
   wedge(w, h, d, o) {
     const x = w / 2, z = d / 2;
@@ -87,11 +92,11 @@ class Builder {
   }
   /** Pirámide de base cuadrada (tejado a cuatro aguas, puntas). */
   pyramid(w, h, d, o = {}) { return this.add(new THREE.ConeGeometry(Math.SQRT1_2, 1, 4, 1).rotateY(Math.PI / 4), Object.assign({}, o, { sx: w * (o.sx ?? 1), sy: h * (o.sy ?? 1), sz: d * (o.sz ?? 1) })); }
-  torus(r, tube, seg = 8, tseg = 5, o) { return this.add(new THREE.TorusGeometry(r, tube, tseg, seg), o); }
+  torus(r, tube, seg = 8, tseg = 5, o) { return this.add(new THREE.TorusGeometry(r, tube, this.lod ? Math.min(tseg, 3) : tseg, this.lod ? Math.min(seg, 6) : seg), o); }
   /** Placa plana (banderas, toldos): w×h en el plano XY. */
   plane(w, h, o) { return this.add(new THREE.PlaneGeometry(w, h, 3, 2), Object.assign({ flat: true }, o)); }
   /** Cilindro hueco por segmentos de un perfil (copas, cúpulas, jarrones): pts = [[r, y], ...]. */
-  lathe(pts, seg = 8, o) { return this.add(new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), seg), o); }
+  lathe(pts, seg = 8, o) { return this.add(new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), this.lod ? Math.min(seg, 6) : seg), o); }
   /** Extrusión de un contorno 2D (XY) con profundidad d. */
   extrude(pts, d, o) { const s = new THREE.Shape(pts.map(([x, y]) => new THREE.Vector2(x, y))); return this.add(new THREE.ExtrudeGeometry(s, { depth: d, bevelEnabled: false }).translate(0, 0, -d / 2), o); }
   /** Geometría final fusionada (o null si está vacía). */
