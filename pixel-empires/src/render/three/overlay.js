@@ -8,7 +8,7 @@ import { G, isAlly, isAnimal } from '../../sim/game.js';
 import { visibleAt, exploredAt } from '../../world/world.js';
 import { PE } from '../pixel/sprite.js';
 import { UI } from '../../ui/ui.js';
-import { lerpXY } from './entities.js';
+import { lerpXY, bldHeight } from './entities.js';
 import { heightAt, footprintHeight } from './terrain.js';
 
 const OV = { cv: null, ctx: null, dpr: 1, w: 0, h: 0, drops: [], flakes: [] };
@@ -43,7 +43,7 @@ function drawOverlay(dt, alpha, project, zoomPx) {
     if (b.dead || b.def.invuln || b.team === 7) continue;
     const sel = G.sel.includes(b); if (!sel && b.hp >= b.maxhp && b.done) continue; if (b.def.flat && !sel) continue;
     if (!exploredAt(b.tx + (b.fp >> 1), b.ty + (b.fp >> 1))) continue;
-    const p = project(b.tx + b.fp / 2, footprintHeight(b.tx, b.ty, b.fp) + (b.def.flat ? 0.3 : 1.9), b.ty + b.fp / 2); if (p.z > 1) continue;
+    const p = project(b.tx + b.fp / 2, footprintHeight(b.tx, b.ty, b.fp) + (b.def.flat ? 0.3 : bldHeight(b) * (b.done ? 1 : Math.max(0.3, b.progress)) + 0.25), b.ty + b.fp / 2); if (p.z > 1) continue;
     const w = Math.round(b.fp * 22 * sz); bar(c, Math.round(p.x - w / 2), Math.round(p.y), w, b.done ? b.hp / b.maxhp : b.progress, b.done ? null : '#8ab4ff');
   }
   // textos flotantes
@@ -60,20 +60,9 @@ function drawOverlay(dt, alpha, project, zoomPx) {
   drawWeatherOverlay(c, dt);
 }
 function drawWeatherOverlay(c, dt) {
-  const w = G.weather, a = w.a, cur = w.cur, W = OV.w, H = OV.h;
-  if (cur === 'storm') { c.fillStyle = 'rgba(20,16,50,' + (0.22 * a) + ')'; c.fillRect(0, 0, W, H); }
-  if (cur === 'rain' || cur === 'storm') {
-    const n = Math.round((cur === 'storm' ? 260 : 170) * a); while (OV.drops.length < n) OV.drops.push({ x: Math.random() * W, y: Math.random() * H, s: 600 + Math.random() * 300 });
-    OV.drops.length = n; c.strokeStyle = 'rgba(200,215,255,.45)'; c.lineWidth = 1; c.beginPath();
-    for (const d of OV.drops) { d.y += d.s * dt; d.x -= d.s * 0.2 * dt; if (d.y > H) { d.y = -10; d.x = Math.random() * (W + 80); } c.moveTo(d.x, d.y); c.lineTo(d.x - 3, d.y + 12); }
-    c.stroke();
-  } else OV.drops.length = 0;
-  if (cur === 'snow') {
-    const n = Math.round(180 * a); while (OV.flakes.length < n) OV.flakes.push({ x: Math.random() * W, y: Math.random() * H, s: 30 + Math.random() * 40, p: Math.random() * 6, r: 1 + Math.random() * 2 });
-    OV.flakes.length = n; c.fillStyle = 'rgba(255,255,255,.9)';
-    for (const f of OV.flakes) { f.y += f.s * dt; f.x += Math.sin(G.time + f.p) * 16 * dt; if (f.y > H) { f.y = -4; f.x = Math.random() * W; } c.fillRect(f.x, f.y, f.r, f.r); }
-  } else OV.flakes.length = 0;
-  if (cur === 'fog') { const g = c.createLinearGradient(0, 0, W, H); g.addColorStop(0, 'rgba(220,226,235,' + 0.3 * a + ')'); g.addColorStop(0.5, 'rgba(220,226,235,' + 0.14 * a + ')'); g.addColorStop(1, 'rgba(220,226,235,' + 0.32 * a + ')'); c.fillStyle = g; c.fillRect(0, 0, W, H); }
-  if (w.flash > 0) { c.fillStyle = 'rgba(255,255,240,' + Math.min(0.55, w.flash * 0.55) + ')'; c.fillRect(0, 0, W, H); }
+  // la lluvia, la nieve y la neblina son 3D (effects.js); aquí solo el tono de tormenta y el destello
+  const w = G.weather, a = w.a, W = OV.w, H = OV.h;
+  if (w.cur === 'storm') { c.fillStyle = 'rgba(20,16,50,' + (0.12 * a) + ')'; c.fillRect(0, 0, W, H); }
+  if (w.flash > 0) { c.fillStyle = 'rgba(235,240,255,' + Math.min(0.3, w.flash * 0.3) + ')'; c.fillRect(0, 0, W, H); }
 }
 export { OV, initOverlay, resizeOverlay, drawOverlay };

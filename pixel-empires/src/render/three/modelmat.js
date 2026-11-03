@@ -71,6 +71,9 @@ objectNormal = mat3(peM) * objectNormal;
 `;
 const VERT_BEGIN = /* glsl */`
 vPeCol = mix(aCol, aCol * iTeam.rgb, aTeam); vPeGlow = aGlow; vPeClip = iData.y; vPeFlash = iData.w;
+#ifdef PE_GHOST
+vPeCol = mix(vec3(dot(aCol, vec3(0.33))), iTeam.rgb, 0.75); vPeGlow = 0.25;
+#endif
 transformed = (peM * vec4(transformed, 1.0)).xyz;
 transformed += peWave(transformed);
 vPeLocalY = transformed.y;
@@ -94,6 +97,7 @@ function modelMaterial(kind, opts = {}) {
   if (MATS.has(key)) return MATS.get(key);
   const mat = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: !!opts.transparent, opacity: opts.opacity ?? 1, depthWrite: !opts.transparent });
   mat.defines = kind === 'rig' ? { PE_RIG: '' } : {};
+  if (opts.ghost) mat.defines.PE_GHOST = '';
   const uniforms = { uSpinK: SPIN, uBones: BONES };
   withFog(mat, {
     key: 'pm_' + key, uniforms,

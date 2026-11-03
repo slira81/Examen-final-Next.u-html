@@ -11,9 +11,10 @@ import { modelMaterial, depthMaterial } from './modelmat.js';
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _p = new THREE.Vector3(), _s = new THREE.Vector3(), _e = new THREE.Euler(), _up = new THREE.Vector3(0, 1, 0);
 
 class InstSet {
-  constructor(scene, geo, kind, { cap = 16, shadow = true, receive = true, order = 0, transparent = false, opacity = 1 } = {}) {
+  constructor(scene, geo, kind, { cap = 16, shadow = true, receive = true, order = 0, transparent = false, opacity = 1, ghost = false } = {}) {
     this.scene = scene; this.geo0 = geo; this.kind = kind; this.shadow = shadow; this.receive = receive; this.order = order;
-    this.mat = modelMaterial(kind, transparent ? { transparent, opacity, key: 'tr' + opacity } : {});
+    this.mat = modelMaterial(kind, transparent ? { transparent, opacity, ghost, key: 'tr' + opacity + (ghost ? 'g' : '') } : {});
+    if (transparent) this.order = order || 4;
     this.depth = depthMaterial(kind);
     this.n = 0; this.cap = 0; this.mesh = null; this.alloc(cap);
   }

@@ -9,6 +9,7 @@
      pick(w, css)                  entidad bajo el puntero
      unitsInScreenRect(d)          unidades propias dentro de una caja de pantalla
      isOnScreen(u), drawMinimapView(ctx)
+     icon(kind, key, team, size)   (opcional) retrato renderizado del modelo; null = usar el pixel
    ===================================================================== */
 import { G } from '../sim/game.js';
 
@@ -18,5 +19,7 @@ const teamColorIdx = t => t >= 0 && t < 8 && G.players[t] ? G.players[t].color :
 const screenToWorld = (cx, cy) => RV.impl.screenToWorld(cx, cy);
 const worldPerCss = () => RV.impl.worldPerCss();
 const viewWorldSize = () => RV.impl.viewWorldSize();
+/** Retrato del modelo del render activo (o null si el render no lo ofrece). */
+const artIcon = (kind, key, team, size) => { try { return RV.impl && RV.impl.icon ? RV.impl.icon(kind, key, team, size) : null; } catch (e) { console.error(e); return null; } };
 
-export { RV, setRenderer, teamColorIdx, screenToWorld, worldPerCss, viewWorldSize };
+export { RV, setRenderer, teamColorIdx, screenToWorld, worldPerCss, viewWorldSize, artIcon };

@@ -13,6 +13,8 @@ const GLOBAL = {
   uTime: { value: 0 },
   uWind: { value: new THREE.Vector2(0.8, 0.3) },
   uFlash: { value: 0 },                // relámpagos
+  uHaze: { value: 0 },                 // neblina por distancia (niebla, lluvia, tormenta)
+  uHazeCol: { value: new THREE.Color('#c9d2dc') },
 };
 
 const NOISE_GLSL = /* glsl */`
@@ -26,8 +28,15 @@ float pe_fbm(vec2 p) { float a = 0.5, s = 0.0; for (int i = 0; i < 4; i++) { s +
 
 /** Factor de niebla de guerra: 0 = sin explorar, ~0.5 = explorado, 1 = visible. */
 const FOG_GLSL = /* glsl */`
-uniform sampler2D uFogTex; uniform vec2 uMapSize; uniform float uFogOn; uniform float uFlash;
+uniform sampler2D uFogTex; uniform vec2 uMapSize; uniform float uFogOn; uniform float uFlash; uniform float uHaze; uniform vec3 uHazeCol;
+vec3 pe_haze(vec3 col, vec3 wpos) {
+  if (uHaze <= 0.0) return col;
+  float d = distance(wpos, cameraPosition), h = smoothstep(8.0, 46.0, d) * 0.85 + 0.15;
+  float n = pe_noise(wpos.xz * 0.15 + vec2(uFlash, 0.0)) * 0.3;
+  return mix(col, uHazeCol, clamp(uHaze * (h + n - 0.15), 0.0, 0.9));
+}
 vec3 pe_applyFog(vec3 col, vec3 wpos) {
+  col = pe_haze(col, wpos);
   if (uFogOn < 0.5) return col * (1.0 + uFlash * 0.6);
   vec2 uv = wpos.xz / uMapSize;
   float v = texture(uFogTex, uv).r;

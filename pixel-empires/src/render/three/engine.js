@@ -13,8 +13,11 @@ import { UI, placementTiles, roadTiles, canRoad } from '../../ui/ui.js';
 import { GLOBAL } from './shaderlib.js';
 import { TERR, buildTerrain, heightAt, footprintHeight, terrainTileChanged, disposeTerrain } from './terrain.js';
 import { buildWater, disposeWater } from './water.js';
-import { VIEWS, buildEntities, updateEntities, disposeEntities, lerpXY, BH } from './entities.js';
+import { VIEWS, buildEntities, updateEntities, disposeEntities, lerpXY, bldHeight } from './entities.js';
 import { initOverlay, resizeOverlay, drawOverlay } from './overlay.js';
+import { initParticles, disposeParticles } from './particles.js';
+import { updateEffects } from './effects.js';
+import { modelIcon } from './portrait.js';
 
 const PITCH = 52 * Math.PI / 180, FOV = 34;
 const Q = { shadows: true, shadowSize: 2048, dprCap: 2, scale: 1 };
@@ -31,8 +34,8 @@ function initThree(dom) {
   E.renderer.shadowMap.enabled = true; E.renderer.shadowMap.type = THREE.PCFShadowMap;
   E.scene = new THREE.Scene(); E.scene.background = new THREE.Color('#14111f');
   E.camera = new THREE.PerspectiveCamera(FOV, innerWidth / innerHeight, 0.5, 400);
-  E.hemi = new THREE.HemisphereLight('#cfe0ff', '#5d4b33', 1.15); E.scene.add(E.hemi);
-  E.sun = new THREE.DirectionalLight('#fff0d2', 2.35); E.sun.castShadow = true;
+  E.hemi = new THREE.HemisphereLight('#cfe0ff', '#7a6a50', 1.5); E.scene.add(E.hemi);
+  E.sun = new THREE.DirectionalLight('#fff0d2', 2.1); E.sun.castShadow = true;
   E.sun.shadow.bias = -0.0006; E.sun.shadow.normalBias = 0.02; E.sun.shadow.radius = 2.5;
   E.scene.add(E.sun); E.scene.add(E.sun.target);
   initOverlay(dom.overlay);
@@ -50,9 +53,9 @@ function resize3() {
   resizeOverlay(Math.min(2, window.devicePixelRatio || 1));
 }
 function onGameStart3() {
-  disposeTerrain(E.scene); disposeWater(E.scene); disposeEntities(E.scene);
+  disposeTerrain(E.scene); disposeWater(E.scene); disposeEntities(E.scene); disposeParticles();
   const m = G.map;
-  buildTerrain(m, E.scene); buildWater(E.scene); buildEntities(E.scene);
+  buildTerrain(m, E.scene); buildWater(E.scene); buildEntities(E.scene); initParticles(E.scene);
   GLOBAL.uMapSize.value.set(m.W, m.H);
   E.fogData = new Uint8Array(m.W * m.H);
   if (E.fogTex) E.fogTex.dispose();
@@ -60,12 +63,20 @@ function onGameStart3() {
   E.fogTex.magFilter = THREE.LinearFilter; E.fogTex.minFilter = THREE.LinearFilter; E.fogTex.needsUpdate = true;
   GLOBAL.uFogTex.value = E.fogTex;
   E.anchor = null; E.ready = true;
+  // iconos 3D de la raza del jugador: se generan de a uno por frame para no bloquear la interfaz
+  E.iconQueue = [];
+  if (G.human >= 0) {
+    const race = G.players[G.human].race, team = G.players[G.human].color;
+    for (const r of ['worker', 'inf', 'pike', 'ranged', 'cav', 'special', 'siege', 'general']) E.iconQueue.push(['units', race + '_' + r, team]);
+    for (const t of ['house', 'farm', 'mill', 'lumber', 'mine', 'barracks', 'range', 'stable', 'temple', 'forge', 'market', 'tower', 'wall_post', 'gate', 'workshop', 'castle', 'tc']) E.iconQueue.push(['buildings', race + '_' + t, team]);
+  }
 }
 // ------------------------------------------------------------- cámara
 function placeCamera(shake) {
   const tx = G.cam.x / T, tz = G.cam.y / T, ty = Math.max(0, heightAt(tx, tz));
   const d = E.dist; let sx = 0, sz = 0;
-  if (shake) { sx = (Math.random() - 0.5) * 0.35; sz = (Math.random() - 0.5) * 0.25; }
+  // sacudida suave (terremotos, pisotones): ruido continuo que decae con G.shake
+  if (shake) { const a = Math.min(1, G.shake) * 0.3 * (0.6 + d / 50), t = E.time * 31; sx = (Math.sin(t) + Math.sin(t * 2.3 + 1.7) * 0.6) * a; sz = (Math.sin(t * 1.7 + 0.4) + Math.sin(t * 3.1) * 0.5) * a * 0.7; }
   E.camera.position.set(tx + sx, ty + d * Math.sin(PITCH), tz + d * Math.cos(PITCH) + sz);
   E.camera.lookAt(tx + sx, ty, tz + sz);
   E.camera.updateMatrixWorld();
@@ -117,7 +128,7 @@ function pick3(w, css, touch) {
   let bb = null, bt = 1e9; const box = new THREE.Box3(), hit = new THREE.Vector3();
   for (const b of G.blds) {
     if (b.dead || !exploredAt(b.tx + (b.fp >> 1), b.ty + (b.fp >> 1))) continue;
-    const y0 = footprintHeight(b.tx, b.ty, b.fp), hgt = (BH[b.type] || 1.2) + (b.def.flat ? 0.1 : b.fp * 0.35);
+    const y0 = footprintHeight(b.tx, b.ty, b.fp), hgt = b.def.flat ? 0.15 : bldHeight(b);
     box.min.set(b.tx, y0 - 0.05, b.ty); box.max.set(b.tx + b.fp, y0 + hgt, b.ty + b.fp);
     if (E.ray.ray.intersectBox(box, hit)) { const t = hit.distanceTo(E.ray.ray.origin); if (t < bt) { bt = t; bb = b; } }
   }
@@ -149,10 +160,10 @@ function updateFogTex() {
 function placementInfo() {
   if (!UI.mouseWorld || G.human < 0) return null;
   if (UI.placing) {
-    const type = UI.placing, d = BLD[type];
-    return placementTiles().map(([tx, ty]) => ({ tx, ty, fp: d.fp, h: (BH[type] || 1.2) * 0.9 + 0.1, ok: canPlace(G.human, type, tx, ty) || (type === 'gate' && G.blds.some(b => !b.dead && b.type === 'wall' && b.team === G.human && b.tx === tx && b.ty === ty)) }));
+    const type = UI.placing, d = BLD[type], race = G.players[G.human].race, key = race + '_' + (type === 'wall' ? 'wall_post' : type);
+    return placementTiles().map(([tx, ty]) => ({ tx, ty, fp: d.fp, key, ok: canPlace(G.human, type, tx, ty) || (type === 'gate' && G.blds.some(b => !b.dead && b.type === 'wall' && b.team === G.human && b.tx === tx && b.ty === ty)) }));
   }
-  if (UI.roadDrag) return roadTiles().map(([tx, ty]) => ({ tx, ty, fp: 1, h: 0.04, ok: canRoad(tx, ty) }));
+  if (UI.roadDrag) return roadTiles().map(([tx, ty]) => ({ tx, ty, fp: 1, ok: canRoad(tx, ty) }));
   return null;
 }
 function frame3(dt, alpha) {
@@ -169,16 +180,21 @@ function frame3(dt, alpha) {
   const sc = E.sun.shadow.camera; sc.left = -span; sc.right = span; sc.top = span; sc.bottom = -span; sc.near = 1; sc.far = span * 4 + 40; sc.updateProjectionMatrix();
   // relámpagos
   GLOBAL.uFlash.value = Math.max(0, G.weather.flash || 0);
-  E.hemi.intensity = 1.15 * (G.weather.cur === 'storm' ? 0.7 : G.weather.cur === 'rain' ? 0.85 : 1);
-  E.sun.intensity = 2.35 * (G.weather.cur === 'storm' ? 0.45 : G.weather.cur === 'rain' || G.weather.cur === 'fog' ? 0.65 : G.weather.cur === 'snow' ? 0.8 : 1);
+  E.hemi.intensity = 1.5 * (G.weather.cur === 'storm' ? 0.7 : G.weather.cur === 'rain' ? 0.85 : 1);
+  E.sun.intensity = 2.1 * (G.weather.cur === 'storm' ? 0.45 : G.weather.cur === 'rain' || G.weather.cur === 'fog' ? 0.65 : G.weather.cur === 'snow' ? 0.8 : 1) + Math.max(0, G.weather.flash || 0) * 4;
+  // viento: más fuerte con lluvia y tormenta, con rachas lentas
+  const wk = (G.weather.cur === 'storm' ? 2.3 : G.weather.cur === 'rain' ? 1.5 : G.weather.cur === 'snow' ? 0.8 : 1) * (0.8 + 0.25 * Math.sin(E.time * 0.37) + 0.12 * Math.sin(E.time * 1.3));
+  GLOBAL.uWind.value.set(0.8 * wk, 0.3 * wk);
   // entidades del área visible
   const a = rayGround(0, 0), b = rayGround(innerWidth, 0), c = rayGround(0, innerHeight), d = rayGround(innerWidth, innerHeight);
   const pts = [a, b, c, d].filter(Boolean); let x0 = 0, x1 = G.map.W - 1, y0 = 0, y1 = G.map.H - 1;
   if (pts.length === 4) { x0 = Math.max(0, Math.floor(Math.min(...pts.map(p => p.X))) - 2); x1 = Math.min(G.map.W - 1, Math.ceil(Math.max(...pts.map(p => p.X))) + 2); y0 = Math.max(0, Math.floor(Math.min(...pts.map(p => p.Z))) - 2); y1 = Math.min(G.map.H - 1, Math.ceil(Math.max(...pts.map(p => p.Z))) + 3); }
   E.foot = pts.length === 4 ? [a, b, d, c] : null;
-  updateEntities(alpha, { tileBox: { x0, y0, x1, y1 }, placement: placementInfo() });
+  updateEntities(alpha, { tileBox: { x0, y0, x1, y1 }, placement: placementInfo(), dt, time: E.time });
+  updateEffects(dt, alpha, E.foot);
   E.renderer.render(E.scene, E.camera);
   drawOverlay(dt, alpha, project, viewPx());
+  if (E.iconQueue && E.iconQueue.length) { const [k, key, team] = E.iconQueue.shift(); modelIcon(E.renderer, k, key, team, 64); }
 }
 // ------------------------------------------------------------- contrato
 // Three.js genera UUIDs con Math.random al crear objetos; el render usa su propio generador para no
@@ -208,6 +224,7 @@ const threeRenderer = {
   unitsInScreenRect(d) { return unitsInRect3(d); },
   isOnScreen(u) { const X = u.x / T, Z = u.y / T, p = project(X, heightAt(X, Z), Z); return p.z < 1 && p.x >= 0 && p.y >= 0 && p.x <= innerWidth && p.y <= innerHeight; },
   drawMinimapView(x) { if (!E.foot) return; x.beginPath(); E.foot.forEach((p, i) => i ? x.lineTo(p.X, p.Z) : x.moveTo(p.X, p.Z)); x.closePath(); x.stroke(); },
+  icon(kind, key, team, size) { return E.ready || E.renderer ? modelIcon(E.renderer, kind, key, team, size) : null; },
   quality: Q, applyQuality, E,
 };
 export { threeRenderer, E, Q, project, rayGround };

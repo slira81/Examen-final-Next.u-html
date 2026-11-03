@@ -14,6 +14,13 @@ const { chromium } = require('playwright');
     for (let i = 0; i < mins * 60 * 30; i++) PE_GAME.simStep(1 / 30);
     UI.paused = false; INPUT.inWin = false; INPUT.mx = -1; INPUT.my = -1;
     if (opt.zoom) { RV.impl.pinchBegin(); RV.impl.pinchUpdate(+opt.zoom, innerWidth / 2, innerHeight / 2); }
+    if (opt.weather) { G.cfg.weather = true; G.weather.cur = opt.weather; G.weather.a = 1; G.weather.t = 999; G.weather.boltT = 1; }
+    if (opt.fx) {   // efectos de prueba alrededor del centro de la cámara y un edificio dañado
+      const c = G.cam, put = (key, dx, dy, o) => G.fx.push(Object.assign({ key, x: c.x + dx, y: c.y + dy, t: 0, life: 0.8 }, o || {}));
+      window.__fxTimer = setInterval(() => { put('fx_explosion', -60, 20); put('fx_magic', -20, -30); put('fx_heal', 20, -30); put('fx_frost', 60, -30); put('fx_levelup', -40, 50); put('fx_stomp', 40, 50); put('fx_blood', 0, 10); put('beam', -80, -60, { x2: c.x + 80, y2: c.y - 70 }); }, 700);
+      const b = G.blds.find(b => b.type === 'tc'); if (b) { b.hp = b.maxhp * 0.2; G.cam.x = (b.tx + 2) * 16; G.cam.y = (b.ty + 5) * 16; }
+      const g = G.units.find(u => u.def.role === 'worker'); if (g) g.stun = 30;
+    }
     return { kind: RV.kind, units: G.units.length };
   }, { mins, opt });
   await p.waitForTimeout(+(opt.wait || 2500));

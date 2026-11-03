@@ -54,8 +54,13 @@ const { chromium } = require('playwright');
   // construir una casa: menú económicos -> casa -> tocar mapa -> Construir
   await p.evaluate(() => { const G = PE_GAME.G; G.sel = G.units.filter(u => u.team === 0 && u.def.role === 'worker').slice(0, 2); UI.page = 'root'; updateSelectionUI(true); });
   await p.waitForTimeout(100);
-  let btn = (await p.$$('#cmds .cmd'))[0]; let bx = await btn.boundingBox(); await tap(bx.x + bx.width / 2, bx.y + bx.height / 2);
-  btn = (await p.$$('#cmds .cmd'))[0]; bx = await btn.boundingBox(); await tap(bx.x + bx.width / 2, bx.y + bx.height / 2);
+  let btn, bx;
+  for (let tries = 0; tries < 3 && !(await p.evaluate(() => UI.placing)); tries++) {   // el render por software puede retrasar un toque
+    await p.evaluate(() => { const G = PE_GAME.G; cancelModes(); G.sel = G.units.filter(u => u.team === 0 && u.def.role === 'worker').slice(0, 2); UI.page = 'root'; updateSelectionUI(true); });
+    await p.waitForTimeout(300);
+    btn = (await p.$$('#cmds .cmd'))[0]; bx = await btn.boundingBox(); await tap(bx.x + bx.width / 2, bx.y + bx.height / 2); await p.waitForTimeout(400);
+    btn = (await p.$$('#cmds .cmd'))[0]; bx = await btn.boundingBox(); await tap(bx.x + bx.width / 2, bx.y + bx.height / 2); await p.waitForTimeout(400);
+  }
   log.push('placing=' + await p.evaluate(() => UI.placing) + ' barra=' + await p.evaluate(() => !document.getElementById('placebar').hidden));
   const spot = await p.evaluate(() => { const G = PE_GAME.G, s = G.map.starts[0]; for (let r = 4; r < 12; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (canPlace(0, 'house', s.x + dx, s.y + dy)) { G.cam.x = (s.x + dx + 1) * 16; G.cam.y = (s.y + dy + 1) * 16; clampCam(); return { x: (s.x + dx + 1) * 16, y: (s.y + dy + 1) * 16 }; } });
   await p.waitForTimeout(100); s = await scr(spot.x, spot.y); await tap(s.x, s.y);

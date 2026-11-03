@@ -4,7 +4,7 @@ import { TR } from '../map/map.js';
 import { G, RES_TYPE, bStats, canAfford, castAbility, clamp, costOf, ejectAll, enqueue, isAnimal, isMil, isPlayer, kill, marketTrade, missingText, refund, releaseBell, removeBuilding, ringBell, setOrder, tribute, uStats } from '../sim/game.js';
 import { WEATHER, exploredAt } from '../world/world.js';
 import { STANCE_N, breakAlliance, declareWar, propose } from '../world/diplo.js';
-import { RV, teamColorIdx } from '../render/view.js';
+import { RV, teamColorIdx, artIcon } from '../render/view.js';
 import { miniTileChanged } from './minimap.js';
 import { INPUT, cancelModes, clampCam } from '../input/input.js';
 import { AUDIO, sfx } from '../audio/audio.js';
@@ -18,6 +18,10 @@ const $ = id => document.getElementById(id);
 const HOTKEYS = ['q', 'w', 'e', 'r', 't', 'a', 's', 'd', 'f', 'g', 'z', 'x', 'c', 'v', 'b'];
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 function iconCanvas(img, size, cls) {
+  if (img.dataset && img.dataset.r3d) {   // retrato 3D: se reduce con suavizado
+    const c = document.createElement('canvas'), k = Math.min(2, window.devicePixelRatio || 1); c.width = c.height = Math.round(size * k); c.style.width = c.style.height = size + 'px';
+    c.className = cls || 'ico'; c.dataset.r3d = '1'; const x = c.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(img, 0, 0, c.width, c.height); return c;
+  }
   const c = document.createElement('canvas'), s = Math.max(1, Math.floor(Math.min(size / img.width, size / img.height)));
   c.width = img.width * s; c.height = img.height * s; c.className = cls || 'ico';
   const x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(img, 0, 0, c.width, c.height); return c;
@@ -91,10 +95,15 @@ function updateSelectionUI(force) {
   if ((UI.infoT -= 1) <= 0) { UI.infoT = 6; updateInfoDynamic(); }
   if ((UI.cmdT -= 1) <= 0) { UI.cmdT = 15; refreshCmdStates(); }
 }
+/** Clave de arte 3D de un edificio (los neutrales no llevan prefijo). */
+const bldArt = key => key.startsWith('neutral_') ? key.slice(8) : key.endsWith('_wall') ? key + '_post' : key;
+/** Retrato de unidad/edificio/recurso: modelo 3D si el render lo ofrece, si no el sprite pixel. */
+function unitImg(key, team, size = 64) { return artIcon('units', key, team, size) || trimmed(PE.frame('units', key, 0, { team, anim: 'idle' })); }
+function bldImg(key, team, size = 64) { return artIcon('buildings', bldArt(key), team, size) || trimmed(PE.frame('buildings', key, 0, { team, mask: 10, k: 1 })); }
 function portrait(e) {
-  if (e.k === 'u') return trimmed(PE.frame('units', e.key, 0, { team: teamColorIdx(e.team), anim: 'idle' }));
-  if (e.k === 'b') return trimmed(PE.frame('buildings', e.key, 0, { team: teamColorIdx(e.team), mask: 10, k: 1 }));
-  if (e.k === 'r') { const key = e.kind === 'tree' ? e.art : e.kind === 'berry' ? 'bush_berry' : e.kind === 'fish' ? 'fish_spot' : e.kind === 'carcass' ? null : 'mine_' + e.kind; return key ? trimmed(PE.frame('nature', key, 0, { v: 0, k: 1 })) : trimmed(PE.frame('units', e.art, 0, { dead: true })); }
+  if (e.k === 'u') return unitImg(e.key, teamColorIdx(e.team));
+  if (e.k === 'b') return bldImg(e.key, teamColorIdx(e.team));
+  if (e.k === 'r') { const key = e.kind === 'tree' ? e.art : e.kind === 'berry' ? 'bush_berry' : e.kind === 'fish' ? 'fish_spot' : e.kind === 'carcass' ? null : 'mine_' + e.kind; return key ? (artIcon('nature', key, 0, 64) || trimmed(PE.frame('nature', key, 0, { v: 0, k: 1 }))) : (artIcon('units', e.art, 6, 64) || trimmed(PE.frame('units', e.art, 0, { dead: true }))); }
   return null;
 }
 const RES_KIND_N = { tree: 'Árbol', berry: 'Arbusto de bayas', fish: 'Banco de peces', carcass: 'Carne', gold: 'Mina de oro', gems: 'Veta de gemas', stone: 'Cantera de piedra', iron: 'Mina de hierro' };
@@ -115,7 +124,7 @@ function buildInfoStatic() {
     const grid = document.createElement('div'); grid.className = 'multi';
     for (const e of G.sel.slice(0, 40)) {
       const d = document.createElement('div'); d.className = 'mcell'; d.dataset.id = e.id;
-      d.appendChild(iconCanvas(portrait(e), 24, 'mico'));
+      { const im = portrait(e); d.appendChild(iconCanvas(im, im.dataset && im.dataset.r3d ? 30 : 24, 'mico')); }
       d.insertAdjacentHTML('beforeend', `<i class="hpb"><i style="width:${Math.round(e.hp / e.maxhp * 100)}%"></i></i>` + (e.lvl > 1 ? `<em class="lv">${e.lvl}</em>` : ''));
       grid.appendChild(d);
     }
@@ -166,7 +175,7 @@ function updateInfoDynamic() {
     const q = $('queue');
     if (q) {
       const sig = e.queue.map(x => x.key).join(',');
-      if (q.dataset.sig !== sig) { q.dataset.sig = sig; q.innerHTML = ''; e.queue.forEach((it, i) => { const c = it.kind === 'unit' ? iconCanvas(trimmed(PE.frame('units', it.key, 0, { team: teamColorIdx(e.team) })), 22, 'qi') : iconCanvas(PE.frame('icons', TECHS[it.key].icon, 0), 22, 'qi'); const w = document.createElement('div'); w.className = 'qcell'; w.dataset.q = i; w.dataset.tip = 'Clic para cancelar: ' + (it.kind === 'unit' ? UNITS[it.key].n : TECHS[it.key].n); w.appendChild(c); if (i === 0) w.insertAdjacentHTML('beforeend', '<i class="qp"><i></i></i>'); q.appendChild(w); }); }
+      if (q.dataset.sig !== sig) { q.dataset.sig = sig; q.innerHTML = ''; e.queue.forEach((it, i) => { const c = it.kind === 'unit' ? iconCanvas(unitImg(it.key, teamColorIdx(e.team)), 24, 'qi') : iconCanvas(PE.frame('icons', TECHS[it.key].icon, 0), 22, 'qi'); const w = document.createElement('div'); w.className = 'qcell'; w.dataset.q = i; w.dataset.tip = 'Clic para cancelar: ' + (it.kind === 'unit' ? UNITS[it.key].n : TECHS[it.key].n); w.appendChild(c); if (i === 0) w.insertAdjacentHTML('beforeend', '<i class="qp"><i></i></i>'); q.appendChild(w); }); }
       const first = e.queue[0], qp = q.querySelector('.qp i'); if (first && qp) qp.style.width = Math.min(100, e.qt / (first.kind === 'unit' ? UNITS[first.key].time : TECHS[first.key].time) * 100) + '%';
     }
   } else if (e.k === 'r') {
@@ -275,10 +284,10 @@ function buildCmds() {
     const b = document.createElement('button'); b.className = 'cmd';
     if (!c) { b.className = 'cmd empty'; b.disabled = true; el.appendChild(b); return; }
     const [kind, key] = c.icon; let img;
-    if (kind === 'units') img = trimmed(PE.frame('units', key, 0, { team: teamColorIdx(G.human), anim: 'idle' }));
-    else if (kind === 'buildings') img = trimmed(PE.frame('buildings', key, 0, { team: teamColorIdx(G.human), mask: 10, k: 1 }));
+    if (kind === 'units') img = unitImg(key, teamColorIdx(G.human));
+    else if (kind === 'buildings') img = bldImg(key, teamColorIdx(G.human));
     else img = PE.frame(kind, key, 0);
-    b.appendChild(iconCanvas(img, 32, 'cico'));
+    b.appendChild(iconCanvas(img, img.dataset && img.dataset.r3d ? 36 : 32, 'cico'));
     c.hk = c.key || HOTKEYS[i];
     b.insertAdjacentHTML('beforeend', `<em>${c.hk === 'Delete' ? 'Supr' : c.hk.toUpperCase()}</em>`);
     const tipHTML = () => `<b>${esc(c.n)}</b>${INPUT.touch ? '' : ` <span class="hk">[${c.hk === 'Delete' ? 'Supr' : c.hk.toUpperCase()}]</span>`}${c.cost ? '<div>' + costHTML(c.cost, G.human) + '</div>' : ''}${c.locked ? `<div class="warn">${esc(c.locked)}</div>` : ''}<div class="d">${esc(c.d || '')}</div>`;
