@@ -7,7 +7,7 @@
 import { RACES, RACE_KEYS, PLAYER_NAMES, DIFFICULTY } from '../data/data.js';
 import { G } from '../sim/game.js';
 import { $, openModal, closeModal, esc } from '../ui/ui.js';
-import { NET, roomTransport, channelTransport, startNet, stopNet, waitingFor } from './net.js';
+import { TR_INFO, NET, roomTransport, channelTransport, startNet, stopNet, waitingFor } from './net.js';
 
 const LOBBY = { tr: null, role: null, code: '', me: Math.random().toString(36).slice(2, 10), peer: null, peerRace: null, mode: 'coop', started: false, onStart: null, getSetup: null };
 const ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -16,7 +16,7 @@ const testMode = () => /[?&]mptest/.test(location.search);
 
 async function transportFor(code) {
   if (testMode()) return channelTransport(code, LOBBY.me);
-  try { return await roomTransport(code); } catch (e) { console.warn('Sala no disponible', e); return null; }
+  try { return await roomTransport(code); } catch (e) { console.warn('Sala no disponible', e); LOBBY.why = String(e && e.message || e); return null; }
 }
 /** Abre la ventana de multijugador. hooks: { getSetup() -> {race, ...}, onStart(cfg, net) } */
 function openMultiplayer(hooks) {
@@ -40,14 +40,22 @@ function openMultiplayer(hooks) {
   $('mp-join').onclick = () => join($('mp-code').value.trim().toUpperCase());
   $('mp-code').oninput = e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, ''); };
 }
-function setStatus(html) { const el = $('mp-status'); if (el) el.innerHTML = html; }
+const WHY = {
+  'no-claude': 'Esta página no está abierta dentro de claude.ai (por ejemplo, se abrió como archivo o con un enlace público).',
+  'no-room': 'claude.ai no permite la conexión en tiempo real en esta vista: hay que entrar con tu cuenta, no por enlace público.',
+};
+function whyText() { const w = LOBBY.why || ''; return WHY[w] || (w.startsWith('join:') ? 'claude.ai rechazó la sala (' + esc(w.slice(5)) + '). Puede que tu cuenta no tenga acceso completo al juego.' : 'Motivo: ' + esc(w)); }
+function setStatus(html) { const el = $('mp-status'); if (el) el.innerHTML = html + diag(); }
+/** Estado de la conexión: cuántas personas hay en la sala y si está conectada. */
+function diag() { if (!LOBBY.tr || LOBBY.tr.kind !== 'room') return ''; return `<p class="mpnote">Sala: ${TR_INFO.connected === false ? 'reconectando' : 'conectada'} · otras personas en la sala: ${TR_INFO.peers}${TR_INFO.error ? ' · error: ' + esc(String(TR_INFO.error)) : ''}</p>`; }
+setInterval(() => { if (LOBBY.tr && !LOBBY.started && $('mp-status') && LOBBY.role) { if (LOBBY.role === 'host') hostView(); } }, 2000);
 function leave() { if (LOBBY.tr && !LOBBY.started) { LOBBY.tr.close(); LOBBY.tr = null; } LOBBY.role = null; LOBBY.peer = null; }
 
 async function create(mode) {
   leave(); LOBBY.role = 'host'; LOBBY.mode = mode; LOBBY.code = newCode();
   setStatus('Abriendo la sala…');
   const tr = await transportFor(LOBBY.code);
-  if (!tr) { setStatus('<span class="warn">No se pudo abrir la sala. Abre el juego en claude.ai con tu cuenta e inténtalo de nuevo.</span>'); return; }
+  if (!tr) { setStatus('<span class="warn">No se pudo abrir la sala. ' + whyText() + '</span>'); return; }
   LOBBY.tr = tr; const s = LOBBY.getSetup();
   tr.lobby({ role: 'host', race: s.race, mode });
   tr.onLobby((lob, peer) => { if (lob && lob.role === 'guest') { LOBBY.peer = peer; LOBBY.peerRace = RACE_KEYS.includes(lob.race) ? lob.race : 'human'; hostView(); } });
@@ -77,7 +85,7 @@ async function join(code) {
   leave(); LOBBY.role = 'guest'; LOBBY.code = code;
   setStatus('Conectando…');
   const tr = await transportFor(code);
-  if (!tr) { setStatus('<span class="warn">No se pudo entrar en la sala. Abre el juego en claude.ai con tu cuenta e inténtalo de nuevo.</span>'); return; }
+  if (!tr) { setStatus('<span class="warn">No se pudo entrar en la sala. ' + whyText() + '</span>'); return; }
   LOBBY.tr = tr; const s = LOBBY.getSetup();
   tr.lobby({ role: 'guest', race: s.race });
   let seenHost = false;

@@ -18,6 +18,8 @@
    ===================================================================== */
 import { G } from '../sim/game.js';
 
+/** Diagnóstico de la sala (se muestra en la ventana de multijugador). */
+const TR_INFO = { peers: 0, connected: null, error: null };
 const TPT = 3;          // ticks por turno
 const DELAY = 3;        // turnos de retardo de entrada (300 ms)
 const HASH_EVERY = 20;  // turnos entre comprobaciones de huella
@@ -127,9 +129,11 @@ function waitingFor() { return NET.waiting ? (performance.now() - NET.waitT) / 1
 // ------------------------------------------------------------ transportes
 /** Sala de claude.ai (capacidad `room`): el objeto de presencia de cada uno es su paquete. */
 async function roomTransport(code) {
-  const room = window.claude && window.claude.use ? await window.claude.use('room') : null;
-  if (!room) return null;
-  const r = await room.join('pe-' + code.toLowerCase());
+  if (!(window.claude && window.claude.use)) throw new Error('no-claude');
+  const room = await window.claude.use('room');
+  if (!room) throw new Error('no-room');
+  let r;
+  try { r = await room.join('pe-' + code.toLowerCase()); } catch (e) { throw new Error('join:' + (e && (e.code || e.message) || e)); }
   let handler = null, lobbyHandler = null;
   const seen = new Map();
   const lastNet = new Map();
@@ -143,11 +147,13 @@ async function roomTransport(code) {
       if (pr.net) { lastNet.set(p.peer, pr.net); if (handler) handler(pr.net); }
     }
     if (lobbyHandler) lobbyHandler(null, null, ch.peers.filter(p => !p.sameTab));
+    TR_INFO.peers = ch.peers.filter(p => !p.sameTab).length;
   });
+  if (r.onConnection) r.onConnection(c => { TR_INFO.connected = c; }, e => { TR_INFO.error = e && e.code; });
   return {
     kind: 'room', name: r.name,
-    send(net) { r.presence({ net }).catch(() => {}); },
-    lobby(obj) { r.presence({ lobby: obj }).catch(() => {}); },
+    send(net) { r.presence({ net }).catch(e => { TR_INFO.error = e && (e.code || e.message); }); },
+    lobby(obj) { r.presence({ lobby: obj }).catch(e => { TR_INFO.error = e && (e.code || e.message); }); },
     onPeer(fn) { handler = fn; },
     onLobby(fn) { lobbyHandler = fn; },
     close() { r.leave().catch(() => {}); },
@@ -161,4 +167,4 @@ function channelTransport(code, me) {
   const iv = setInterval(post, 250);   // la presencia se reafirma sola
   return { kind: 'local', send(net) { state.net = net; post(); }, lobby(obj) { state.lobby = obj; post(); }, onPeer(fn) { handler = fn; }, onLobby(fn) { lobbyHandler = fn; }, close() { clearInterval(iv); ch.close(); } };
 }
-export { NET, TPT, DELAY, makeRng, withSim, startNet, stopNet, issue, netFrame, stateHash, waitingFor, roomTransport, channelTransport };
+export { TR_INFO, NET, TPT, DELAY, makeRng, withSim, startNet, stopNet, issue, netFrame, stateHash, waitingFor, roomTransport, channelTransport };
