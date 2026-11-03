@@ -36,8 +36,12 @@ import * as __v4 from './render/pixel/adapter.js';
 import * as __v5 from './ui/minimap.js';
 import * as __v6 from './render/three/particles.js';
 import * as __v7 from './render/three/entities.js';
+import * as __act from './net/act.js';
+import * as __net from './net/net.js';
 import { startViewer } from './render/three/viewer.js';
 import { loadGfx, applyGfx, openGraphics } from './ui/graphics.js';
+import { NET, netFrame, withSim, makeRng } from './net/net.js';
+import { openMultiplayer, netWatch, endNet } from './net/lobby.js';
 /* =====================================================================
    Arranque: pantalla de configuración, galería de diseños, bucle
    principal (simulación a paso fijo de 30 Hz + render por frame).
@@ -45,7 +49,7 @@ import { loadGfx, applyGfx, openGraphics } from './ui/graphics.js';
 const SETUP = { race: 'human' };
 function resize() { if (!RV.impl) return; RV.impl.resize(); clampCam(); updateZoomButtons(); }
 function showSetup() {
-  setG(null); UI.paused = true;
+  endNet(); setG(null); UI.paused = true;
   $('hud').hidden = true; $('setup').hidden = false;
   const cards = $('races'); cards.innerHTML = '';
   for (const k of RACE_KEYS) {
@@ -69,7 +73,9 @@ function buildRivals() {
       <label class="sr" for="rd${i}">Dificultad del rival ${i + 1}</label><select id="rd${i}" class="rd">${Object.entries(DIFFICULTY).map(([k, d]) => `<option value="${k}" ${o.diff === k ? 'selected' : ''}>${d.n}</option>`).join('')}</select></div>`);
   }
 }
-function startFromSetup() {
+function startFromSetup() { startGame(buildSetupCfg()); }
+/** Configuración de partida a partir de la pantalla inicial (sin arrancarla). */
+function buildSetupCfg() {
   const seed = (Date.now() & 0x7fffffff) || 1, used = new Set([SETUP.race]);
   const players = [{ race: SETUP.race, color: 0, human: true, team: +$('s-team').value, name: 'Tu reino' }];
   document.querySelectorAll('.rival').forEach((r, i) => {
@@ -80,11 +86,14 @@ function startFromSetup() {
   });
   players[0].name = PLAYER_NAMES[SETUP.race][0];
   const obs = $('s-obs').checked; if (obs) { players[0].human = false; players[0].diff = $('s-diff').value; }
-  startGame({ seed, size: +$('s-size').value, mapType: $('s-map').value, players, resources: $('s-res').value, weather: $('s-weather').checked, disasters: $('s-dis').checked, revealed: $('s-reveal').checked || obs, observer: obs, diff: $('s-diff').value });
+  return { seed, size: +$('s-size').value, mapType: $('s-map').value, players, resources: $('s-res').value, weather: $('s-weather').checked, disasters: $('s-dis').checked, revealed: $('s-reveal').checked || obs, observer: obs, diff: $('s-diff').value };
 }
-function startGame(cfg) {
+function startGame(cfg, net) {
   $('setup').hidden = true; $('hud').hidden = false; $('modal').hidden = true; UI.modal = false;
-  newGame(cfg);
+  if (net) {   // multijugador: misma partida en los dos navegadores (azar con la semilla compartida)
+    const r = Math.random; Math.random = makeRng(cfg.seed); try { newGame(cfg); } finally { Math.random = r; }
+    G.human = net.team; const s = G.map.starts[G.human]; G.cam = { x: s.x * T, y: s.y * T };
+  } else { endNet(); newGame(cfg); }
   RV.impl.onGameStart(); buildMiniBase(); initHUD();
   UI.sig = ''; UI.page = 'root'; UI.placing = null; UI.paused = false; UI.logHTML = ''; UI.prSig = null;
   $('b-speed').textContent = '1x';
@@ -148,7 +157,10 @@ function frame(ts) {
     galleryTick(dt);
     if (PREWARM.length) { const t0 = performance.now(); while (PREWARM.length && performance.now() - t0 < 4) { const [k, key, f, o] = PREWARM.pop(); if (PE.ART[k][key]) PE.frame(k, key, f, o); } }
     if (G) {
-      if (!UI.paused) {
+      if (NET.active) {   // multijugador: la simulación avanza en sincronía con el otro jugador (no se pausa)
+        netFrame(dt, G.speed, d => { if (RV.impl.beforeStep) RV.impl.beforeStep(); withSim(() => simStep(d)); });
+        ACC = NET.acc; netWatch();
+      } else if (!UI.paused) {
         ACC += dt * G.speed; let n = 0;
         while (ACC >= 1 / 30 && n++ < 8) { if (RV.impl.beforeStep) RV.impl.beforeStep(); simStep(1 / 30); ACC -= 1 / 30; }
         if (n >= 8) ACC = 0;
@@ -172,6 +184,7 @@ function boot() {
   catch (e) { console.error('Sin WebGL, se usa el render pixel', e); setRenderer(pixelRenderer); RV.impl.init({ canvas: $('game') }); }
   loadGfx(); applyGfx();
   $('s-gfx').hidden = !RV.impl.setQuality; $('s-gfx').onclick = () => openGraphics();
+  $('s-mp').onclick = () => { audioUnlock(); openMultiplayer({ getSetup: () => { const cfg = buildSetupCfg(); return { race: SETUP.race, players: cfg.players, cfg }; }, onStart: (cfg, net) => { musicStart(); startGame(cfg, net); } }); };
   window.addEventListener('resize', resize);
   if (matchMedia('(pointer: coarse)').matches) { INPUT.touch = true; document.body.classList.add('touch'); }
   $('s-rivals').onchange = buildRivals;
@@ -187,9 +200,10 @@ window.PE_GAME = { startGame, simStep, get G() { return G; } };
 if (typeof window !== 'undefined') {
   for (const m of [__m0, __m1, __m2, __m3, __m4, __m5, __m6, __m7, __m8, __m9, __m10, __m11, __m12, __self, __v1, __v2, __v3, __v4, __v5, __v6, __v7]) for (const k in m) if (k !== 'G' && !(k in window)) window[k] = m[k];
   Object.defineProperty(window, 'G', { get: () => G, configurable: true });
+  window.__act = __act; window.__net = __net;
 }
 // '?viewer=units|buildings|nature' abre el visor de modelos 3D en lugar del juego
 const start = /[?&]viewer=/.test(location.search) ? startViewer : boot;
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 
-export { SETUP, resize, showSetup, buildRivals, startFromSetup, startGame, GALLERY, openGallery, galleryTick, LAST, ACC, PREWARM, frame, boot };
+export { SETUP, resize, showSetup, buildRivals, startFromSetup, buildSetupCfg, startGame, GALLERY, openGallery, galleryTick, LAST, ACC, PREWARM, frame, boot };

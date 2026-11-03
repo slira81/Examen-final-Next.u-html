@@ -1,7 +1,7 @@
 import { BLD, T } from '../data/data.js';
-import { G, canAfford, canHarm, cancelQueue, centerOf, clamp, cmdAttack, cmdMove, costOf, isActive, isAlly, isAnimal, isEnemy, isMil, isPlayer, setMove, setOrder, startFarm, startGather, tileOf, tryBuild } from '../sim/game.js';
+import { G, canAfford, canHarm, centerOf, clamp, costOf, isActive, isAlly, isAnimal, isEnemy, isMil, isPlayer, tileOf } from '../sim/game.js';
+import { cancelQueue, cmdAttack, cmdMove, setMove, setOrder, startGather, tryBuild, respondProposal, setRally, garrison, assignFarms, setSpeed } from '../net/act.js';
 import { exploredAt, visibleAt } from '../world/world.js';
-import { respondProposal } from '../world/diplo.js';
 import { RV, screenToWorld, worldPerCss, viewWorldSize } from '../render/view.js';
 import { $, UI, buildRoad, closeModal, esc, hideTip, onDiploClick, openDiplomacy, openHelp, openMenu, placementTiles, roadTiles, runCmd, showTip } from '../ui/ui.js';
 import { AUDIO, audioUnlock, musicStart, sfx } from '../audio/audio.js';
@@ -45,12 +45,12 @@ function rightClick(w) {
   const mine = G.sel.filter(e => e.team === G.human && !e.dead && !e.inside); if (!mine.length) return;
   const tgt = pickAt(w), bld = mine.length === 1 && mine[0].k === 'b' ? mine[0] : null;
   if (bld) {
-    if (bld.def.train && bld.done) { bld.rally = { x: w.x, y: w.y, target: tgt && (tgt.k === 'r' || (tgt.k === 'b' && tgt.team === G.human)) ? tgt : null }; mark(w.x, w.y, '#ffd23a'); sfx('click'); }
+    if (bld.def.train && bld.done) { setRally(bld, w.x, w.y, tgt && (tgt.k === 'r' || (tgt.k === 'b' && tgt.team === G.human)) ? tgt : null); mark(w.x, w.y, '#ffd23a'); sfx('click'); }
     return;
   }
   const units = mine.filter(e => e.k === 'u'); if (!units.length) return;
   const workers = units.filter(u => u.def.role === 'worker'), others = units.filter(u => u.def.role !== 'worker');
-  if (UI.garMode) { UI.garMode = false; if (tgt && tgt.k === 'b' && tgt.team === G.human && tgt.done && tgt.def.garrison) { for (const u of units) { u.prevOrder = null; setOrder(u, { t: 'garrison', b: tgt }); } mark(w.x, w.y, '#8fff7a'); } else G.msg('Elige un centro urbano, torre o castillo propio', '#ffb070', { sound: 'error' }); return; }
+  if (UI.garMode) { UI.garMode = false; if (tgt && tgt.k === 'b' && tgt.team === G.human && tgt.done && tgt.def.garrison) { garrison(units, tgt); mark(w.x, w.y, '#8fff7a'); } else G.msg('Elige un centro urbano, torre o castillo propio', '#ffb070', { sound: 'error' }); return; }
   if (UI.amove) { cmdMove(units, w.x, w.y, true); mark(w.x, w.y, '#ff6a5a'); UI.amove = false; return; }
   if (tgt && tgt.k === 't') { for (const u of units) setOrder(u, { t: 'treasure', tr: tgt }); mark(w.x, w.y, '#ffd23a'); return; }
   if (tgt && (tgt.k === 'u' || tgt.k === 'b')) {
@@ -63,12 +63,12 @@ function rightClick(w) {
     if (tgt.k === 'u' && tgt.team === G.human && isAnimal(tgt) && workers.length) { for (const u of workers) setOrder(u, { t: 'attack', target: tgt, forced: true }); if (others.length) cmdMove(others, w.x, w.y); mark(w.x, w.y, '#ffd23a'); return; }
     if (tgt.k === 'u' && isAlly(tgt.team, G.human) && tgt.hp < tgt.maxhp) { const healers = units.filter(u => u.def.heal); if (healers.length) { cmdAttack(healers, tgt); mark(w.x, w.y, '#9fe8a0'); } }
     if (tgt.k === 'b' && tgt.team === G.human && tgt.done && tgt.def.garrison && others.length && tgt.hp >= tgt.maxhp * 0.99) {
-      for (const u of others) { u.prevOrder = null; setOrder(u, { t: 'garrison', b: tgt }); }
+      garrison(others, tgt);
       if (workers.length) cmdMove(workers, w.x, w.y);
       mark(w.x, w.y, '#8fff7a'); sfx('click'); return;
     }
     if (tgt.k === 'b' && isAlly(tgt.team, G.human) && workers.length) {
-      if (tgt.type === 'farm' && tgt.done) { let first = true; for (const u of workers) { if (first && startFarm(u, tgt)) { first = false; continue; } const f2 = G.blds.find(b => !b.dead && b.done && b.team === G.human && b.type === 'farm' && !b.farmer); if (f2 && startFarm(u, f2)) continue; setOrder(u, { t: 'build', b: tgt }); } }
+      if (tgt.type === 'farm' && tgt.done) assignFarms(workers, tgt);
       else if (!tgt.done || tgt.hp < tgt.maxhp) for (const u of workers) setOrder(u, { t: 'build', b: tgt });
       else if (tgt.def.drop) for (const u of workers) { if (u.carry && tgt.def.drop.includes(u.ckind)) { setOrder(u, { t: 'return', drop: tgt, kind: u.order.kind }); } else setMove(u, w.x, w.y); }
       else cmdMove(workers, w.x, w.y);
@@ -97,7 +97,7 @@ function handleTap(w) {
   const now = performance.now(), e0 = pickAt(w), dbl = now - INPUT.last.t < 380 && e0 && INPUT.last.id === e0.id;
   INPUT.last = { t: now, id: e0 && e0.id };
   if (UI.placing) { UI.mouseWorld = w; UI.ghost = true; return; }
-  if (UI.rallyMode) { UI.rallyMode = false; const b = G.sel[0]; if (b && b.k === 'b' && b.team === G.human) { b.rally = { x: w.x, y: w.y, target: e0 && (e0.k === 'r' || (e0.k === 'b' && e0.team === G.human)) ? e0 : null }; mark(w.x, w.y, '#ffd23a'); } return; }
+  if (UI.rallyMode) { UI.rallyMode = false; const b = G.sel[0]; if (b && b.k === 'b' && b.team === G.human) { setRally(b, w.x, w.y, e0 && (e0.k === 'r' || (e0.k === 'b' && e0.team === G.human)) ? e0 : null); mark(w.x, w.y, '#ffd23a'); } return; }
   const mine = ownSelUnits();
   if (UI.amove || UI.garMode) { if (mine.length) rightClick(w); else { UI.amove = false; UI.garMode = false; } return; }
   if (e0 && e0.k === 'u' && e0.team === G.human) { clickSelect(w, false, dbl); return; }
@@ -234,7 +234,7 @@ function initInput() {
     else if (b.dataset.act === 'resume') closeModal();
     else if (b.dataset.act === 'help') openHelp();
     else if (b.dataset.act === 'diplo') { UI.paused = false; UI.pausedByModal = false; openDiplomacy(); }
-    else if (b.dataset.act === 'speed') { G.speed = G.speed >= 2 ? 1 : G.speed + 0.5; $('b-speed').textContent = G.speed + 'x'; b.textContent = 'Velocidad: ' + G.speed + 'x'; }
+    else if (b.dataset.act === 'speed') { const v = G.speed >= 2 ? 1 : G.speed + 0.5; setSpeed(v); b.textContent = 'Velocidad: ' + v + 'x'; }
     else if (b.dataset.act === 'music') { AUDIO.music = !AUDIO.music; $('b-music').classList.toggle('off', !AUDIO.music); b.textContent = 'Música: ' + (AUDIO.music ? 'sí' : 'no'); }
     else if (b.dataset.act === 'full') { const d = document.documentElement; try { if (document.fullscreenElement) document.exitFullscreen(); else (d.requestFullscreen || d.webkitRequestFullscreen).call(d).catch(() => G.msg('Este navegador no permite pantalla completa', '#ffb070')); } catch (_) { G.msg('Este navegador no permite pantalla completa', '#ffb070'); } }
     else if (b.dataset.act === 'gallery') openGallery('human');
@@ -249,7 +249,7 @@ function initInput() {
   $('b-idle').onclick = () => onKey({ key: '.', preventDefault() {} });
   $('b-diplo').onclick = () => { openDiplomacy(); };
   $('b-music').onclick = () => { AUDIO.music = !AUDIO.music; $('b-music').classList.toggle('off', !AUDIO.music); };
-  $('b-speed').onclick = () => { G.speed = G.speed >= 2 ? 1 : G.speed + 0.5; $('b-speed').textContent = G.speed + 'x'; };
+  $('b-speed').onclick = () => setSpeed(G.speed >= 2 ? 1 : G.speed + 0.5);
   window.addEventListener('keydown', onKey);
   window.addEventListener('keyup', e => { INPUT.keys[e.key.toLowerCase()] = false; });
   window.addEventListener('blur', () => { INPUT.keys = {}; });

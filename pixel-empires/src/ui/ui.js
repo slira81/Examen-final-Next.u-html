@@ -1,9 +1,11 @@
 import { PE } from '../render/pixel/sprite.js';
 import { AGES, BLD, HOSTILE, LEVEL_MAX, LEVEL_XP, RACES, RES, RES_N, T, TECHS, UNITS } from '../data/data.js';
 import { TR } from '../map/map.js';
-import { G, RES_TYPE, bStats, canAfford, castAbility, clamp, costOf, ejectAll, enqueue, isAnimal, isMil, isPlayer, kill, marketTrade, missingText, refund, releaseBell, removeBuilding, ringBell, setOrder, tribute, uStats } from '../sim/game.js';
+import { G, RES_TYPE, bStats, canAfford, clamp, costOf, isAnimal, isMil, isPlayer, missingText, uStats } from '../sim/game.js';
+import { ejectAll, enqueue, kill, marketTrade, releaseBell, ringBell, setOrder, tribute, useAbility, cancelBuild, buildRoad as actBuildRoad, propose, declareWar, breakAlliance } from '../net/act.js';
+import { NET } from '../net/net.js';
 import { WEATHER, exploredAt } from '../world/world.js';
-import { STANCE_N, breakAlliance, declareWar, propose } from '../world/diplo.js';
+import { STANCE_N } from '../world/diplo.js';
 import { RV, teamColorIdx, artIcon } from '../render/view.js';
 import { miniTileChanged } from './minimap.js';
 import { INPUT, cancelModes, clampCam } from '../input/input.js';
@@ -211,7 +213,7 @@ function cmdList() {
   }
   if (units.length) {
     const gen = units.find(u => u.def.unique);
-    if (gen) out.push({ icon: ['icons', 'cmd_ability'], n: gen.def.ability.n, d: gen.def.ability.d + '. Se lanza sola en combate. Recarga: ' + gen.def.ability.cd + ' s.', locked: gen.abCd > 0 ? 'Recargando (' + Math.ceil(gen.abCd) + ' s)' : null, fn: () => { if (gen.abCd > 0) return; if (castAbility(gen)) gen.abCd = gen.def.ability.cd; else G.msg('No hay objetivos para ' + gen.def.ability.n, '#ffb070'); } });
+    if (gen) out.push({ icon: ['icons', 'cmd_ability'], n: gen.def.ability.n, d: gen.def.ability.d + '. Se lanza sola en combate. Recarga: ' + gen.def.ability.cd + ' s.', locked: gen.abCd > 0 ? 'Recargando (' + Math.ceil(gen.abCd) + ' s)' : null, fn: () => { if (gen.abCd > 0) return; useAbility(gen); } });
     while (out.length < 5) out.push(null);
     out.push({ icon: ['icons', 'cmd_attackmove'], n: 'Atacar moviéndose', key: 'a', d: 'Elige el destino: las unidades atacan a todo enemigo que encuentren por el camino.', fn: () => { cancelModes(); UI.amove = true; } });
     out.push({ icon: ['icons', 'cmd_stop'], n: 'Detener', key: 's', d: 'Cancela la orden actual.', fn: () => units.forEach(u => setOrder(u, { t: 'idle' })) });
@@ -249,7 +251,7 @@ function cmdList() {
     out.push({ icon: ['icons', 'cmd_delete'], n: 'Demoler', key: 'Delete', d: 'Destruye el edificio.', fn: () => kill(bld, null) });
     return out;
   }
-  if (bld && !bld.done) { while (out.length < 14) out.push(null); out.push({ icon: ['icons', 'cmd_delete'], n: 'Cancelar construcción', key: 'Delete', d: 'Recuperas el 75% del coste.', fn: () => { refund(G.human, costOf(G.human, bld.def.cost), 0.75); removeBuilding(bld); G.sel = []; } }); return out; }
+  if (bld && !bld.done) { while (out.length < 14) out.push(null); out.push({ icon: ['icons', 'cmd_delete'], n: 'Cancelar construcción', key: 'Delete', d: 'Recuperas el 75% del coste.', fn: () => { cancelBuild(bld); G.sel = []; } }); return out; }
   return out;
 }
 function bldDesc(t) {
@@ -336,10 +338,12 @@ function canRoad(tx, ty) {
   const i = ty * m.W + tx, t = m.terr[i];
   return !m.blocked[i] && !m.res[i] && (t === TR.GRASS || t === TR.GRASS_DARK || t === TR.DIRT || t === TR.SAND || t === TR.SNOW) && exploredAt(tx, ty);
 }
-function buildRoad(tiles) {
-  let n = 0; const p = G.players[G.human];
-  for (const [tx, ty] of tiles) { if (!canRoad(tx, ty)) continue; if (p.res.stone < 2) { G.msg('Falta piedra para el camino', '#ffb070', { sound: 'error' }); break; } p.res.stone -= 2; G.map.terr[ty * G.map.W + tx] = TR.ROAD; RV.impl.terrainChanged(tx, ty); miniTileChanged(tx, ty); n++; }
-  if (n) { sfx('build'); G.msg('Camino trazado: ' + n + ' casillas', '#cfe8a0'); }
+/** Traza un camino para un jugador (lo ejecuta la capa de órdenes; ver net/act.js). */
+const buildRoad = tiles => actBuildRoad(tiles);
+function buildRoadFor(team, tiles) {
+  let n = 0; const p = G.players[team]; if (!p) return;
+  for (const [tx, ty] of tiles) { if (!canRoad(tx, ty)) continue; if (p.res.stone < 2) { if (team === G.human) G.msg('Falta piedra para el camino', '#ffb070', { sound: 'error' }); break; } p.res.stone -= 2; G.map.terr[ty * G.map.W + tx] = TR.ROAD; RV.impl.terrainChanged(tx, ty); miniTileChanged(tx, ty); n++; }
+  if (n && team === G.human) { sfx('build'); G.msg('Camino trazado: ' + n + ' casillas', '#cfe8a0'); }
 }
 
 // --------------------------------------------------------------- diplomacia
@@ -368,7 +372,7 @@ function onDiploClick(e) {
 function openModal(html) { const m = $('modal'); m.innerHTML = '<div class="mbox">' + html + '</div>'; m.hidden = false; UI.modal = true; }
 function closeModal() { $('modal').hidden = true; UI.modal = false; if (UI.pausedByModal) { UI.paused = false; UI.pausedByModal = false; } }
 function openMenu() {
-  UI.paused = true; UI.pausedByModal = true;
+  UI.paused = !NET.active; UI.pausedByModal = !NET.active;   // en multijugador la partida sigue
   openModal(`<h2>Pausa</h2><div class="menu">
     <button data-act="resume">Continuar</button><button data-act="diplo">Diplomacia</button><button data-act="speed">Velocidad: ${G ? G.speed : 1}x</button><button data-act="music">Música: ${AUDIO.music ? 'sí' : 'no'}</button><button data-act="full">Pantalla completa</button>${RV.impl && RV.impl.setQuality ? '<button data-act="gfx">Gráficos</button>' : ''}<button data-act="help">Cómo jugar</button><button data-act="gallery">Galería de diseños</button><button data-act="restart">Nueva partida</button></div>
     <div class="vol"><label for="v-sfx">Efectos</label><input id="v-sfx" type="range" min="0" max="100" value="${AUDIO.sfxVol * 100}"><label for="v-mus">Música</label><input id="v-mus" type="range" min="0" max="100" value="${AUDIO.musVol * 100}"></div>`);
@@ -408,4 +412,4 @@ function endGame(won) {
   }, 1200);
 }
 
-export { UI, $, HOTKEYS, esc, iconCanvas, trimmed, costHTML, resIconCSS, initHUD, updateTouchUI, updateTop, updateLog, selSig, updateSelectionUI, portrait, RES_KIND_N, buildInfoStatic, statLine, ICON_URL, iconURL, updateInfoDynamic, orderText, cmdList, bldDesc, unitDesc, runCmd, doEnqueue, buildCmds, refreshCmdStates, showTip, hideTip, startPlacing, placementTiles, lineTiles, roadTiles, canRoad, buildRoad, openDiplomacy, onDiploClick, openModal, closeModal, openMenu, openHelp, endGame };
+export { buildRoadFor, UI, $, HOTKEYS, esc, iconCanvas, trimmed, costHTML, resIconCSS, initHUD, updateTouchUI, updateTop, updateLog, selSig, updateSelectionUI, portrait, RES_KIND_N, buildInfoStatic, statLine, ICON_URL, iconURL, updateInfoDynamic, orderText, cmdList, bldDesc, unitDesc, runCmd, doEnqueue, buildCmds, refreshCmdStates, showTip, hideTip, startPlacing, placementTiles, lineTiles, roadTiles, canRoad, buildRoad, openDiplomacy, onDiploClick, openModal, closeModal, openMenu, openHelp, endGame };

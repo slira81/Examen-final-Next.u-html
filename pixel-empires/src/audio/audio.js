@@ -1,3 +1,4 @@
+import { NET } from '../net/net.js';
 import { ZZFX } from './zzfx.js';
 import { mulberry32 } from '../map/map.js';
 import { G, clamp } from '../sim/game.js';
@@ -38,7 +39,11 @@ const SFX = {
 };
 function audioOk() { return AUDIO.on && typeof ZZFX !== 'undefined' && ZZFX.audioContext && ZZFX.audioContext.state === 'running'; }
 function audioUnlock() { try { if (typeof ZZFX !== 'undefined' && ZZFX.audioContext.state !== 'running') ZZFX.audioContext.resume(); AUDIO.ready = true; } catch (e) { /* sin audio */ } }
-function sfx(name, vol = 1, pan = 0) {
+// el audio usa su propio azar: nunca consume el de la simulación (importa en multijugador)
+let _ar = 0x1234567;
+const audioRandom = () => { _ar |= 0; _ar = _ar + 0x6D2B79F5 | 0; let t = Math.imul(_ar ^ _ar >>> 15, 1 | _ar); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+function sfx(name, vol = 1, pan = 0) { const r = Math.random; Math.random = audioRandom; try { sfxRaw(name, vol, pan); } finally { Math.random = r; } }
+function sfxRaw(name, vol = 1, pan = 0) {
   if (!audioOk() || !SFX[name]) return;
   const now = performance.now(); if (now - (AUDIO.last[name] || 0) < 70) return; AUDIO.last[name] = now;
   try {
@@ -47,8 +52,9 @@ function sfx(name, vol = 1, pan = 0) {
   } catch (e) { /* ignorar */ }
 }
 function sfxAt(name, x, y, vol = 1) {
-  if (!G || !G.cam || !audioOk()) return;
-  const vs = viewWorldSize(), vw = vs.w || 240, vh = vs.h || 150, dx = x - (G.cam.x), dy = y - (G.cam.y);
+  const cam = NET.realCam || (G && G.cam);   // en multijugador, durante la simulación G.cam es la cámara compartida
+  if (!G || !cam || !audioOk()) return;
+  const vs = viewWorldSize(), vw = vs.w || 240, vh = vs.h || 150, dx = x - (cam.x), dy = y - (cam.y);
   if (Math.abs(dx) > vw * 0.7 || Math.abs(dy) > vh * 0.7) return;
   if (G.human >= 0 && !visibleAt(x, y)) return;
   sfx(name, vol * (1 - Math.min(0.6, Math.hypot(dx / vw, dy / vh))), dx / (vw * 0.6));

@@ -237,7 +237,7 @@ const threeRenderer = {
   },
   /** Galería: dibuja el modelo (animado si es unidad) en un canvas; false si no hay modelo 3D. */
   galleryFrame(cv, kind, key, anim, t) { return E.renderer ? isolated(() => modelFrameTo(cv, kind, key.startsWith('neutral_') && kind === 'buildings' ? key.slice(8) : key, 0, anim, t)) : false; },
-  icon(kind, key, team, size) { return E.ready || E.renderer ? modelIcon(E.renderer, kind, key, team, size) : null; },
+  icon(kind, key, team, size) { return E.renderer ? isolated(() => modelIcon(E.renderer, kind, key, team, size)) : null; },
   quality: Q, applyQuality, E,
 };
 export { threeRenderer, E, Q, project, rayGround };
