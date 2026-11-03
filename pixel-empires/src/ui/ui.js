@@ -41,7 +41,7 @@ function costHTML(cost, team) {
 function resIconCSS() {
   // genera reglas CSS con los íconos de recursos como data URL
   let css = '';
-  for (const r of [...RES, 'pop']) { const img = PE.frame('icons', 'icon_' + r, 0); const c = iconCanvas(img, 24); css += `.ri-${r}{background-image:url(${c.toDataURL()})}`; }
+  for (const r of [...RES, 'pop']) { const a3 = artIcon('nature', 'icon_' + r, 0, 48), c = a3 || iconCanvas(PE.frame('icons', 'icon_' + r, 0), 24); css += `.ri-${r}{background-image:url(${c.toDataURL()})${a3 ? ';image-rendering:auto' : ''}}`; }
   const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
 }
 function initHUD() {
@@ -134,7 +134,9 @@ function buildInfoStatic() {
 }
 function statLine(icon, v, tip) { return `<span class="st" data-tip="${tip}"><i class="si" style="background-image:url(${iconURL(icon)})"></i>${v}</span>`; }
 const ICON_URL = {};
-function iconURL(k) { return ICON_URL[k] || (ICON_URL[k] = iconCanvas(PE.frame('icons', k, 0), 24).toDataURL()); }
+function iconURL(k) { return ICON_URL[k] || (ICON_URL[k] = (artIcon('nature', k, 0, 64) || iconCanvas(PE.frame('icons', k, 0), 24)).toDataURL()); }
+/** Icono de comando: modelo 3D si existe, si no el pixel. */
+function cmdImg(key) { return artIcon('nature', key, teamColorIdx(G.human), 64) || PE.frame('icons', key, 0); }
 function updateInfoDynamic() {
   if (G.sel.length > 1) { document.querySelectorAll('.mcell').forEach(d => { const e = G.byId.get(+d.dataset.id); if (e) d.querySelector('.hpb i').style.width = Math.round(e.hp / e.maxhp * 100) + '%'; }); return; }
   const e = G.sel[0], el = $('otxt'); if (!e || !el) return;
@@ -175,7 +177,7 @@ function updateInfoDynamic() {
     const q = $('queue');
     if (q) {
       const sig = e.queue.map(x => x.key).join(',');
-      if (q.dataset.sig !== sig) { q.dataset.sig = sig; q.innerHTML = ''; e.queue.forEach((it, i) => { const c = it.kind === 'unit' ? iconCanvas(unitImg(it.key, teamColorIdx(e.team)), 24, 'qi') : iconCanvas(PE.frame('icons', TECHS[it.key].icon, 0), 22, 'qi'); const w = document.createElement('div'); w.className = 'qcell'; w.dataset.q = i; w.dataset.tip = 'Clic para cancelar: ' + (it.kind === 'unit' ? UNITS[it.key].n : TECHS[it.key].n); w.appendChild(c); if (i === 0) w.insertAdjacentHTML('beforeend', '<i class="qp"><i></i></i>'); q.appendChild(w); }); }
+      if (q.dataset.sig !== sig) { q.dataset.sig = sig; q.innerHTML = ''; e.queue.forEach((it, i) => { const c = it.kind === 'unit' ? iconCanvas(unitImg(it.key, teamColorIdx(e.team)), 24, 'qi') : iconCanvas(cmdImg(TECHS[it.key].icon), 24, 'qi'); const w = document.createElement('div'); w.className = 'qcell'; w.dataset.q = i; w.dataset.tip = 'Clic para cancelar: ' + (it.kind === 'unit' ? UNITS[it.key].n : TECHS[it.key].n); w.appendChild(c); if (i === 0) w.insertAdjacentHTML('beforeend', '<i class="qp"><i></i></i>'); q.appendChild(w); }); }
       const first = e.queue[0], qp = q.querySelector('.qp i'); if (first && qp) qp.style.width = Math.min(100, e.qt / (first.kind === 'unit' ? UNITS[first.key].time : TECHS[first.key].time) * 100) + '%';
     }
   } else if (e.k === 'r') {
@@ -286,7 +288,7 @@ function buildCmds() {
     const [kind, key] = c.icon; let img;
     if (kind === 'units') img = unitImg(key, teamColorIdx(G.human));
     else if (kind === 'buildings') img = bldImg(key, teamColorIdx(G.human));
-    else img = PE.frame(kind, key, 0);
+    else img = kind === 'icons' ? cmdImg(key) : PE.frame(kind, key, 0);
     b.appendChild(iconCanvas(img, img.dataset && img.dataset.r3d ? 36 : 32, 'cico'));
     c.hk = c.key || HOTKEYS[i];
     b.insertAdjacentHTML('beforeend', `<em>${c.hk === 'Delete' ? 'Supr' : c.hk.toUpperCase()}</em>`);
@@ -368,7 +370,7 @@ function closeModal() { $('modal').hidden = true; UI.modal = false; if (UI.pause
 function openMenu() {
   UI.paused = true; UI.pausedByModal = true;
   openModal(`<h2>Pausa</h2><div class="menu">
-    <button data-act="resume">Continuar</button><button data-act="diplo">Diplomacia</button><button data-act="speed">Velocidad: ${G ? G.speed : 1}x</button><button data-act="music">Música: ${AUDIO.music ? 'sí' : 'no'}</button><button data-act="full">Pantalla completa</button><button data-act="help">Cómo jugar</button><button data-act="gallery">Galería de diseños</button><button data-act="restart">Nueva partida</button></div>
+    <button data-act="resume">Continuar</button><button data-act="diplo">Diplomacia</button><button data-act="speed">Velocidad: ${G ? G.speed : 1}x</button><button data-act="music">Música: ${AUDIO.music ? 'sí' : 'no'}</button><button data-act="full">Pantalla completa</button>${RV.impl && RV.impl.setQuality ? '<button data-act="gfx">Gráficos</button>' : ''}<button data-act="help">Cómo jugar</button><button data-act="gallery">Galería de diseños</button><button data-act="restart">Nueva partida</button></div>
     <div class="vol"><label for="v-sfx">Efectos</label><input id="v-sfx" type="range" min="0" max="100" value="${AUDIO.sfxVol * 100}"><label for="v-mus">Música</label><input id="v-mus" type="range" min="0" max="100" value="${AUDIO.musVol * 100}"></div>`);
   $('v-sfx').oninput = e => { AUDIO.sfxVol = e.target.value / 100; };
   $('v-mus').oninput = e => { AUDIO.musVol = e.target.value / 100; };

@@ -15,9 +15,10 @@ import { MODELS as UNITS_OGN } from './units_ogn.js';
 import { MODELS as BLD_HED } from './bld_hed.js';
 import { MODELS as BLD_OGN } from './bld_ogn.js';
 import { MODELS as NATURE } from './nature.js';
+import { MODELS as ICONS } from './icons.js';
 import { fallbackUnit, fallbackBuilding, fallbackNature } from './fallback.js';
 
-const ART = Object.assign({}, REF, UNITS_HED, UNITS_OGN, BLD_HED, BLD_OGN, NATURE);
+const ART = Object.assign({}, REF, UNITS_HED, UNITS_OGN, BLD_HED, BLD_OGN, NATURE, ICONS);
 const GEO = new Map(), SK = new Map();
 
 /** Definición de un modelo (o genérica si no existe). kind: 'unit' | 'bld' | 'nature'. */

@@ -6,6 +6,7 @@ import { RV, screenToWorld, worldPerCss, viewWorldSize } from '../render/view.js
 import { $, UI, buildRoad, closeModal, esc, hideTip, onDiploClick, openDiplomacy, openHelp, openMenu, placementTiles, roadTiles, runCmd, showTip } from '../ui/ui.js';
 import { AUDIO, audioUnlock, musicStart, sfx } from '../audio/audio.js';
 import { openGallery, showSetup } from '../main.js';
+import { openGraphics } from '../ui/graphics.js';
 /* =====================================================================
    Entrada unificada (Pointer Events) para ratón y pantalla táctil.
    Ratón: clic selecciona, arrastrar = caja, clic derecho = ordenar,
@@ -237,6 +238,7 @@ function initInput() {
     else if (b.dataset.act === 'music') { AUDIO.music = !AUDIO.music; $('b-music').classList.toggle('off', !AUDIO.music); b.textContent = 'Música: ' + (AUDIO.music ? 'sí' : 'no'); }
     else if (b.dataset.act === 'full') { const d = document.documentElement; try { if (document.fullscreenElement) document.exitFullscreen(); else (d.requestFullscreen || d.webkitRequestFullscreen).call(d).catch(() => G.msg('Este navegador no permite pantalla completa', '#ffb070')); } catch (_) { G.msg('Este navegador no permite pantalla completa', '#ffb070'); } }
     else if (b.dataset.act === 'gallery') openGallery('human');
+    else if (b.dataset.act === 'gfx') openGraphics(() => openMenu());
     else if (b.dataset.act === 'restart') { closeModal(); showSetup(); }
     else if (b.dataset.act === 'watch') { closeModal(); UI.paused = false; }
     else if (b.dataset.gal) openGallery(b.dataset.gal);

@@ -14,6 +14,7 @@ const { chromium } = require('playwright');
     for (let i = 0; i < mins * 60 * 30; i++) PE_GAME.simStep(1 / 30);
     UI.paused = false; INPUT.inWin = false; INPUT.mx = -1; INPUT.my = -1;
     if (opt.zoom) { RV.impl.pinchBegin(); RV.impl.pinchUpdate(+opt.zoom, innerWidth / 2, innerHeight / 2); }
+    if (opt.sel) { const G = PE_GAME.G, e = opt.sel === 'tc' ? G.blds.find(b => b.team === 0 && b.type === 'tc') : G.units.find(u => u.team === 0 && u.def.role === opt.sel); if (e) { G.sel = [e]; UI.page = opt.page || 'root'; updateSelectionUI(true); } }
     if (opt.weather) { G.cfg.weather = true; G.weather.cur = opt.weather; G.weather.a = 1; G.weather.t = 999; G.weather.boltT = 1; }
     if (opt.fx) {   // efectos de prueba alrededor del centro de la cámara y un edificio dañado
       const c = G.cam, put = (key, dx, dy, o) => G.fx.push(Object.assign({ key, x: c.x + dx, y: c.y + dy, t: 0, life: 0.8 }, o || {}));

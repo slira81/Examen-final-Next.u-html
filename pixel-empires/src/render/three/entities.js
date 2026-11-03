@@ -15,6 +15,7 @@ import { RigSet, StaticSet } from './sets.js';
 import { Pose, animate, writeBones, bonesBegin, bonesRow, bonesEnd, BT, MAXP } from './rig.js';
 import { artDef, artGeometry, skeletonOf } from './art/index.js';
 import { Builder } from './kit.js';
+import { Q } from './quality.js';
 
 const TWF = MAXP * 3 * 4;      // floats por fila de huesos
 const V = { scene: null, rig: new Map(), stat: new Map(), poses: new Map(), rs: new Map(), proj: new WeakMap(), corpse: new WeakMap(), used: new Set(), blds: new Map(), collapsing: [], dying: [], teamCols: [], tint: new Map(), decorRows: null };
@@ -207,7 +208,7 @@ function updateEntities(alpha, ctx) {
     else if (r.kind === 'fish') statSet('fish_spot', 'nature').add(X, WATER_LEVEL + 0.01, Z, j * 6.283, 1, 1, 1, null, 0, 99, j);
   }
   // decoración
-  if (V.decorRows) for (let ty = y0; ty <= y1; ty++) { const row = V.decorRows[ty]; if (!row) continue; for (const d of row) { if (d.tx < x0 || d.tx > x1 || !exploredAt(d.tx, d.ty)) continue; const X = d.tx + 0.5, Z = d.ty + 0.5, j = hash(d.tx, d.ty * 3), dd = artDef(d.key, 'nature'); statSet(d.key, 'nature', (d.v || 0) % (dd.variants || 1)).add(X + (j - 0.5) * 0.4, heightAt(X, Z), Z + (hash(d.ty, d.tx) - 0.5) * 0.4, j * 6.283, 1, 1, 1, null, 0, 99, j); } }
+  if (V.decorRows && Q.decor) for (let ty = y0; ty <= y1; ty++) { const row = V.decorRows[ty]; if (!row) continue; for (const d of row) { if (d.tx < x0 || d.tx > x1 || !exploredAt(d.tx, d.ty)) continue; const X = d.tx + 0.5, Z = d.ty + 0.5, j = hash(d.tx, d.ty * 3), dd = artDef(d.key, 'nature'); statSet(d.key, 'nature', (d.v || 0) % (dd.variants || 1)).add(X + (j - 0.5) * 0.4, heightAt(X, Z), Z + (hash(d.ty, d.tx) - 0.5) * 0.4, j * 6.283, 1, 1, 1, null, 0, 99, j); } }
   // huellas: tocones, escombros, quemaduras
   for (const d of G.decals) {
     if (d.tx < x0 - 4 || d.tx > x1 || d.ty < y0 - 4 || d.ty > y1 || !exploredAt(d.tx, d.ty)) continue;

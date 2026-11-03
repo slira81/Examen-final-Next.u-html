@@ -18,9 +18,10 @@ import { initOverlay, resizeOverlay, drawOverlay } from './overlay.js';
 import { initParticles, disposeParticles } from './particles.js';
 import { updateEffects } from './effects.js';
 import { modelIcon } from './portrait.js';
+import { Q, PRESETS } from './quality.js';
+import { titleFrame, disposeTitle } from './title3d.js';
 
 const PITCH = 52 * Math.PI / 180, FOV = 34;
-const Q = { shadows: true, shadowSize: 2048, dprCap: 2, scale: 1 };
 const E = {
   kind: 'three', renderer: null, scene: null, camera: null, dom: null, sun: null, hemi: null,
   dist: 20, tdist: 20, dmin: 7, dmax: 46, anchor: null, ray: new THREE.Raycaster(), ndc: new THREE.Vector2(), v: new THREE.Vector3(),
@@ -39,7 +40,7 @@ function initThree(dom) {
   E.sun.shadow.bias = -0.0006; E.sun.shadow.normalBias = 0.02; E.sun.shadow.radius = 2.5;
   E.scene.add(E.sun); E.scene.add(E.sun.target);
   initOverlay(dom.overlay);
-  if (matchMedia('(pointer: coarse)').matches) { Q.dprCap = 1.5; Q.shadowSize = 1024; E.tdist = E.dist = 16; }
+  if (matchMedia('(pointer: coarse)').matches) { E.tdist = E.dist = 16; }
   applyQuality();
 }
 function applyQuality() {
@@ -53,7 +54,7 @@ function resize3() {
   resizeOverlay(Math.min(2, window.devicePixelRatio || 1));
 }
 function onGameStart3() {
-  disposeTerrain(E.scene); disposeWater(E.scene); disposeEntities(E.scene); disposeParticles();
+  disposeTitle(); disposeTerrain(E.scene); disposeWater(E.scene); disposeEntities(E.scene); disposeParticles();
   const m = G.map;
   buildTerrain(m, E.scene); buildWater(E.scene); buildEntities(E.scene); initParticles(E.scene);
   GLOBAL.uMapSize.value.set(m.W, m.H);
@@ -69,6 +70,8 @@ function onGameStart3() {
     const race = G.players[G.human].race, team = G.players[G.human].color;
     for (const r of ['worker', 'inf', 'pike', 'ranged', 'cav', 'special', 'siege', 'general']) E.iconQueue.push(['units', race + '_' + r, team]);
     for (const t of ['house', 'farm', 'mill', 'lumber', 'mine', 'barracks', 'range', 'stable', 'temple', 'forge', 'market', 'tower', 'wall_post', 'gate', 'workshop', 'castle', 'tc']) E.iconQueue.push(['buildings', race + '_' + t, team]);
+    for (const k of ['cmd_build', 'cmd_wall', 'cmd_attackmove', 'cmd_stop', 'cmd_upg_walls', 'cmd_repair', 'cmd_delete', 'cmd_back', 'cmd_rally', 'cmd_idle', 'cmd_road', 'cmd_upg_loom', 'cmd_ageup']) E.iconQueue.push(['nature', k, team]);
+    for (const k of ['icon_attack', 'icon_armor', 'icon_parmor', 'icon_range', 'icon_speed']) E.iconQueue.push(['nature', k, 0]);
   }
 }
 // ------------------------------------------------------------- cámara
@@ -201,7 +204,7 @@ function frame3(dt, alpha) {
 // alterar la secuencia aleatoria de la simulación (misma partida con render pixel o 3D).
 let _rs = 0x2545f491;
 const renderRandom = () => { _rs |= 0; _rs = _rs + 0x6D2B79F5 | 0; let t = Math.imul(_rs ^ _rs >>> 15, 1 | _rs); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
-function isolated(fn, a, b) { const r = Math.random; Math.random = renderRandom; try { return fn(a, b); } finally { Math.random = r; } }
+function isolated(fn, a, b, c) { const r = Math.random; Math.random = renderRandom; try { return fn(a, b, c); } finally { Math.random = r; } }
 const threeRenderer = {
   kind: 'three', get dom() { return E.dom; },
   init(dom) { isolated(initThree, dom); dom.canvas.hidden = true; E.dom.hidden = false; dom.overlay.hidden = false; },
@@ -224,6 +227,14 @@ const threeRenderer = {
   unitsInScreenRect(d) { return unitsInRect3(d); },
   isOnScreen(u) { const X = u.x / T, Z = u.y / T, p = project(X, heightAt(X, Z), Z); return p.z < 1 && p.x >= 0 && p.y >= 0 && p.x <= innerWidth && p.y <= innerHeight; },
   drawMinimapView(x) { if (!E.foot) return; x.beginPath(); E.foot.forEach((p, i) => i ? x.lineTo(p.X, p.Z) : x.moveTo(p.X, p.Z)); x.closePath(); x.stroke(); },
+  /** Fondo animado de la pantalla de título (sin partida). */
+  titleFrame(dt, race) { if (E.renderer) isolated(titleFrame, E.renderer, dt, race); },
+  /** Ajustes gráficos: { preset, shadows, particles, scale } (los que falten salen del preset). */
+  setQuality(o) {
+    Object.assign(Q, PRESETS[o.preset] || PRESETS[Q.preset], { preset: o.preset || Q.preset });
+    if (o.shadows !== undefined) Q.shadows = o.shadows; if (o.particles !== undefined) Q.particles = o.particles; if (o.scale) Q.scale = o.scale;
+    if (E.renderer) { applyQuality(); resize3(); E.scene.traverse(m => { if (m.material) m.material.needsUpdate = true; }); }
+  },
   icon(kind, key, team, size) { return E.ready || E.renderer ? modelIcon(E.renderer, kind, key, team, size) : null; },
   quality: Q, applyQuality, E,
 };

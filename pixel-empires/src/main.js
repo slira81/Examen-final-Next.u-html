@@ -8,7 +8,7 @@ import './render/pixel/art/fauna_fx.js';
 import { PE } from './render/pixel/sprite.js';
 import { ANIMALS, BLD, DIFFICULTY, PLAYER_NAMES, RACES, RACE_KEYS, ROLES, T, UNITS } from './data/data.js';
 import { G, clamp, newGame, setG, simStep } from './sim/game.js';
-import { RV, setRenderer } from './render/view.js';
+import { RV, setRenderer, artIcon } from './render/view.js';
 import { pixelRenderer } from './render/pixel/adapter.js';
 import { threeRenderer } from './render/three/engine.js';
 import { buildMiniBase, drawMinimap } from './ui/minimap.js';
@@ -35,6 +35,7 @@ import * as __v3 from './render/three/terrain.js';
 import * as __v4 from './render/pixel/adapter.js';
 import * as __v5 from './ui/minimap.js';
 import { startViewer } from './render/three/viewer.js';
+import { loadGfx, applyGfx, openGraphics } from './ui/graphics.js';
 /* =====================================================================
    Arranque: pantalla de configuración, galería de diseños, bucle
    principal (simulación a paso fijo de 30 Hz + render por frame).
@@ -47,7 +48,9 @@ function showSetup() {
   const cards = $('races'); cards.innerHTML = '';
   for (const k of RACE_KEYS) {
     const r = RACES[k], card = document.createElement('button'); card.className = 'race' + (SETUP.race === k ? ' on' : ''); card.dataset.race = k;
-    const cv = document.createElement('canvas'); cv.className = 'rport'; cv.dataset.key = k + '_general'; card.appendChild(cv);
+    const a3 = artIcon('units', k + '_general', 0, 200), cv = document.createElement('canvas'); cv.className = 'rport'; cv.dataset.key = k + '_general';
+    if (a3) { cv.width = cv.height = 200; cv.dataset.r3d = '1'; cv.getContext('2d').drawImage(a3, 0, 0); }
+    card.appendChild(cv);
     card.insertAdjacentHTML('beforeend', `<b>${r.n}</b><small>${r.desc}</small><ul>${r.bonus.map(b => '<li>' + b + '</li>').join('')}</ul>`);
     card.onclick = () => { SETUP.race = k; document.querySelectorAll('.race').forEach(c => c.classList.toggle('on', c.dataset.race === k)); };
     cards.appendChild(card);
@@ -135,7 +138,8 @@ function frame(ts) {
   const dt = Math.min(0.1, (ts - LAST) / 1000 || 0); LAST = ts;
   try {
     // retratos animados de la pantalla inicial
-    if (!$('setup').hidden) document.querySelectorAll('.rport').forEach(cv => { const img = PE.frame('units', cv.dataset.key, Math.floor(ts / 160), { team: 0, anim: 'idle' }); if (cv.width !== img.width * 3) { cv.width = img.width * 3; cv.height = img.height * 3; } const x = cv.getContext('2d'); x.imageSmoothingEnabled = false; x.clearRect(0, 0, cv.width, cv.height); x.drawImage(img, 0, 0, cv.width, cv.height); });
+    if (!G && !$('setup').hidden && RV.impl.titleFrame) RV.impl.titleFrame(dt, SETUP.race);
+    if (!$('setup').hidden) document.querySelectorAll('.rport:not([data-r3d])').forEach(cv => { const img = PE.frame('units', cv.dataset.key, Math.floor(ts / 160), { team: 0, anim: 'idle' }); if (cv.width !== img.width * 3) { cv.width = img.width * 3; cv.height = img.height * 3; } const x = cv.getContext('2d'); x.imageSmoothingEnabled = false; x.clearRect(0, 0, cv.width, cv.height); x.drawImage(img, 0, 0, cv.width, cv.height); });
     galleryTick(dt);
     if (PREWARM.length) { const t0 = performance.now(); while (PREWARM.length && performance.now() - t0 < 4) { const [k, key, f, o] = PREWARM.pop(); if (PE.ART[k][key]) PE.frame(k, key, f, o); } }
     if (G) {
@@ -161,6 +165,8 @@ function boot() {
   setRenderer(use3d ? threeRenderer : pixelRenderer);
   try { RV.impl.init({ canvas: $('game'), canvas3d: $('game3d'), overlay: $('overlay') }); }
   catch (e) { console.error('Sin WebGL, se usa el render pixel', e); setRenderer(pixelRenderer); RV.impl.init({ canvas: $('game') }); }
+  loadGfx(); applyGfx();
+  $('s-gfx').hidden = !RV.impl.setQuality; $('s-gfx').onclick = () => openGraphics();
   window.addEventListener('resize', resize);
   if (matchMedia('(pointer: coarse)').matches) { INPUT.touch = true; document.body.classList.add('touch'); }
   $('s-rivals').onchange = buildRivals;

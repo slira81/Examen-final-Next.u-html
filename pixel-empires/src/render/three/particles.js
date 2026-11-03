@@ -8,6 +8,7 @@
    ===================================================================== */
 import * as THREE from 'three';
 import { GLOBAL, NOISE_GLSL } from './shaderlib.js';
+import { Q } from './quality.js';
 
 const VERT = /* glsl */`
 attribute vec4 iPos; attribute vec4 iCol; attribute vec4 iMisc; attribute vec4 iVel;
@@ -83,6 +84,7 @@ const R = (a, b) => a + (b - a) * Math.random();
  */
 function emit(n, o) {
   const L = o.add ? P.add : P.normal; if (!L) return;
+  if (Q.particles < 1 && !o.keep) { const f = n * Q.particles; n = Math.floor(f) + (Math.random() < f % 1 ? 1 : 0); if (!n) return; }
   _c0.set(o.c0 || '#ffffff'); _c1.set(o.c1 || o.c0 || '#ffffff');
   for (let i = 0; i < n; i++) {
     if (L.list.length >= MAX) L.list.shift();
